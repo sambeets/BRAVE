@@ -1,0 +1,13 @@
+{
+  "cstar": 4768866.926967651,
+  "K_HX": 4.4,
+  "K_FLEX": 13.173826840030223,
+  "K_BAT_E": 20.34118639503038,
+  "K_BAT_P": 4.0,
+  "eff_level_index": 1,
+  "eff_reduction": 0.15,
+  "eff_capex": 1680000.0,
+  "status": "Optimal",
+  "lmp_settle_avg_dc": 74.73076923076921,
+  "lmp_shadow_avg_dc": 74.73076923076921
+}

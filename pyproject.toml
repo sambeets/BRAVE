@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "sipue-modelling"
+version = "0.1.0"
+description = "Research and modeling work for SIPUE."
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pulp = "^2.9.0"
+matplotlib = "^3.9.0"
+pymupdf = "^1.27.1"
+highspy = "^1.13.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: pure math and logic, no solver, fast",
+    "component: profile/scenario generation, may use data files",
+    "integration: solver-dependent, golden value checks, slower",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[build-system]
+requires = ["poetry-core>=1.7.0"]
+build-backend = "poetry.core.masonry.api"

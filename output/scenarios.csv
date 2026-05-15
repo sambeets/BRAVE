@@ -1,0 +1,11 @@
+sid,name,dc_type,location,base_it_mw,flex_frac,base_pue,heat_recovery_frac,hp_cop,el_price_level,el_price_vol,heat_price_level,heat_demand_level,flex_price_level,carbon_factor,carbon_price,land_limit_m2,construction_delay_frac
+1,Hyperscale-Netherlands,hyperscale,Netherlands,40,0.135,1.18,0.45,3.5,58,20,34.8,65.0,14.5,0.328,65.0,1100,0.06
+2,AI-Norway,ai,Norway,25,0.108,1.12,0.5,3.6,42,15,32.76,45.0,11.55,0.029,65.0,850,0.02
+3,Streaming-Belgium,streaming,Belgium,18,0.198,1.32,0.4,3.2,65,28,42.9,38.0,16.25,0.148,65.0,750,0.08
+4,Hyperscale-Sweden,hyperscale,Sweden,35,0.12600000000000003,1.08,0.5,3.4,45,16,37.8,50.0,12.375000000000002,0.015,65.0,1000,0.04
+5,Streaming-UnitedKingdom,streaming,United Kingdom,16,0.216,1.35,0.3,2.8,82,30,34.44,20.0,18.45,0.207,65.0,700,0.1
+6,AI-Sweden,ai,Sweden,20,0.09000000000000001,1.14,0.45,3.3,48,18,37.44,30.0,13.200000000000001,0.015,65.0,800,0.03
+7,Colocation-Germany,colocation,Germany,22,0.07200000000000001,1.35,0.35,3.1,62,22,40.92,42.0,15.5,0.385,65.0,820,0.07
+8,AI-Denmark,ai,Denmark,22,0.117,1.13,0.5,3.5,50,20,36.0,40.0,13.750000000000002,0.15,65.0,830,0.03
+9,Streaming-France,streaming,France,20,0.18000000000000002,1.3,0.35,3.0,72,26,38.88,28.0,16.2,0.056,65.0,780,0.12
+10,Hyperscale-UnitedKingdom,hyperscale,United Kingdom,32,0.14400000000000002,1.2,0.35,3.0,78,25,32.76,25.0,17.55,0.207,65.0,950,0.08
