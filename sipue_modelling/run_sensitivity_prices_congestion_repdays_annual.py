@@ -113,7 +113,7 @@ def _mean(rows: List[Dict], key: str) -> float:
 
 
 def summarize(factor: str, level: str, rows: List[Dict], archetype: str) -> Dict:
-    suffix = "carbon_minmax"
+    suffix = "robust"
     return {
         "Factor": factor,
         "Level": level,

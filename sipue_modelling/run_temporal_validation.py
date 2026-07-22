@@ -24,11 +24,11 @@ from brave.metrics import service_revenue_scale
 
 def _design_from_row(row: Dict) -> Dict[str, float]:
     return {
-        "K_HX_per_MW_IT": float(row["K_HX_per_MW_IT_carbon_minmax"]),
-        "K_HP_per_MW_IT": float(row["K_HP_per_MW_IT_carbon_minmax"]),
-        "K_FLEX_per_MW_IT": float(row["K_FLEX_per_MW_IT_carbon_minmax"]),
-        "K_BAT_E_per_MW_IT": float(row["K_BAT_E_per_MW_IT_carbon_minmax"]),
-        "K_BAT_P_per_MW_IT": float(row["K_BAT_P_per_MW_IT_carbon_minmax"]),
+        "K_HX_per_MW_IT": float(row["K_HX_per_MW_IT_robust"]),
+        "K_HP_per_MW_IT": float(row["K_HP_per_MW_IT_robust"]),
+        "K_FLEX_per_MW_IT": float(row["K_FLEX_per_MW_IT_robust"]),
+        "K_BAT_E_per_MW_IT": float(row["K_BAT_E_per_MW_IT_robust"]),
+        "K_BAT_P_per_MW_IT": float(row["K_BAT_P_per_MW_IT_robust"]),
         "eff_reduction": 0.15,
     }
 
@@ -40,13 +40,13 @@ def _metric_rows(label: str, rows: List[Dict]) -> List[Dict]:
             "TemporalRepresentation": label,
             "Archetype": row["Archetype"],
             "ScenarioID": row["ScenarioID"],
-            "PUE": row["PUE_carbon_minmax"],
-            "siPUE": row["siPUE_carbon_minmax"],
-            "LifecycleCostNPVEUR": row["MarketCostNPVEUR_carbon_minmax"],
-            "RegretEUR": float(row["MarketCostNPVEUR_carbon_minmax"]) - float(row["MarketCostNPVEUR_scenario_perfect"]),
-            "EmissionsTCO2": row["EmissionsTCO2_carbon_minmax"],
-            "CongestionHours": row["CongestionHours_carbon_minmax"],
-            "RenewableCurtailmentMWh": row["RenewableCurtailmentMWh_carbon_minmax"],
+            "PUE": row["PUE_robust"],
+            "siPUE": row["siPUE_robust"],
+            "LifecycleCostNPVEUR": row["MarketCostNPVEUR_robust"],
+            "RegretEUR": float(row["MarketCostNPVEUR_robust"]) - float(row["MarketCostNPVEUR_scenario_perfect"]),
+            "EmissionsTCO2": row["EmissionsTCO2_robust"],
+            "CongestionHours": row["CongestionHours_robust"],
+            "RenewableCurtailmentMWh": row["RenewableCurtailmentMWh_robust"],
         })
     return output
 
@@ -79,9 +79,9 @@ def run_temporal_validation(smoke: bool = False) -> List[Dict]:
         export_plots=False,
         auto_calibrate_line_limits=False,
         auto_calibrate_sipue_reference_price=False,
-        line_cap_12=float(first["LineCap12MW_carbon_minmax"]),
-        line_cap_23=float(first["LineCap23MW_carbon_minmax"]),
-        line_cap_13=float(first["LineCap13MW_carbon_minmax"]),
+        line_cap_12=float(first["LineCap12MW_robust"]),
+        line_cap_23=float(first["LineCap23MW_robust"]),
+        line_cap_13=float(first["LineCap13MW_robust"]),
         sipue_system_ref_price_eur_per_mwh=float(first["ReferencePriceEURPerMWh"]),
     )
     study = make_study_scenarios(full_cfg)

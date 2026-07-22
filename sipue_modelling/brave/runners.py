@@ -25,9 +25,7 @@ from brave.scenario import (
     DATA_CENTER_ARCHETYPES,
     Scenario,
     apply_global_heat_assumptions,
-    make_archetype_scenarios,
     make_out_of_sample_scenarios,
-    make_scenarios,
     make_study_scenarios,
 )
 from brave.timeseries import (
@@ -45,7 +43,7 @@ DESIGN_CASES = (
     "deterministic",
     "expected_value",
     "pure_minmax",
-    "carbon_minmax",
+    "robust",
     "scenario_perfect",
 )
 
@@ -847,36 +845,6 @@ def _write_manifest(cfg: Config, scenarios: Sequence[Scenario], output_dir: str)
         json.dump(payload, handle, indent=2, sort_keys=True)
 
 
-def refresh_percentage_outputs(cfg: Config) -> List[Dict]:
-    """Add derived percentage reporting to an existing canonical result run."""
-    output_dir = cfg.canonical_output_dir
-    results_path = os.path.join(output_dir, "results_4_archetypes_10_states.csv")
-    comparison_path = os.path.join(output_dir, "design_comparison.csv")
-    if not os.path.isfile(results_path) or not os.path.isfile(comparison_path):
-        raise FileNotFoundError(
-            "Canonical results and design comparison must exist before percentages can be refreshed."
-        )
-    with open(results_path, newline="", encoding="utf-8") as handle:
-        rows = list(csv.DictReader(handle))
-    with open(comparison_path, newline="", encoding="utf-8") as handle:
-        comparison = list(csv.DictReader(handle))
-    if len(rows) != 40:
-        raise ValueError(f"Canonical percentage refresh requires 40 archetype-state rows, got {len(rows)}.")
-    for row in rows:
-        _add_land_status_fields(row, cfg)
-        _add_percentage_fields(row)
-    _write_csv(rows, results_path)
-    _write_csv(_paper_metric_rows(rows), os.path.join(output_dir, "paper_metrics_long.csv"))
-    _write_csv(_conclusion_summary(rows, comparison), os.path.join(output_dir, "conclusion_summary.csv"))
-    export_parameter_provenance(cfg, os.path.join(output_dir, "parameter_provenance.csv"))
-    study = make_study_scenarios(cfg)
-    scenarios = [sc for group in study.values() for sc in group]
-    for group in study.values():
-        apply_global_heat_assumptions(group, cfg)
-    _write_manifest(cfg, scenarios, output_dir)
-    return rows
-
-
 def run_single(cfg: Config) -> List[Dict]:
     random.seed(cfg.seed)
     if cfg.enforce_locked_calibration:
@@ -927,7 +895,7 @@ def run_single(cfg: Config) -> List[Dict]:
                 "deterministic": _solve_design_ops(sc, prof, constrained_cfg, deterministic),
                 "expected_value": _solve_design_ops(sc, prof, constrained_cfg, expected),
                 "pure_minmax": _solve_design_ops(sc, prof, pure_cfg, pure),
-                "carbon_minmax": _solve_design_ops(sc, prof, constrained_cfg, robust),
+                "robust": _solve_design_ops(sc, prof, constrained_cfg, robust),
                 "scenario_perfect": _solve_design_ops(sc, prof, constrained_cfg, perfect_designs[sc.sid]),
             }
             pure_perfect = _solve_design_ops(sc, prof, pure_cfg, pure_perfect_designs[sc.sid])
@@ -958,10 +926,10 @@ def run_single(cfg: Config) -> List[Dict]:
                 "UncertaintyState": sc.uncertainty_id,
                 "Scenario": sc.name,
                 "ConstructionDelayMonths": sc.construction_delay_months + cfg_local.construction_delay_months,
-                "DelayAwareCostNPVEUR": cases["carbon_minmax"]["market_planning_cost_npv_eur"],
+                "DelayAwareCostNPVEUR": cases["robust"]["market_planning_cost_npv_eur"],
                 "ZeroDelayDesignCostNPVEUR": steady_under_delay["market_planning_cost_npv_eur"],
-                "RedesignValueEUR": steady_under_delay["market_planning_cost_npv_eur"] - cases["carbon_minmax"]["market_planning_cost_npv_eur"],
-                "DelayAwareSiPUE": cases["carbon_minmax"]["siPUE"],
+                "RedesignValueEUR": steady_under_delay["market_planning_cost_npv_eur"] - cases["robust"]["market_planning_cost_npv_eur"],
+                "DelayAwareSiPUE": cases["robust"]["siPUE"],
                 "ZeroDelayDesignSiPUE": steady_under_delay["siPUE"],
                 "DelayAwareWorstRegretEUR": robust["worst_regret_eur"],
                 "DelayAwareWorstRegretEURPerMWhIT": robust["worst_regret_eur_per_mwh_it"],
@@ -1119,7 +1087,7 @@ def run_primary_design(cfg: Config) -> List[Dict]:
                 "ReferencePriceEURPerMWh": cfg_local.sipue_system_ref_price_eur_per_mwh,
             }
             row.update(_case_fields(reference, "no_services"))
-            row.update(_case_fields(robust_ops, "carbon_minmax"))
+            row.update(_case_fields(robust_ops, "robust"))
             row.update(_case_fields(perfect_ops, "scenario_perfect"))
             rows.append(row)
     run_id = _run_id(cfg_local, scenarios)

@@ -17,14 +17,14 @@ def _rows():
             "PUE_no_services": pue,
             "siPUE_no_services": pue,
             "siPUE_baseline": pue - 0.01,
-            "siPUE_carbon_minmax": pue - 0.02,
-            "SteadySiPUE_carbon_minmax": pue - 0.03,
+            "siPUE_robust": pue - 0.02,
+            "SteadySiPUE_robust": pue - 0.03,
             "siPUE_expected_value": pue - 0.015,
             "siPUE_pure_minmax": pue - 0.018,
             "siPUE_scenario_perfect": pue - 0.025,
-            "SystemBenefitEUR_carbon_minmax": 100.0,
-            "CarbonMarketCostEUR_carbon_minmax": 50.0,
-            "CarbonDamageEUR_carbon_minmax": 75.0,
+            "SystemBenefitEUR_robust": 100.0,
+            "CarbonMarketCostEUR_robust": 50.0,
+            "CarbonDamageEUR_robust": 75.0,
         })
     return rows
 

@@ -35,7 +35,7 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
         "deterministic",
         "expected_value",
         "pure_minmax",
-        "carbon_minmax",
+        "robust",
         "scenario_perfect",
     )
     for suffix in suffixes:
@@ -67,15 +67,15 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
 
     delay_rows = [
         row for row in rows
-        if _finite(row.get("siPUE_carbon_minmax")) and _finite(row.get("SteadySiPUE_carbon_minmax"))
+        if _finite(row.get("siPUE_robust")) and _finite(row.get("SteadySiPUE_robust"))
     ]
     checks.append({
         "test": "delay_monotonicity",
-        "case": "carbon_minmax",
+        "case": "robust",
         "n": len(delay_rows),
         "passed": all(
-            float(row["siPUE_carbon_minmax"]) + _TOL >= float(row["SteadySiPUE_carbon_minmax"])
-            if float(row.get("SystemBenefitEUR_carbon_minmax", 0.0)) >= 0.0 else True
+            float(row["siPUE_robust"]) + _TOL >= float(row["SteadySiPUE_robust"])
+            if float(row.get("SystemBenefitEUR_robust", 0.0)) >= 0.0 else True
             for row in delay_rows
         ),
         "note": "construction delay cannot strengthen a positive system credit",
@@ -83,8 +83,8 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
 
     carbon_rows = [
         row for row in rows
-        if _finite(row.get("CarbonMarketCostEUR_carbon_minmax"))
-        and _finite(row.get("CarbonDamageEUR_carbon_minmax"))
+        if _finite(row.get("CarbonMarketCostEUR_robust"))
+        and _finite(row.get("CarbonDamageEUR_robust"))
     ]
     checks.append({
         "test": "carbon_ledger_separation",

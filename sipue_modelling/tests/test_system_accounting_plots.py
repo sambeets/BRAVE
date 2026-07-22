@@ -13,15 +13,15 @@ def _plot_row(i: int):
     return {
         "Scenario": f"Scenario-{i}",
         "PUE_no_services": 1.20,
-        "PUE_carbon_minmax": 1.21,
+        "PUE_robust": 1.21,
         "siPUE_no_services": 1.20,
-        "siPUE_carbon_minmax": 1.14,
-        "SiPUECreditLossMWh_carbon_minmax": 10.0 + i,
-        "CarbonMarketCostEUR_carbon_minmax": 50_000.0 + i,
-        "CarbonDamageEUR_carbon_minmax": 75_000.0 + i,
-        "CoolingMWh_carbon_minmax": 100.0 + i,
-        "RecoveredHeatITMWhth_carbon_minmax": 80.0 + i,
-        "RecoveredHeatCoolingMWhth_carbon_minmax": 20.0 + i,
+        "siPUE_robust": 1.14,
+        "SiPUECreditLossMWh_robust": 10.0 + i,
+        "CarbonMarketCostEUR_robust": 50_000.0 + i,
+        "CarbonDamageEUR_robust": 75_000.0 + i,
+        "CoolingMWh_robust": 100.0 + i,
+        "RecoveredHeatITMWhth_robust": 80.0 + i,
+        "RecoveredHeatCoolingMWhth_robust": 20.0 + i,
     }
 
 

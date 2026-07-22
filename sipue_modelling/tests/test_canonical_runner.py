@@ -51,18 +51,18 @@ def test_canonical_schema_excludes_removed_kpis(canonical_smoke_rows):
 
 def test_cooling_and_heat_sources_are_identifiable(canonical_smoke_rows):
     for row in canonical_smoke_rows:
-        assert row["CoolingMWh_carbon_minmax"] >= 0.0
-        assert row["RecoveredHeatITMWhth_carbon_minmax"] >= 0.0
-        assert row["RecoveredHeatCoolingMWhth_carbon_minmax"] >= 0.0
+        assert row["CoolingMWh_robust"] >= 0.0
+        assert row["RecoveredHeatITMWhth_robust"] >= 0.0
+        assert row["RecoveredHeatCoolingMWhth_robust"] >= 0.0
 
 
 def test_robust_design_is_normalized_and_uses_site_land_limits(canonical_smoke_rows):
     intensity_fields = (
-        "K_HX_per_MW_IT_carbon_minmax",
-        "K_HP_per_MW_IT_carbon_minmax",
-        "K_FLEX_per_MW_IT_carbon_minmax",
-        "K_BAT_E_per_MW_IT_carbon_minmax",
-        "K_BAT_P_per_MW_IT_carbon_minmax",
+        "K_HX_per_MW_IT_robust",
+        "K_HP_per_MW_IT_robust",
+        "K_FLEX_per_MW_IT_robust",
+        "K_BAT_E_per_MW_IT_robust",
+        "K_BAT_P_per_MW_IT_robust",
     )
     for archetype in {row["ArchetypeKey"] for row in canonical_smoke_rows}:
         subset = [row for row in canonical_smoke_rows if row["ArchetypeKey"] == archetype]
@@ -71,13 +71,13 @@ def test_robust_design_is_normalized_and_uses_site_land_limits(canonical_smoke_r
             assert max(values) - min(values) <= 1e-9
     land_values = set()
     for row in canonical_smoke_rows:
-        land = float(row["LandM2_carbon_minmax"])
-        limit = float(row["LandLimitM2_carbon_minmax"])
+        land = float(row["LandM2_robust"])
+        limit = float(row["LandLimitM2_robust"])
         land_values.add(round(land, 6))
         assert land <= limit + 1e-6
-        assert row["CoolingLandM2_carbon_minmax"] > 0.0
-        assert row["IntegrationLandM2_carbon_minmax"] >= 0.0
-        assert row["LandUtilizationPct_carbon_minmax"] == pytest.approx(100.0 * land / limit)
+        assert row["CoolingLandM2_robust"] > 0.0
+        assert row["IntegrationLandM2_robust"] >= 0.0
+        assert row["LandUtilizationPct_robust"] == pytest.approx(100.0 * land / limit)
     assert len(land_values) > 1
 
 
@@ -85,9 +85,9 @@ def test_zero_delay_recovers_post_construction_metrics(canonical_smoke_rows):
     zero_delay = [row for row in canonical_smoke_rows if row["ConstructionDelayMonths"] == 0.0]
     assert zero_delay
     for row in zero_delay:
-        assert row["siPUE_carbon_minmax"] == pytest.approx(row["SteadySiPUE_carbon_minmax"])
-        assert row["LifecycleValueLossEUR_carbon_minmax"] == pytest.approx(0.0, abs=1e-6)
-        assert row["SiPUECreditLossPct_carbon_minmax"] == pytest.approx(0.0, abs=1e-9)
+        assert row["siPUE_robust"] == pytest.approx(row["SteadySiPUE_robust"])
+        assert row["LifecycleValueLossEUR_robust"] == pytest.approx(0.0, abs=1e-6)
+        assert row["SiPUECreditLossPct_robust"] == pytest.approx(0.0, abs=1e-9)
 
 
 def test_percentage_sign_convention_and_references(canonical_smoke_rows):
@@ -116,7 +116,7 @@ def test_conclusion_summary_distinguishes_ratio_of_averages(canonical_smoke_rows
             })
     summary = _conclusion_summary(canonical_smoke_rows, comparison)
     assert len(summary) == len(DESIGN_CASES) * 5
-    robust = next(item for item in summary if item["Archetype"] == "all" and item["Design"] == "carbon_minmax")
+    robust = next(item for item in summary if item["Archetype"] == "all" and item["Design"] == "robust")
     assert robust["ScenarioCount"] == 40
     assert "LifecycleCostReductionPctVsNoServices" in robust
     assert "AverageScenarioLifecycleCostReductionPctVsNoServices" in robust

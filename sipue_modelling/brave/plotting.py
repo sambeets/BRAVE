@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import matplotlib
 
@@ -56,7 +56,7 @@ def export_plots(rows: List[Dict], cfg: Config) -> None:
     out_dir = _ensure_plot_dir(cfg)
     labels = _labels(rows)
     x = np.arange(len(rows))
-    case = "carbon_minmax"
+    case = "robust"
 
     fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.2))
     pue_delta = [_num(row, f"PUE_{case}") - _num(row, "PUE_no_services") for row in rows]
@@ -139,8 +139,8 @@ def export_study_plots(
 
     fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2))
     for ax, key, ylabel in (
-        (axes[0], "PUEReductionPctVsNoServices_carbon_minmax", "PUE reduction vs no-services (%)"),
-        (axes[1], "SiPUEReductionPctVsNoServices_carbon_minmax", "siPUE reduction vs no-services (%)"),
+        (axes[0], "PUEReductionPctVsNoServices_robust", "PUE reduction vs no-services (%)"),
+        (axes[1], "SiPUEReductionPctVsNoServices_robust", "siPUE reduction vs no-services (%)"),
     ):
         stats = [mean_range(name, key) for name in archetypes]
         means = [item[0] for item in stats]
@@ -157,8 +157,8 @@ def export_study_plots(
 
     fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2))
     for ax, key, ylabel in (
-        (axes[0], "LifecycleCostReductionPctVsNoServices_carbon_minmax", "Lifecycle cost reduction (%)"),
-        (axes[1], "DCAttributedEmissionsReductionPctVsNoServices_carbon_minmax", "DC-attributable emissions reduction (%)"),
+        (axes[0], "LifecycleCostReductionPctVsNoServices_robust", "Lifecycle cost reduction (%)"),
+        (axes[1], "DCAttributedEmissionsReductionPctVsNoServices_robust", "DC-attributable emissions reduction (%)"),
     ):
         stats = [mean_range(name, key) for name in archetypes]
         means = [item[0] for item in stats]
@@ -173,7 +173,7 @@ def export_study_plots(
     fig.savefig(os.path.join(out_dir, f"cost_emissions_change_by_archetype.{cfg.plot_format}"))
     plt.close(fig)
 
-    design_order = ["deterministic", "expected_value", "pure_minmax", "carbon_minmax"]
+    design_order = ["deterministic", "expected_value", "pure_minmax", "robust"]
     design_labels = ["Deterministic", "Expected value", "Absolute min-max", "Normalized carbon min-max"]
     fig, ax = plt.subplots(figsize=(9.3, 4.4))
     width = 0.18
@@ -196,8 +196,8 @@ def export_study_plots(
     plt.close(fig)
 
     fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2))
-    delay_loss = [float(np.mean(values(name, "DelayLossPctOfZeroDelayGain_carbon_minmax"))) for name in archetypes]
-    credit_loss = [float(np.mean(values(name, "SiPUECreditLossPct_carbon_minmax"))) for name in archetypes]
+    delay_loss = [float(np.mean(values(name, "DelayLossPctOfZeroDelayGain_robust"))) for name in archetypes]
+    credit_loss = [float(np.mean(values(name, "SiPUECreditLossPct_robust"))) for name in archetypes]
     axes[0].bar(x, delay_loss, color=colors)
     axes[1].bar(x, credit_loss, color=colors)
     for ax, ylabel in zip(axes, ("Delay loss (% of zero-delay gain)", "siPUE credit lost to delay (%)")):
@@ -210,14 +210,14 @@ def export_study_plots(
     plt.close(fig)
 
     fig, axes = plt.subplots(1, 2, figsize=(10.5, 4.2))
-    market = [float(np.mean(values(name, "CarbonMarketCostEUR_carbon_minmax"))) / 1e6 for name in archetypes]
-    damage = [float(np.mean(values(name, "CarbonDamageEUR_carbon_minmax"))) / 1e6 for name in archetypes]
+    market = [float(np.mean(values(name, "CarbonMarketCostEUR_robust"))) / 1e6 for name in archetypes]
+    damage = [float(np.mean(values(name, "CarbonDamageEUR_robust"))) / 1e6 for name in archetypes]
     axes[0].bar(x - 0.18, market, 0.36, label="ETS payment", color="#C17C2C")
     axes[0].bar(x + 0.18, damage, 0.36, label="carbon damage", color="#8E5C7A")
     axes[0].set_ylabel("Annual value (million EUR)")
     axes[0].legend(frameon=False)
-    congestion = [float(np.mean(values(name, "CongestionHours_carbon_minmax"))) for name in archetypes]
-    curtailment = [float(np.mean(values(name, "RenewableCurtailmentMWh_carbon_minmax"))) for name in archetypes]
+    congestion = [float(np.mean(values(name, "CongestionHours_robust"))) for name in archetypes]
+    curtailment = [float(np.mean(values(name, "RenewableCurtailmentMWh_robust"))) for name in archetypes]
     axes[1].bar(x - 0.18, congestion, 0.36, label="congestion hours", color="#2F6B8A")
     axes[1].bar(x + 0.18, curtailment, 0.36, label="renewable curtailment (MWh)", color="#3A7D44")
     axes[1].set_ylabel("Annual system outcome")
@@ -244,7 +244,7 @@ def export_study_plots(
                 _num(row, "ValueEUR") / 1e6
                 for row in decomposition
                 if row.get("Archetype") == archetype
-                and row.get("Design") == "carbon_minmax"
+                and row.get("Design") == "robust"
                 and row.get("Ledger") == "market"
                 and row.get("Component") == component
             ]
