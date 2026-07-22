@@ -37,6 +37,7 @@ class TestSolvePerfectForesight:
     def test_design_values_nonnegative(self, pf_result_24h):
         _, design = pf_result_24h
         assert design["K_HX"] >= -1e-6
+        assert design["K_HP"] >= -1e-6
         assert design["K_FLEX"] >= -1e-6
         assert design["K_BAT_E"] >= -1e-6
         assert design["K_BAT_P"] >= -1e-6
@@ -44,6 +45,7 @@ class TestSolvePerfectForesight:
     def test_design_within_bounds(self, pf_result_24h, cfg_test):
         _, design = pf_result_24h
         assert design["K_HX"] <= cfg_test.K_HX_max + 1e-6
+        assert design["K_HP"] <= cfg_test.K_HP_max + 1e-6
         assert design["K_FLEX"] <= cfg_test.K_FLEX_max + 1e-6
         assert design["K_BAT_E"] <= cfg_test.K_BAT_E_max + 1e-6
         assert design["K_BAT_P"] <= cfg_test.K_BAT_P_max + 1e-6
@@ -62,7 +64,7 @@ class TestSolvePerfectForesight:
             golden = json.load(f)
         cstar, design = pf_result_24h
         assert cstar == pytest.approx(golden["cstar"], rel=1e-3)
-        for key in ["K_HX", "K_FLEX", "K_BAT_E", "K_BAT_P"]:
+        for key in ["K_HX", "K_HP", "K_FLEX", "K_BAT_E", "K_BAT_P"]:
             if key in golden:
                 assert design[key] == pytest.approx(golden[key], rel=1e-3), \
                     f"Mismatch in {key}: got {design[key]}, expected {golden[key]}"

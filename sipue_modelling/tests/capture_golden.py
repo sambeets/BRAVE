@@ -63,8 +63,8 @@ def main():
     prof1 = make_hourly_profiles(sc1, cfg.T, cfg)
     prof1 = apply_services_mode(sc1, prof1, cfg)
 
-    k_hx, k_flex, k_bat_e, k_bat_p, eff = baseline_design_for_scenario(sc1, prof1, cfg)
-    ops = solve_ops_given_design(sc1, prof1, cfg, k_hx, k_flex, k_bat_e, k_bat_p, eff)
+    k_hx, k_hp, k_flex, k_bat_e, k_bat_p, eff = baseline_design_for_scenario(sc1, prof1, cfg)
+    ops = solve_ops_given_design(sc1, prof1, cfg, k_hx, k_flex, k_bat_e, k_bat_p, eff, K_HP=k_hp)
     scalars = _scalar_dict(ops)
     path_ops = os.path.join(GOLDEN_DIR, "solve_ops_scenario1_24h.json")
     with open(path_ops, "w") as f:

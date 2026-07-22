@@ -17,9 +17,10 @@ class TestComputeLandM2:
         assert result == pytest.approx(cfg_test.base_land_m2)
 
     def test_linear_in_capacities(self, cfg_test):
-        land = compute_land_m2(10.0, 5.0, 20.0, 8.0, 0.15, cfg_test)
+        land = compute_land_m2(10.0, 5.0, 20.0, 8.0, 0.15, cfg_test, K_HP=3.0)
         expected = (cfg_test.base_land_m2
                     + cfg_test.land_a_hx * 10
+                    + cfg_test.land_a_hp * 3
                     + cfg_test.land_a_flex * 5
                     + cfg_test.land_a_bat_e * 20
                     + cfg_test.land_a_bat_p * 8)
@@ -105,7 +106,7 @@ class TestEffCapexFromReduction:
 
     def test_0_15_reduction(self):
         cfg = Config(enforce_locked_calibration=False)
-        assert eff_capex_from_reduction(0.15, cfg) == 1680000.0
+        assert eff_capex_from_reduction(0.15, cfg) == 16800000.0
 
     def test_empty_levels(self):
         cfg = Config(enforce_locked_calibration=False, eff_levels=())
@@ -120,18 +121,20 @@ class TestServiceRevenueScale:
         assert service_revenue_scale(cfg, None) == pytest.approx(1.0)
 
     def test_cfg_delay(self):
-        cfg = Config(enforce_locked_calibration=False, construction_delay_frac=0.10)
-        assert service_revenue_scale(cfg, None) == pytest.approx(0.90)
+        cfg = Config(enforce_locked_calibration=False, construction_delay_months=12.0)
+        assert 0.90 < service_revenue_scale(cfg, None) < 1.0
 
     def test_combined_delay(self, cfg_test, scenario_hyperscale):
-        # cfg has 0.0 delay, scenario has 0.06
+        scenario_hyperscale.construction_delay_months = 6.0
         result = service_revenue_scale(cfg_test, scenario_hyperscale)
-        assert result == pytest.approx(1.0 * (1.0 - 0.06))
+        assert 0.95 < result < 1.0
 
     def test_both_delays(self, scenario_hyperscale):
-        cfg = Config(enforce_locked_calibration=False, construction_delay_frac=0.10)
+        cfg = Config(enforce_locked_calibration=False, construction_delay_months=6.0)
+        scenario_hyperscale.construction_delay_months = 6.0
         result = service_revenue_scale(cfg, scenario_hyperscale)
-        assert result == pytest.approx(0.90 * 0.94)
+        one_delay = Config(enforce_locked_calibration=False, construction_delay_months=6.0)
+        assert result < service_revenue_scale(one_delay, None)
 
 
 # ---------- design_size_proxy ----------

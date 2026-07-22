@@ -19,7 +19,11 @@ from brave.config import (  # noqa: F401
 
 # ── brave.scenario ────────────────────────────────────────────────────────────
 from brave.scenario import (  # noqa: F401
+    DATA_CENTER_ARCHETYPES,
     Scenario,
+    make_archetype_scenarios,
+    make_study_scenarios,
+    make_out_of_sample_scenarios,
     make_scenarios,
     apply_global_heat_assumptions,
 )
@@ -72,19 +76,32 @@ from brave.export import (  # noqa: F401
     summarize_interpretation,
 )
 
+from brave.validation import (  # noqa: F401
+    compute_ere,
+    add_derived_validation_metrics,
+    build_validation_summary,
+    build_ablation_summary,
+    export_validation_tables,
+    export_out_of_sample_tables,
+)
+
 # ── brave.plotting ────────────────────────────────────────────────────────────
 from brave.plotting import (  # noqa: F401
     PLOT_FONT_SCALE,
     _fs,
     _pretty_type_label,
-    plot_lmp_profile,
-    plot_metric_vs_cost_spearman,
     export_plots,
+    export_study_plots,
     export_regret_landscapes,
 )
 
 # ── brave.runners ─────────────────────────────────────────────────────────────
-from brave.runners import run_single  # noqa: F401
+from brave.runners import (  # noqa: F401
+    _make_cv_folds,
+    run_single,
+    run_out_of_sample_validation,
+    run_cross_validated_validation,
+)
 
 
 if __name__ == "__main__":

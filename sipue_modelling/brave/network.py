@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import csv
 import os
-from typing import Dict, List, Tuple
+from typing import Dict, List, Sequence, Tuple
+
+import pulp
 
 from brave.config import Config
+from brave.solver import make_solver_lp
 
 
 def _ensure_network_defaults(cfg: Config) -> Tuple[Dict[str, str], Dict[str, float], Dict[str, float], Dict[str, float], Dict[str, float]]:
@@ -160,3 +163,156 @@ def load_network_timeseries(cfg: Config, T: int) -> Dict[str, List[float]]:
 
     _NETWORK_TS_CACHE[cache_key] = series
     return series
+
+
+def _weighted_quantile(values: Sequence[float], weights: Sequence[float], quantile: float) -> float:
+    ordered = sorted(zip(values, weights), key=lambda item: item[0])
+    threshold = min(1.0, max(0.0, quantile)) * sum(max(0.0, weight) for _, weight in ordered)
+    cumulative = 0.0
+    for value, weight in ordered:
+        cumulative += max(0.0, weight)
+        if cumulative >= threshold:
+            return float(value)
+    return float(ordered[-1][0]) if ordered else 0.0
+
+
+def solve_no_dc_network(
+    profile: Dict[str, List[float]],
+    cfg: Config,
+    line_caps: Tuple[float, float, float],
+    load_perturbation_mw: float = 0.0,
+) -> Dict[str, object]:
+    """Resource-only no-DC dispatch used to freeze network and siPUE inputs."""
+    node_loads = profile["node_loads"]
+    ren_avail = profile["ren_avail"]
+    fuel_price = profile["fuel_price"]
+    weights = profile.get("w", [1.0] * len(fuel_price))
+    T = len(fuel_price)
+    n1, n2, n3 = cfg.network_nodes
+    cap12, cap23, cap13 = line_caps
+    b12 = cfg.line_susceptance_12_mw_per_rad
+    b23 = cfg.line_susceptance_23_mw_per_rad
+    b13 = cfg.line_susceptance_13_mw_per_rad
+    th_eff = {"N1": cfg.th_eff_N1, "N2": cfg.th_eff_N2, "N3": cfg.th_eff_N3}
+    th_vom = {"N1": cfg.th_vom_N1, "N2": cfg.th_vom_N2, "N3": cfg.th_vom_N3}
+    th_cap = {"N1": cfg.th_cap_N1_mw, "N2": cfg.th_cap_N2_mw, "N3": cfg.th_cap_N3_mw}
+    th_ef = {"N1": cfg.th_ef_N1, "N2": cfg.th_ef_N2, "N3": cfg.th_ef_N3}
+
+    model = pulp.LpProblem("NoDCNetworkCalibration", pulp.LpMinimize)
+    g_ren = {n: pulp.LpVariable.dicts(f"cal_G_REN_{n}", range(T), lowBound=0) for n in cfg.network_nodes}
+    g_th = {n: pulp.LpVariable.dicts(f"cal_G_TH_{n}", range(T), lowBound=0) for n in cfg.network_nodes}
+    theta = {n: pulp.LpVariable.dicts(f"cal_THETA_{n}", range(T), lowBound=None) for n in cfg.network_nodes}
+    f12 = pulp.LpVariable.dicts("cal_F12", range(T), lowBound=None)
+    f23 = pulp.LpVariable.dicts("cal_F23", range(T), lowBound=None)
+    f13 = pulp.LpVariable.dicts("cal_F13", range(T), lowBound=None)
+
+    for t in range(T):
+        total_load = sum(node_loads[n][t] for n in cfg.network_nodes)
+        perturb = {
+            n: load_perturbation_mw * node_loads[n][t] / max(1e-9, total_load)
+            for n in cfg.network_nodes
+        }
+        model += theta[n1][t] == 0.0
+        model += f12[t] == b12 * (theta[n1][t] - theta[n2][t])
+        model += f23[t] == b23 * (theta[n2][t] - theta[n3][t])
+        model += f13[t] == b13 * (theta[n1][t] - theta[n3][t])
+        model += f12[t] <= cap12
+        model += -f12[t] <= cap12
+        model += f23[t] <= cap23
+        model += -f23[t] <= cap23
+        model += f13[t] <= cap13
+        model += -f13[t] <= cap13
+        for n in cfg.network_nodes:
+            model += g_ren[n][t] <= ren_avail[n][t]
+            model += g_th[n][t] <= th_cap[n]
+        model += g_ren[n1][t] + g_th[n1][t] - f12[t] - f13[t] == node_loads[n1][t] + perturb[n1]
+        model += g_ren[n2][t] + g_th[n2][t] + f12[t] - f23[t] == node_loads[n2][t] + perturb[n2]
+        model += g_ren[n3][t] + g_th[n3][t] + f13[t] + f23[t] == node_loads[n3][t] + perturb[n3]
+
+    model += pulp.lpSum(
+        (fuel_price[t] / max(1e-9, th_eff[n]) + th_vom[n]) * g_th[n][t] * weights[t]
+        for n in cfg.network_nodes for t in range(T)
+    )
+    model.solve(make_solver_lp(cfg))
+    status = pulp.LpStatus[model.status]
+    if status != "Optimal":
+        raise RuntimeError(f"No-DC network calibration failed with status {status}.")
+    flows = {
+        "12": [float(pulp.value(f12[t])) for t in range(T)],
+        "23": [float(pulp.value(f23[t])) for t in range(T)],
+        "13": [float(pulp.value(f13[t])) for t in range(T)],
+    }
+    util = [
+        max(
+            abs(flows["12"][t]) / max(1e-9, cap12),
+            abs(flows["23"][t]) / max(1e-9, cap23),
+            abs(flows["13"][t]) / max(1e-9, cap13),
+        )
+        for t in range(T)
+    ]
+    total_hours = sum(weights)
+    binding_hours = sum(
+        weights[t] for t in range(T)
+        if util[t] >= 1.0 - cfg.line_binding_tolerance
+    )
+    renewable_available = sum(
+        ren_avail[n][t] * weights[t] for n in cfg.network_nodes for t in range(T)
+    )
+    renewable_used = sum(
+        float(pulp.value(g_ren[n][t])) * weights[t]
+        for n in cfg.network_nodes for t in range(T)
+    )
+    emissions_tco2 = sum(
+        th_ef[n] * float(pulp.value(g_th[n][t])) * weights[t]
+        for n in cfg.network_nodes for t in range(T)
+    )
+    return {
+        "status": status,
+        "resource_cost_eur": float(pulp.value(model.objective)),
+        "flows": flows,
+        "congestion_fraction": binding_hours / max(1e-9, total_hours),
+        "congestion_hours": binding_hours,
+        "renewable_curtailment_mwh": max(0.0, renewable_available - renewable_used),
+        "emissions_tco2": emissions_tco2,
+        "load_shedding_mwh": 0.0,
+    }
+
+
+def calibrate_no_dc_network(profile: Dict[str, List[float]], cfg: Config) -> Dict[str, float]:
+    """Freeze line limits at the no-DC target and derive resource-only p_ref."""
+    weights = profile.get("w", [1.0] * len(profile["fuel_price"]))
+    unconstrained = solve_no_dc_network(profile, cfg, (1e6, 1e6, 1e6))
+    target = min(0.95, max(0.05, cfg.congestion_target_fraction))
+    quantile = 1.0 - target
+    raw_caps = tuple(
+        max(1.0, _weighted_quantile(
+            [abs(value) for value in unconstrained["flows"][line]],
+            weights,
+            quantile,
+        ))
+        for line in ("12", "23", "13")
+    )
+    candidates = []
+    for scale in (0.70 + 0.05 * index for index in range(27)):
+        caps = tuple(max(1.0, value * scale) for value in raw_caps)
+        dispatch = solve_no_dc_network(profile, cfg, caps)
+        candidates.append((abs(float(dispatch["congestion_fraction"]) - target), caps, dispatch))
+    _, caps, dispatch = min(candidates, key=lambda item: item[0])
+    perturb = max(1e-6, cfg.sipue_reference_price_perturbation_mw)
+    perturbed = solve_no_dc_network(profile, cfg, caps, load_perturbation_mw=perturb)
+    added_energy = perturb * sum(weights)
+    reference_price = (
+        float(perturbed["resource_cost_eur"]) - float(dispatch["resource_cost_eur"])
+    ) / max(1e-9, added_energy)
+    if reference_price <= 0.0:
+        raise RuntimeError("No-DC resource marginal cost must be positive.")
+    return {
+        "line_cap_12_mw": caps[0],
+        "line_cap_23_mw": caps[1],
+        "line_cap_13_mw": caps[2],
+        "congestion_fraction": float(dispatch["congestion_fraction"]),
+        "congestion_hours": float(dispatch["congestion_hours"]),
+        "load_shedding_mwh": float(dispatch["load_shedding_mwh"]),
+        "renewable_curtailment_mwh": float(dispatch["renewable_curtailment_mwh"]),
+        "reference_price_eur_per_mwh": reference_price,
+    }

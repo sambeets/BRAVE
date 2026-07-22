@@ -1,5 +1,6 @@
 import pytest
 from main import Config, Scenario, make_scenarios, apply_global_heat_assumptions
+from brave.scenario import DATA_CENTER_ARCHETYPES, make_study_scenarios
 
 pytestmark = pytest.mark.component
 
@@ -93,3 +94,18 @@ class TestApplyGlobalHeatAssumptions:
         apply_global_heat_assumptions(scenarios, cfg)
         for sc in scenarios:
             assert sc.hp_cop == pytest.approx(4.0)
+
+
+class TestPublicationStudyScenarios:
+    def test_four_archetypes_share_ten_uncertainty_states(self):
+        study = make_study_scenarios(Config(enforce_locked_calibration=False))
+        assert set(study) == {item.key for item in DATA_CENTER_ARCHETYPES}
+        assert all(len(group) == 10 for group in study.values())
+        assert all({sc.uncertainty_id for sc in group} == set(range(1, 11)) for group in study.values())
+
+    def test_archetype_sizes_match_study_design(self):
+        study = make_study_scenarios(Config(enforce_locked_calibration=False))
+        assert {sc.base_it_mw for sc in study["ai_hpc"]} == {40.0}
+        assert {sc.base_it_mw for sc in study["hyperscale"]} == {60.0}
+        assert {sc.base_it_mw for sc in study["colocation"]} == {25.0}
+        assert {sc.base_it_mw for sc in study["enterprise_edge"]} == {8.0}

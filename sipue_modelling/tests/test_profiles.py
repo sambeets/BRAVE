@@ -4,6 +4,7 @@ from main import (
     Config, Scenario, make_hourly_profiles, _ensure_network_defaults,
     build_representative_days, load_network_timeseries,
 )
+from brave.scenario import DATA_CENTER_ARCHETYPES, make_archetype_scenarios
 
 pytestmark = pytest.mark.component
 
@@ -25,7 +26,7 @@ class TestMakeHourlyProfiles:
         prof = make_hourly_profiles(scenario_hyperscale, 24, cfg_test)
         required_keys = {
             "it_base", "it_demand", "p_el", "p_heat", "dh_cap",
-            "p_flex", "p_it", "cop_t", "dc_node",
+            "p_flex", "cop_t", "dc_node",
             "carbon_factor", "p_co2",
         }
         assert required_keys.issubset(prof.keys())
@@ -87,6 +88,31 @@ class TestMakeHourlyProfiles:
         random.seed(42)
         prof = make_hourly_profiles(sc, 24, cfg_test)
         assert prof["dc_node"] == "N3"
+
+    def test_uncertainty_states_set_fuel_and_ets_price_moments(self, cfg_test):
+        cfg = Config(
+            T=24,
+            enforce_locked_calibration=False,
+            network_timeseries_csv=cfg_test.network_timeseries_csv,
+        )
+        scenarios = make_archetype_scenarios(cfg, DATA_CENTER_ARCHETYPES[0])
+        low = make_hourly_profiles(scenarios[1], cfg.T, cfg)
+        high = make_hourly_profiles(scenarios[2], cfg.T, cfg)
+        low_ets = sum(low["p_co2"]) / cfg.T
+        high_ets = sum(high["p_co2"]) / cfg.T
+        assert low_ets == pytest.approx(scenarios[1].carbon_price)
+        assert high_ets == pytest.approx(scenarios[2].carbon_price)
+        assert high_ets > low_ets
+
+        low_n2_mc = sum(
+            fuel / cfg.th_eff_N2 + cfg.th_vom_N2 for fuel in low["fuel_price"]
+        ) / cfg.T
+        high_n2_mc = sum(
+            fuel / cfg.th_eff_N2 + cfg.th_vom_N2 for fuel in high["fuel_price"]
+        ) / cfg.T
+        assert low_n2_mc == pytest.approx(scenarios[1].el_price_level, abs=1e-3)
+        assert high_n2_mc == pytest.approx(scenarios[2].el_price_level, abs=1e-3)
+        assert high_n2_mc > low_n2_mc
 
 
 class TestBuildRepresentativeDays:

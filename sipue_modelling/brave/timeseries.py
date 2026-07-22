@@ -13,6 +13,49 @@ def _daily_mean(values: List[float]) -> float:
     return sum(values) / max(1, len(values))
 
 
+def _scenario_fuel_prices(
+    source: List[float],
+    indices: List[int],
+    sc: Scenario,
+    cfg: Config,
+) -> List[float]:
+    """Convert scenario electricity-cost moments into fuel-price units.
+
+    The source data supplies temporal shape. Scenario level and volatility are
+    interpreted as the mean and standard deviation of N2 thermal marginal cost.
+    """
+    source_mean = _daily_mean(source)
+    source_std = max(
+        _daily_mean([(value - source_mean) ** 2 for value in source]) ** 0.5,
+        1e-9,
+    )
+    target_mean = max(
+        0.0,
+        (float(sc.el_price_level) - float(cfg.th_vom_N2)) * float(cfg.th_eff_N2),
+    )
+    target_std = max(0.0, float(sc.el_price_vol) * float(cfg.th_eff_N2))
+    return [
+        max(0.0, target_mean + target_std * (source[index] - source_mean) / source_std)
+        for index in indices
+    ]
+
+
+def _scenario_ets_prices(
+    source: Optional[List[float]],
+    indices: List[int],
+    sc: Scenario,
+    cfg: Config,
+) -> List[float]:
+    """Scale the source ETS shape to each uncertainty state's mean price."""
+    target_mean = max(0.0, float(sc.carbon_price) * float(cfg.co2_timeseries_scale))
+    if not source:
+        return [target_mean for _ in indices]
+    source_mean = _daily_mean(source)
+    if source_mean <= 1e-9:
+        return [target_mean for _ in indices]
+    return [max(0.0, target_mean * float(source[index]) / source_mean) for index in indices]
+
+
 def _squared_distance(a: List[float], b: List[float]) -> float:
     return sum((ai - bi) ** 2 for ai, bi in zip(a, b))
 
@@ -262,10 +305,11 @@ def make_hourly_profiles_from_indices(
     rep_day_starts: List[int],
 ) -> Dict[str, List[float]]:
     T = len(indices)
-    it, it_demand, pheat, dhcap, pflex, p_it = [], [], [], [], [], []
+    it, it_demand, pheat, dhcap, pflex = [], [], [], [], []
+    avoided_flex_cost = []
     t_amb_c, t_dh_supply_c, cop_t = [], [], []
     cf = [sc.carbon_factor] * T
-    pco2 = [sc.carbon_price] * T
+    pco2 = [sc.carbon_price * cfg.co2_timeseries_scale] * T
 
     node_assignment, _, _, _, _ = _ensure_network_defaults(cfg)
     dc_node = node_assignment.get(sc.location, cfg.network_nodes[0])
@@ -283,10 +327,8 @@ def make_hourly_profiles_from_indices(
     }
     load_total = [node_loads["N1"][i] + node_loads["N2"][i] + node_loads["N3"][i] for i in range(T)]
     max_load_total = max(load_total) if load_total else 1.0
-    fuel_price = [ts["fuel_eur_per_mwh_fuel"][i] for i in indices]
-    co2_price = ts.get("co2_eur_per_t", None)
-    if co2_price is not None:
-        co2_price = [float(v) * float(cfg.co2_timeseries_scale) for v in co2_price]
+    fuel_price = _scenario_fuel_prices(ts["fuel_eur_per_mwh_fuel"], indices, sc, cfg)
+    co2_price = _scenario_ets_prices(ts.get("co2_eur_per_t"), indices, sc, cfg)
     amb_series = ts.get("amb_temp_c", None)
     dh_series = ts.get("dh_supply_temp_c", None)
 
@@ -304,6 +346,8 @@ def make_hourly_profiles_from_indices(
             it_t = sc.base_it_mw * (0.88 + 0.22 * math.sin(2 * math.pi * (hour - 6) / 24))
         elif sc.dc_type == "ai":
             it_t = sc.base_it_mw * (0.97 + 0.07 * (1 if hour in [10, 11, 12, 13, 14] else 0))
+        elif sc.dc_type == "enterprise_edge":
+            it_t = sc.base_it_mw * (0.78 + 0.18 * (1 if 7 <= hour <= 19 else 0))
         elif sc.dc_type == "streaming":
             it_t = sc.base_it_mw * (0.80 + 0.35 * math.sin(2 * math.pi * (hour - 16) / 24) + 0.10)
         else:
@@ -362,21 +406,31 @@ def make_hourly_profiles_from_indices(
         base_f = sc.flex_price_level * flex_tight * (0.95 + 0.25 * (1 if hour in [7, 8, 9, 18, 19] else 0))
         spike_f = random.uniform(0.0, sc.flex_price_level) if random.random() < 0.10 else 0.0
         pflex.append(max(0.0, base_f + spike_f))
-
+        avoided_flex_cost.append(
+            max(
+                0.0,
+                cfg.independent_avoided_flex_cost_eur_per_mw_h
+                * cfg.flex_system_value_multiplier
+                * flex_tight
+                * (0.95 + 0.25 * (1 if hour in [7, 8, 9, 18, 19] else 0)),
+            )
+        )
         dem_base = it_t * cfg.it_demand_scale
         dem_shape = 1.0 + 0.05 * math.sin(2 * math.pi * (hour - 8) / 24)
         dem_noise = random.uniform(-0.05, 0.05)
         it_demand_t = max(0.0, dem_base * (dem_shape + dem_noise))
         it_demand.append(it_demand_t)
 
-        it_price = cfg.it_price_multiplier * sc.el_price_level + cfg.it_price_daily_amp * math.sin(2 * math.pi * (hour - 12) / 24)
-        it_price += random.uniform(-cfg.it_price_vol, cfg.it_price_vol)
-        p_it.append(max(0.0, it_price))
-
-    p_el = [0.0] * T
-    if cfg.sipue_credit_normalization == "ref_price":
-        p_el = [float(cfg.sipue_ref_price_eur_per_mwh)] * T
+    p_el = [float(cfg.sipue_system_ref_price_eur_per_mwh)] * T
     cong = [0.0] * T
+
+    avoided_heat_cost = [
+        cfg.heat_system_value_multiplier * (
+            fuel_price[t] / max(1e-9, cfg.independent_heat_boiler_efficiency)
+            + cfg.independent_heat_boiler_vom_eur_per_mwhth
+        )
+        for t in range(T)
+    ]
 
     return {
         "it_base": it,
@@ -385,7 +439,7 @@ def make_hourly_profiles_from_indices(
         "p_heat": pheat,
         "dh_cap": dhcap,
         "p_flex": pflex,
-        "p_it": p_it,
+        "avoided_flex_cost": avoided_flex_cost,
         "t_amb_c": t_amb_c,
         "t_dh_supply_c": t_dh_supply_c,
         "cop_t": cop_t,
@@ -394,9 +448,10 @@ def make_hourly_profiles_from_indices(
         "cong": cong,
         "grid_cap": None,
         "carbon_factor": cf,
-        "p_co2": ([co2_price[i] for i in indices] if co2_price is not None else pco2),
+        "p_co2": co2_price,
         "ren_avail": ren_avail,
         "fuel_price": fuel_price,
+        "avoided_heat_cost": avoided_heat_cost,
         "w": weights,
         "rep_day_starts": rep_day_starts,
         "source_hours": indices[:],
@@ -404,10 +459,11 @@ def make_hourly_profiles_from_indices(
 
 
 def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[float]]:
-    it, it_demand, pheat, dhcap, pflex, p_it = [], [], [], [], [], []
+    it, it_demand, pheat, dhcap, pflex = [], [], [], [], []
+    avoided_flex_cost = []
     t_amb_c, t_dh_supply_c, cop_t = [], [], []
     cf = [sc.carbon_factor] * T
-    pco2 = [sc.carbon_price] * T
+    pco2 = [sc.carbon_price * cfg.co2_timeseries_scale] * T
 
     node_assignment, _, _, _, _ = _ensure_network_defaults(cfg)
     dc_node = node_assignment.get(sc.location, cfg.network_nodes[0])
@@ -425,10 +481,9 @@ def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[fl
     }
     load_total = [node_loads["N1"][i] + node_loads["N2"][i] + node_loads["N3"][i] for i in range(T)]
     max_load_total = max(load_total) if load_total else 1.0
-    fuel_price = ts["fuel_eur_per_mwh_fuel"][:T]
-    co2_price = ts.get("co2_eur_per_t", None)
-    if co2_price is not None:
-        co2_price = [float(v) * float(cfg.co2_timeseries_scale) for v in co2_price]
+    indices = list(range(T))
+    fuel_price = _scenario_fuel_prices(ts["fuel_eur_per_mwh_fuel"], indices, sc, cfg)
+    co2_price = _scenario_ets_prices(ts.get("co2_eur_per_t"), indices, sc, cfg)
     amb_series = ts.get("amb_temp_c", None)
     dh_series = ts.get("dh_supply_temp_c", None)
 
@@ -443,6 +498,8 @@ def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[fl
             it_t = sc.base_it_mw * (0.88 + 0.22 * math.sin(2 * math.pi * (hour - 6) / 24))
         elif sc.dc_type == "ai":
             it_t = sc.base_it_mw * (0.97 + 0.07 * (1 if hour in [10, 11, 12, 13, 14] else 0))
+        elif sc.dc_type == "enterprise_edge":
+            it_t = sc.base_it_mw * (0.78 + 0.18 * (1 if 7 <= hour <= 19 else 0))
         elif sc.dc_type == "streaming":
             it_t = sc.base_it_mw * (0.80 + 0.35 * math.sin(2 * math.pi * (hour - 16) / 24) + 0.10)
         else:
@@ -501,6 +558,15 @@ def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[fl
         base_f = sc.flex_price_level * flex_tight * (0.95 + 0.25 * (1 if hour in [7, 8, 9, 18, 19] else 0))
         spike_f = random.uniform(0.0, sc.flex_price_level) if random.random() < 0.10 else 0.0
         pflex.append(max(0.0, base_f + spike_f))
+        avoided_flex_cost.append(
+            max(
+                0.0,
+                cfg.independent_avoided_flex_cost_eur_per_mw_h
+                * cfg.flex_system_value_multiplier
+                * flex_tight
+                * (0.95 + 0.25 * (1 if hour in [7, 8, 9, 18, 19] else 0)),
+            )
+        )
 
         dem_base = it_t * cfg.it_demand_scale
         dem_shape = 1.0 + 0.05 * math.sin(2 * math.pi * (hour - 8) / 24)
@@ -508,14 +574,16 @@ def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[fl
         it_demand_t = max(0.0, dem_base * (dem_shape + dem_noise))
         it_demand.append(it_demand_t)
 
-        it_price = cfg.it_price_multiplier * sc.el_price_level + cfg.it_price_daily_amp * math.sin(2 * math.pi * (hour - 12) / 24)
-        it_price += random.uniform(-cfg.it_price_vol, cfg.it_price_vol)
-        p_it.append(max(0.0, it_price))
-
-    p_el = [0.0] * T
-    if cfg.sipue_credit_normalization == "ref_price":
-        p_el = [float(cfg.sipue_ref_price_eur_per_mwh)] * T
+    p_el = [float(cfg.sipue_system_ref_price_eur_per_mwh)] * T
     cong = [0.0] * T
+
+    avoided_heat_cost = [
+        cfg.heat_system_value_multiplier * (
+            fuel_price[t] / max(1e-9, cfg.independent_heat_boiler_efficiency)
+            + cfg.independent_heat_boiler_vom_eur_per_mwhth
+        )
+        for t in range(T)
+    ]
 
     return {
         "it_base": it,
@@ -524,7 +592,7 @@ def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[fl
         "p_heat": pheat,
         "dh_cap": dhcap,  # interpreted as DH market size (max accepted quantity) in the endogenous value model
         "p_flex": pflex,
-        "p_it": p_it,
+        "avoided_flex_cost": avoided_flex_cost,
         "t_amb_c": t_amb_c,
         "t_dh_supply_c": t_dh_supply_c,
         "cop_t": cop_t,
@@ -533,7 +601,8 @@ def make_hourly_profiles(sc: Scenario, T: int, cfg: Config) -> Dict[str, List[fl
         "cong": cong,
         "grid_cap": None,
         "carbon_factor": cf,
-        "p_co2": (co2_price[:T] if co2_price is not None else pco2),
+        "p_co2": co2_price,
+        "avoided_heat_cost": avoided_heat_cost,
         "ren_avail": ren_avail,
         "fuel_price": fuel_price,
         "source_hours": list(range(T)),
@@ -547,7 +616,11 @@ def make_overhead_alpha_base(sc: Scenario, T: int, cfg: Config, night_drop_overr
 
     Here alpha_base[t] captures climate/time effects as free cooling proxy.
     """
-    base_alpha = max(0.0, sc.base_pue - 1.0)
+    base_alpha = (
+        max(0.0, sc.base_pue - 1.0)
+        * max(0.0, cfg.cooling_overhead_multiplier)
+        * max(0.0, float(getattr(sc, "cooling_overhead_multiplier", 1.0)))
+    )
     alpha = [base_alpha] * T
     if not cfg.enable_time_varying_overhead:
         return alpha
@@ -557,6 +630,7 @@ def make_overhead_alpha_base(sc: Scenario, T: int, cfg: Config, night_drop_overr
         return alpha
 
     night_drop = cfg.nordic_night_overhead_drop if night_drop_override is None else night_drop_override
+    night_drop *= max(0.0, float(getattr(sc, "free_cooling_multiplier", 1.0)))
     night_drop = max(0.0, min(0.90, night_drop))
 
     for t in range(T):
@@ -592,8 +666,8 @@ def apply_services_mode(sc: Scenario, prof: Dict[str, List[float]], cfg: Config)
 
     prof2["allow_heat"] = True
     prof2["allow_flex"] = True
-    prof2["allow_battery"] = True
-    prof2["force_it_flex"] = (sc.dc_type != "streaming")
+    prof2["allow_battery"] = sc.storage_availability > 0.0
+    prof2["force_it_flex"] = False
 
     p_heat = prof2["p_heat"][:]
     dh_cap = prof2["dh_cap"][:]

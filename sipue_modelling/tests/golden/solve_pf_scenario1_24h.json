@@ -1,13 +1,13 @@
 {
-  "cstar": 4768866.926967651,
+  "cstar": 29246293.70695118,
   "K_HX": 4.4,
-  "K_FLEX": 13.173826840030223,
-  "K_BAT_E": 20.34118639503038,
+  "K_HP": 1.7600000000000002,
+  "K_FLEX": 3.5999999999999996,
+  "K_BAT_E": 20.0,
   "K_BAT_P": 4.0,
   "eff_level_index": 1,
   "eff_reduction": 0.15,
-  "eff_capex": 1680000.0,
+  "eff_capex": 16800000.0,
   "status": "Optimal",
-  "lmp_settle_avg_dc": 74.73076923076921,
-  "lmp_shadow_avg_dc": 74.73076923076921
+  "market_planning_cost_npv_eur": 75722831.80125381
 }

@@ -6,40 +6,11 @@ aUniversity of South-Eastern Norway, Porsgrunn, Norway
 bBax Innovation, Barcelona, Spain
 cSavannah River National Laboratory, USA
 Abstract
-Data centers are rapidly becoming one of the most energy-intensive com-
-ponents of Europe’s digital infrastructure. Although often treated as large
-electricity consumers, they can also function as local energy-system resources
-when waste heat and controllable demand are integrated with surrounding
-networks. Heat export, demand response, and storage-enabled grid services
-allow data centers to contribute to efficiency and decarbonization objectives.
-This paper contributes in two parts. First, it synthesizes evidence from
-policy, market, and project sources on how energy characteristics and pol-
-icy frameworks shape local business impacts across Europe, with a focus on
-investment readiness and system integration.Second, it introduces System-
-Integrated PUE (siPUE), a metric that internalizes system value by credit-
-ing heat recovery and flexibility using market-aligned prices and by reflect-
-ing carbon exposure. The metric is embedded in a two-stage optimization
-framework that captures design and operational decisions under uncertainty.
-Within this framework, data center operations are optimized under a min–
-max regret criterion that balances profit and robustness while interacting
-with district heating and power systems, land constraints, and construction-
-delay risk. SiPUE is defined as a generalization of PUE that adjusts facility
-energy use by accounting for the energy-equivalent value of externally pro-
-vided services and reduces exactly to PUE in the absence of external ser-
-vices. Using scenario-based perfect-foresight benchmarks and a min–max
-regret (regret–profit) scalarization across ten services-active data center sce-
-narios evaluated with annual representative-day profiles, the analysis shows
-that siPUE aligns more strongly with profitability than PUE when service
-1
+Data centers are rapidly becoming one of the most energy-intensive components of Europe's digital infrastructure. Although often treated as large electricity consumers, they can also function as local energy-system resources when waste heat and controllable demand are integrated with surrounding networks. Heat export, demand response, and storage-enabled grid services allow data centers to contribute to efficiency and decarbonization objectives.
 
-credits are material. Profit improves in all ten scenarios, with an aver-
-age uplift of 5.5%; siPUE improves in all 10 cases (100% pass rate) while
-PUE worsens in 7 out of 10 (70% fail rate). Delta-based Spearman rank
-correlations confirm the alignment:ρ(∆siPUE,∆Profit) = +0.564versus
-ρ(∆PUE,∆Profit) =−0.927, indicating that PUE changes are inversely
-related to profit changes while siPUE changes track profit direction. Sensi-
-tivity to CO2, heat, flexibility, congestion, and construction delay confirms
-that siPUE responds to external value signals and reflects carbon exposure.
+This paper contributes in two parts. First, it synthesizes evidence from policy, market, and project sources on how energy characteristics and policy frameworks shape local business impacts across Europe, with a focus on investment readiness and system integration. Second, it introduces System-Integrated PUE (siPUE), a metric that adjusts PUE using construction-delay-adjusted avoided independent system cost relative to a no-services counterfactual. Heat recovery, flexibility, carbon damage, peak capacity, transmission, and resource-cost effects enter through this counterfactual system-cost term rather than through private heat or flexibility revenue. Cooling electricity is included in facility energy, while heat recovered from IT and cooling circuits can create system value when delivered as useful heat.
+
+The metric is embedded in a two-stage system-integrated planning framework. The code reports planning objective cost, integrated planning surplus, delay factor, and independent system-benefit accounting, while ex-post settlement fields are retained only for audit. Current annual representative-day validation separates planning-objective alignment, normalized external independent system-cost validity, and absolute system-impact reporting. In the current canonical run, PUE worsens by 0.309% on average, while siPUE improves by 24.961%. siPUE strongly ranks normalized independent system benefit per unit IT energy. Absolute independent system benefit is reported separately as a scale-of-impact measure. Carbon outcomes are reported through CUE, CO2 cost, DC CO2 share, carbon damage, and the independent system-cost counterfactual used by siPUE.
 Keywords:Data Center
 Variables
 GRIDt Grid electricity import at timet(MWh)
@@ -120,10 +91,10 @@ Cland Annual land cost (EUR)
 Cpenalty SLA shortfall penalty for unserved IT load (EUR)
 EFAC Total facility electricity consumption (MWh)
 EIT Total IT electricity consumption (MWh)
-Ecredit Energy-equivalent credit used in siPUE (MWh)
-Cheat Total heat export revenue (EUR)
-Cflex Total flexibility service revenue (EUR)
-CCO2 Total CO2 cost from grid carbon exposure (EUR)
+Esys Delay-adjusted energy-equivalent system-benefit credit used in siPUE (MWh)
+Cheat Total heat export revenue, reported as private revenue only (EUR)
+Cflex Total flexibility service revenue, reported as private revenue only (EUR)
+CCO2 Total CO2 cost from grid carbon exposure, reported as private cost only (EUR)
 ΠTotal annual profit (EUR)
 Π⋆
 s Perfect-foresight optimal profit for scenarios(EUR)
@@ -179,19 +150,13 @@ This paper makes four contributions:
 1. It integrates evidence on data centers and local energy systems, em-
 phasizing the mechanisms through which energy characteristics shape
 local business impacts and investment readiness
-2. ItdefinesSystem-IntegratedPowerUsageEffectiveness(siPUE),amarket-
-aligned metric that extends PUE by crediting heat and flexibility ser-
-vices and reflecting carbon exposure, with conventional PUE recovered
-as the zero-services case
-3. It formulates a two-stage optimization model with min–max regret and
-a profit-weighted scalarization that captures the interaction between
-design decisions and operational uncertainty, including land costs and
-construction-delay risk
-4. It quantifies how robust design choices affect PUE, siPUE, and profit
-acrosstenservices-activescenariosusingannualrepresentative-dayeval-
-uation, and reports sensitivity to CO2, heat, flexibility, congestion, land
-price, and construction delay.
-1.2. Related Work
+2. ItdefinesSystem-IntegratedPowerUsageEffectiveness(siPUE),asystem-
+oriented metric that extends PUE by converting no-services avoided independent
+system cost into an energy-equivalent credit, with conventional PUE recovered
+in the zero-services case; carbon is also evaluated through CUE, carbon-market
+cost, and independent carbon-damage diagnostics
+3. It formulates a two-stage system-integrated planning model with min-max regret, explicit planning objective cost, integrated planning surplus, and independent system-benefit accounting under operational uncertainty, land costs, and construction-delay risk.
+4. It quantifies how robust design choices affect PUE, siPUE, independent system benefit, and integrated planning surplus across ten services-active scenarios using annual representative-day evaluation, and reports sensitivity to CO2, heat, flexibility, congestion, land price, and construction delay.1.2. Related Work
 Theliteraturerelevanttothisworkspansfourmajorareas: (i)datacentre
 efficiency metrics, (ii) waste-heat recovery and district-heating integration,
 (iii) data centre flexibility and demand response, and (iv) multi-energy in-

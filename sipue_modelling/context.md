@@ -19,7 +19,7 @@ The paper has two parts:
 
 - **RQ1:** How do energy characteristics and policy frameworks shape local business impacts of data centers in Europe?
 - **RQ2:** Can a unified metric capture the system value of heat and flexibility services while remaining comparable to PUE?
-- **RQ3:** How do robust, profit-seeking design decisions shift traditional efficiency metrics and system-integrated metrics?
+- **RQ3:** How do robust system-integrated planning decisions shift traditional efficiency metrics, siPUE, independent system benefit, and operator settlement outcomes?
 
 ---
 
@@ -78,24 +78,27 @@ Three principal service channels:
 
 **Definition:**
 
-$$\text{siPUE} = \frac{[\text{E}_\text{FAC} - \text{E}_\text{credit}]^+}{\text{E}_\text{IT}}$$
+$$\text{siPUE}_s = \frac{[\text{E}_\text{FAC,s} - \text{E}_\text{sys,s}]^+}{\text{E}_\text{IT,s}}$$
 
-where the energy-equivalent credit is:
+where the system energy-equivalent credit is:
 
-$$E_\text{credit} = \frac{C_\text{heat}}{\bar{p}_\text{heat}} + \frac{C_\text{flex}}{\bar{p}_\text{flex}} - \frac{C_\text{CO2}}{\bar{p}_\text{CO2}}$$
+$$E_\text{sys,s} = a_s \frac{C^\text{ind}_\text{0,s} - C^\text{ind}_\text{s}}{p_\text{ref}}$$
 
-- **When services are absent:** siPUE = PUE (backward compatible).
-- **When services are active:** credits reduce effective energy burden.
-- Credits are based on monetized, metered service revenues (conservative, auditable).
+- **When services are absent:** siPUE = PUE in the no-services counterfactual (backward compatible).
+- **When services are active:** avoided independent system cost reduces effective energy burden; additional system cost increases it.
+- \(a_s = (1-\Delta_\text{global})(1-\Delta_s)\) is the construction-availability factor, so delayed services receive only the system credit available during the operating fraction of the modeled horizon.
+- \(p_\text{ref}\) is the configured EUR/MWh reference used to convert net system benefit into an MWh-equivalent credit.
+- The independent system cost includes resource cost, transmission cost, carbon damage, peak/network cost, avoided heat-system cost, and avoided flexibility-system cost. Private heat/flex revenue is a transfer and does not directly enter the siPUE numerator.
+- Cooling electricity is included in E_FAC, PUE, and siPUE. Heat recovered from IT equipment and cooling circuits can contribute to useful heat export, but cooling is not modeled as a separate external service or revenue stream.
 - The `[·]+` clip prevents negative effective energy use.
 
 **Key Properties:**
 - **Comparability:** Reduces to PUE when no services are credited.
 - **Boundedness:** Energy-adjusted numerator clipped at zero.
-- **Market-aligned auditability:** Credits scale with market prices and require settled revenues.
+- **System-value auditability:** Credits are tied to an explicit no-services counterfactual and independent avoided system cost.
 
 **Use Cases:**
-- *Operators:* Dispatch evaluation for heat recovery, storage, flexibility.
+- *Operators:* Dispatch evaluation for cooling-aware heat recovery, storage, flexibility, and carbon-market exposure, with settlement accounting retained only as a background output.
 - *Investment planning:* Design-stage signal alongside NPV/IRR for comparing efficiency upgrades vs. integration assets.
 - *Lenders/investors:* KPI closer to cash-flow logic than PUE when services are active.
 - *Policymakers:* PUE-compatible way to recognize system services in reporting.
@@ -104,23 +107,22 @@ $$E_\text{credit} = \frac{C_\text{heat}}{\bar{p}_\text{heat}} + \frac{C_\text{fl
 
 ### Two-Stage Optimization Framework
 
-**Stage 1 — Scenario-Perfect Design:**  
-For each scenario s, maximize profit selecting optimal design capacities and operations → yields upper-bound benchmark Π*_s.
+**Stage 1 - Scenario-Perfect Design:**  
+For each scenario s, solve the scenario-specific planning problem to obtain the benchmark planning-objective cost `C*_s`. Ex-post settlement fields remain available for audit/backward compatibility but are not used as manuscript diagnostics.
 
-**Stage 2 — Robust Shared Design:**  
-Select a single design across all scenarios by minimizing a weighted combination of worst-case regret and average profit:
+**Stage 2 - Robust Shared Design:**  
+Select a single design across all scenarios by minimizing planning regret under the configured robust objective. Legacy code aliases may still use profit-oriented names, but manuscript-facing accounting should focus on planning objective cost, integrated planning surplus, and system-benefit metrics:
 
-$$\min_{\hat{x}} \; \lambda \, Z(\hat{x}) - (1-\lambda)\bar{\Pi}(\hat{x})$$
+`PlanningRegret_s = C_s(shared design) - C*_s`
 
-with λ = 0.7 (risk-averse, prioritizes regret containment).
+with `Z = max_s PlanningRegret_s`.
 
-**Regret:** Gap between scenario-optimal profit and profit achieved by shared design.
+**Regret:** Gap between the scenario-perfect planning benchmark and the shared-design planning objective cost.
 
 ---
-
 ### Optimization Model
 
-**Objective (Eq. 3a):** Maximize profit = IT revenue + heat revenue + flexibility revenue − electricity cost − carbon cost − CAPEX − land cost − penalty cost.
+**Objective/accounting (Eq. 3a):** The optimization equations are kept unchanged in the current code, but manuscript-facing outputs are reported through `PlanningObjectiveCostEUR`, `IntegratedPlanningSurplusEUR`, and independent system-benefit fields. Ex-post settlement fields remain in the CSV for audit/backward compatibility, but they are not used as a diagnostic claim.
 
 **Key Constraints:**
 - Hourly energy balance (Eq. 3b): grid import + battery discharge = IT + overhead + heat export/COP + battery charge
@@ -170,45 +172,33 @@ with λ = 0.7 (risk-averse, prioritizes regret containment).
 
 ## Key Results
 
+**Current metric status:** the code defines siPUE from the no-services independent system-cost counterfactual:
+
+`siPUE = [E_FAC - a_s (C_ind,0 - C_ind) / p_ref]^+ / E_IT`
+
+Market heat/flex revenues and carbon-market payments remain dispatch and diagnostic outputs only; they are not direct siPUE numerator terms. Paper tables should use compact labels such as `CO2 cost`, `DC CO2 share`, `DC CO2 change`, `carbon damage`, `system benefit`, `benefit per MWh IT`, and `delay factor`.
+
 ### Overall Metric Alignment (Annual Rep-Days, 10 Scenarios)
 
-- **PUE worsens in all 10 scenarios** under the robust integration design (Fail rate: 100%).
-- **siPUE improves in all 10 scenarios** under the robust integration design (Pass rate: 100%).
-- **Average profit uplift: +3.65%** (EUR ~3.01M average improvement).
-- siPUE shows stronger rank association with unit profit than PUE (**ρ = 0.442 vs. 0.297**).
+Current canonical outputs are in `output/results_365day.csv` and `output/validation/validation_summary.csv`. The validation now separates three claims:
 
-**Selected scenario results (baseline b → robust r):**
+- **Headline percentage changes:** PUE worsens by `+0.309%` on average, while siPUE improves by `-24.961%` on average. Integrated planning surplus changes by `+0.085%`, and independent system benefit equals `0.255%` of the no-services independent system cost on average.
+- **Planning-objective alignment:** siPUE is directionally aligned with planning improvement in all scenarios, but it should not be used to rank integrated planning surplus magnitudes in the current canonical run (`rho = -0.903` for siPUE improvement versus unit integrated-planning-surplus improvement).
+- **External system validity:** siPUE strongly ranks normalized independent system benefit in the current canonical run (`rho = +0.988` against `SystemBenefitPerMWhIT_no_services_minus_rob`). Absolute independent system benefit remains a separate scale/impact metric and should not be treated as the primary siPUE rank-validity target.
 
-| Scenario | PUEb | PUEr | siPUEb | siPUEr | Profit% |
-|---|---|---|---|---|---|
-| Hyperscale-NL | 1.283 | 1.283 | 0.817 | 0.680 | +3.97% |
-| AI-Norway | 1.358 | 1.359 | 0.878 | 0.753 | +5.27% |
-| Streaming-Belgium | 1.331 | 1.332 | 0.885 | 0.724 | +5.44% |
-| Hyperscale-Sweden | 1.305 | 1.305 | 0.841 | 0.710 | +3.05% |
-| Streaming-UK | 1.375 | 1.376 | 0.975 | 0.756 | +0.37% |
-| AI-Sweden | 1.349 | 1.350 | 0.920 | 0.814 | +2.19% |
-| Colocation-Belgium | 1.330 | 1.330 | 0.902 | 0.814 | +3.37% |
-| AI-Denmark | 1.360 | 1.361 | 0.858 | 0.728 | +7.65% |
-| Streaming-France | 1.375 | 1.375 | 0.965 | 0.804 | +1.12% |
-| Hyperscale-Germany | 1.285 | 1.286 | 0.815 | 0.652 | +4.03% |
+Manuscript claims should therefore say that siPUE is a no-services-counterfactual system-integrated KPI that tracks system-adjusted burden per unit IT energy.
 
 ### Sensitivity Analysis
-- **CO₂ price ↑** → siPUE worsens (higher carbon exposure).
-- **Heat price ↑** → siPUE improves (larger credits).
-- **Flex price and congestion:** comparatively small effects under current calibration; heat and carbon dominate siPUE response.
 
+Under the updated formulation, price sensitivities should be interpreted through dispatch, integrated planning surplus, and independent system cost. A heat or flexibility price change affects siPUE only if it changes the independent no-services-vs-case system-cost counterfactual.
+- **CO2 price increase:** changes carbon-market cost and carbon-damage diagnostics; in the current canonical run CUE increases by `+0.606%` versus no-services.
+- **Heat price increase:** changes operator settlement economics and may change dispatch; siPUE changes only through the independent system-cost counterfactual.
+- **Flex price and congestion:** should be interpreted through independent system benefit and planning-surplus diagnostics separately.
 ### Construction Delay Sensitivity
 
-| Δ | Avg Profit% | ΔPUE | ΔsiPUE | ΔsiPUE% | siPUE pass rate | PUE fail rate | KHX (MWth) |
-|---|---|---|---|---|---|---|---|
-| 0.00 | +0.40% | 0.001 | −0.137 | −15.31% | 1.00 | 1.00 | 23.91 |
-| 0.25 | +0.37% | 0.002 | −0.104 | −10.04% | 0.90 | 0.90 | 22.31 |
-| 0.50 | +1.29% | 0.002 | −0.066 | −5.67% | 0.80 | 0.70 | 19.50 |
-
-As construction delay increases: optimal heat/flex capacities shrink, siPUE alignment rate drops, reinforcing that siPUE captures economic viability of services.
+Construction-delay sensitivity should be regenerated with `run_sensitivity_prices_congestion_repdays_annual.py`. The output table now reports siPUE change, independent system benefit, integrated planning surplus, PUE, ERE, and CUE. Do not reuse older profit-centered or pass-rate tables in the manuscript.
 
 ---
-
 ## Key Variables and Parameters
 
 | Variable | Description |

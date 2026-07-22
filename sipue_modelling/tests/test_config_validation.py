@@ -18,15 +18,14 @@ def test_bad_value_always_raises():
 
 @pytest.mark.parametrize("field, bad_value", [
     ("capex_HX", 99999.0),
+    ("capex_HP", 99999.0),
     ("capex_FLEX", 0.0),
     ("capex_BAT_E", 1.0),
     ("capex_BAT_P", 1.0),
     ("fixed_eff_reduction", 0.99),
-    ("it_price_multiplier", 1.0),
     ("heat_price_multiplier", 0.99),
     ("flex_price_multiplier", 0.99),
-    ("sipue_credit_normalization", "bad_mode"),
-    ("sipue_credit_price_mode", "bad_mode"),
+    ("sipue_system_ref_price_eur_per_mwh", 0.0),
 ])
 def test_locked_calibration_rejects_bad_values(field, bad_value):
     cfg = Config(**{field: bad_value})

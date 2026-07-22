@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 from brave.config import Config
+from brave.accounting import lifecycle_availability_factor
 
 if TYPE_CHECKING:
     from brave.scenario import Scenario
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
 # compression is disabled.
 # ---------------------------------------------------------------------------
 _REP_TOTAL_DAYS: int = 7
+_EPS: float = 1e-9
 
 
 def nanmean(xs: List[float]) -> float:
@@ -54,98 +56,31 @@ def spearman_rank_corr(a: List[float], b: List[float]) -> float:
 def compute_sipue(
     E_FAC: float,
     E_IT: float,
-    credit_eur: float,
-    heat_rev_eur: float,
-    flex_rev_eur: float,
-    avg_heat_price: float,
-    avg_flex_price: float,
-    co2_cost_eur: float,
-    el_cost: float,
-    el_settlement_eur: float,
-    E_GRID: float,
-    p_el_ref: List[float],
-    dc_load_series: Optional[List[float]],
-    settle_lmp_series: Optional[List[float]],
-    normalization: str,
-    credit_price_mode: str,
-    clip_nonnegative: bool,
-    price_floor_eur_per_mwh: float,
-    include_co2_penalty: bool,
-    co2_scale: float,
-    co2_ref_price_eur_per_mwh: float
-) -> Tuple[float, float, float, float, float, float, str, int]:
+    net_system_benefit_eur: float,
+    reference_price_eur_per_mwh: float,
+    clip_nonnegative: bool = True,
+    benefit_availability_factor: float = 1.0,
+) -> Tuple[float, float]:
     """
-    Returns (siPUE, credit_mwh, credit_mwh_heat, credit_mwh_flex, co2_mwh,
-             price_used, price_source, price_floor_applied).
+    System-integrated PUE based on independent avoided system cost.
 
-    normalization:
-      - "avg_paid": price_used = el_cost / E_FAC
-      - "net_grid_cost": price_used = el_settlement_eur / E_GRID
-      - "ref_price": price_used = average(p_el_ref)
-      - "settle_lmp_dc": price_used = load-weighted settlement price (DC node LMP from duals)
+    siPUE = [E_FAC - a * net_system_benefit_eur / reference_price_eur_per_mwh]^+ / E_IT
 
-    credit_price_mode:
-      - "lmp": convert service credits using price_used (system price)
-      - "service_price": convert using avg service prices (heat/flex)
+    The benefit term is a counterfactual system-cost reduction, not private
+    heat or flexibility revenue. Positive values lower siPUE; negative values
+    raise it. The availability factor a discounts credited system benefit for
+    construction delay.
     """
-    price_floor_applied = 0
-    if normalization == "avg_paid":
-        price_used = el_cost / max(1e-9, E_FAC)
-        price_source = "avg_paid (el_cost / E_FAC)"
-    elif normalization == "net_grid_cost":
-        price_used = el_settlement_eur / max(1e-9, E_GRID)
-        if price_used < price_floor_eur_per_mwh:
-            price_used = price_floor_eur_per_mwh
-            price_floor_applied = 1
-        price_source = "net_grid_cost (el_settlement_eur / E_GRID)"
-    elif normalization == "ref_price":
-        if p_el_ref:
-            price_used = sum(p_el_ref) / max(1, len(p_el_ref))
-            price_source = "ref_price (avg p_el)"
-        else:
-            price_used = float("nan")
-            price_source = "ref_price (missing)"
-    elif normalization == "settle_lmp_dc":
-        if not dc_load_series or not settle_lmp_series:
-            raise ValueError("settle_lmp_dc requires dc_load_series and settle_lmp_series (DC node LMP)")
-        num = 0.0
-        den = 0.0
-        for load, price in zip(dc_load_series, settle_lmp_series):
-            num += load * price
-            den += load
-        if den <= 1e-9:
-            price_used = sum(settle_lmp_series) / max(1, len(settle_lmp_series))
-        else:
-            price_used = num / den
-        if price_used < price_floor_eur_per_mwh:
-            price_used = price_floor_eur_per_mwh
-            price_floor_applied = 1
-        price_source = "settlement LMP at DC node (load-weighted)"
-    else:
-        raise ValueError("sipue_credit_normalization must be 'avg_paid', 'net_grid_cost', 'ref_price', or 'settle_lmp_dc'")
-
-    credit_mode = (credit_price_mode or "service_price").strip().lower()
-    if credit_mode in ("lmp", "price_used", "settle_lmp"):
-        heat_price_used = price_used
-        flex_price_used = price_used
-    else:
-        heat_price_used = avg_heat_price if avg_heat_price > 1e-9 else price_used
-        flex_price_used = avg_flex_price if avg_flex_price > 1e-9 else price_used
-
-    credit_mwh_heat = heat_rev_eur / max(1e-9, heat_price_used)
-    credit_mwh_flex = flex_rev_eur / max(1e-9, flex_price_used)
-    if include_co2_penalty:
-        co2_price_used = max(1e-9, price_used)  # use electricity price for CO2 normalization
-        co2_mwh = (co2_cost_eur * max(0.0, co2_scale)) / co2_price_used
-    else:
-        co2_mwh = 0.0
-    credit_mwh = credit_mwh_heat + credit_mwh_flex
-    E_adj = E_FAC - credit_mwh_heat - credit_mwh_flex + co2_mwh
+    if E_IT <= _EPS:
+        raise ValueError("E_IT must be positive when computing siPUE.")
+    if reference_price_eur_per_mwh <= _EPS:
+        raise ValueError("reference_price_eur_per_mwh must be positive when computing siPUE.")
+    availability = min(1.0, max(0.0, float(benefit_availability_factor)))
+    system_credit_mwh = availability * net_system_benefit_eur / reference_price_eur_per_mwh
+    adjusted_energy = E_FAC - system_credit_mwh
     if clip_nonnegative:
-        E_adj = max(0.0, E_adj)
-
-    siPUE = E_adj / max(1e-9, E_IT)
-    return siPUE, credit_mwh, credit_mwh_heat, credit_mwh_flex, co2_mwh, price_used, price_source, price_floor_applied
+        adjusted_energy = max(0.0, adjusted_energy)
+    return adjusted_energy / E_IT, system_credit_mwh
 
 
 def compute_land_m2(
@@ -154,31 +89,81 @@ def compute_land_m2(
     K_BAT_E: float,
     K_BAT_P: float,
     eff_reduction: float,
-    cfg: Config
+    cfg: Config,
+    K_HP: float = 0.0,
+    base_it_mw: Optional[float] = None,
+    K_COOL: float = 0.0,
 ) -> float:
-    return (
+    return sum(compute_land_components(
+        K_HX,
+        K_FLEX,
+        K_BAT_E,
+        K_BAT_P,
+        eff_reduction,
+        cfg,
+        K_HP=K_HP,
+        base_it_mw=base_it_mw,
+        K_COOL=K_COOL,
+    ).values())
+
+
+def compute_land_components(
+    K_HX: float,
+    K_FLEX: float,
+    K_BAT_E: float,
+    K_BAT_P: float,
+    eff_reduction: float,
+    cfg: Config,
+    K_HP: float = 0.0,
+    base_it_mw: Optional[float] = None,
+    K_COOL: float = 0.0,
+) -> Dict[str, float]:
+    del eff_reduction
+    existing_core = (
         cfg.base_land_m2
-        + cfg.land_a_hx * K_HX
-        + cfg.land_a_flex * K_FLEX
-        + cfg.land_a_bat_e * K_BAT_E
-        + cfg.land_a_bat_p * K_BAT_P
+        if base_it_mw is None
+        else cfg.existing_land_m2_per_it_mw * base_it_mw
     )
+    return {
+        "existing_core_m2": existing_core,
+        "existing_cooling_m2": cfg.land_a_cooling * K_COOL,
+        "integration_m2": (
+            cfg.land_a_hx * K_HX
+            + cfg.land_a_hp * K_HP
+            + cfg.land_a_flex * K_FLEX
+            + cfg.land_a_bat_e * K_BAT_E
+            + cfg.land_a_bat_p * K_BAT_P
+        ),
+    }
+
+
+def effective_land_limit_m2(sc: Scenario, cfg: Config) -> Optional[float]:
+    limit = sc.land_limit_m2 if sc.land_limit_m2 is not None else cfg.land_limit_m2
+    if limit is None:
+        return None
+    return max(0.0, float(limit) * max(0.0, float(cfg.land_limit_multiplier)))
 
 
 def service_revenue_scale(cfg: Config, sc: Optional[Scenario] = None) -> float:
-    """
-    Scale factor applied to IT + service revenues to represent construction delays.
+    """Discounted lifecycle availability used only for siPUE credit.
 
-    - cfg.construction_delay_frac: global delay applied to all scenarios (sensitivity sweeps).
-    - sc.construction_delay_frac: scenario-specific delay (optional override/extra delay).
-
-    The combined effect is multiplicative: (1-cfg_delay) * (1-scenario_delay).
+    Dispatch and full-system costs are never scaled by this factor. The
+    deprecated fractional inputs remain as a compatibility conversion to
+    months for callers that have not migrated yet.
     """
-    cfg_scale = max(0.0, 1.0 - cfg.construction_delay_frac)
-    sc_scale = 1.0
+    delay_months = max(0.0, float(getattr(cfg, "construction_delay_months", 0.0)))
+    if delay_months <= _EPS:
+        delay_months = 12.0 * max(0.0, float(getattr(cfg, "construction_delay_frac", 0.0)))
     if sc is not None:
-        sc_scale = max(0.0, 1.0 - sc.construction_delay_frac)
-    return cfg_scale * sc_scale
+        scenario_months = max(0.0, float(getattr(sc, "construction_delay_months", 0.0)))
+        if scenario_months <= _EPS:
+            scenario_months = 12.0 * max(0.0, float(getattr(sc, "construction_delay_frac", 0.0)))
+        delay_months += scenario_months
+    return lifecycle_availability_factor(
+        int(cfg.lifecycle_years),
+        float(cfg.real_discount_rate),
+        delay_months,
+    )
 
 
 def land_cost_horizon(land_m2: float, cfg: Config) -> float:
@@ -204,10 +189,88 @@ def demand_charge_horizon(cfg: Config) -> float:
     return cfg.demand_charge_eur_per_mw_year * scale
 
 
-def design_size_proxy(sc: Scenario, K_HX: float, K_FLEX: float, K_BAT_E: float, K_BAT_P: float, cfg: Config) -> float:
+def independent_peak_capacity_horizon(cfg: Config) -> float:
+    if cfg.use_representative_days_annual:
+        return cfg.independent_peak_capacity_value_eur_per_mw_year
+    scale = _REP_TOTAL_DAYS / max(1, cfg.days_per_year)
+    return cfg.independent_peak_capacity_value_eur_per_mw_year * scale
+
+
+def compute_independent_system_cost(
+    power_resource_cost_eur: float,
+    transmission_cost_eur: float,
+    emissions_tco2: float,
+    heat_delivered_mwhth: float,
+    peak_grid_mw: float,
+    cfg: Config,
+    avoided_heat_cost_eur_per_mwhth: Optional[List[float]] = None,
+    heat_delivered_mwth: Optional[List[float]] = None,
+    avoided_flex_cost_eur_per_mw_h: Optional[List[float]] = None,
+    flex_delivered_mw: Optional[List[float]] = None,
+    weights: Optional[List[float]] = None,
+    dt: float = 1.0,
+    carbon_damage_eur_per_tco2: Optional[float] = None,
+) -> Tuple[float, float, float, float, float]:
+    """
+    External system-cost evaluation independent of private heat/flex payments.
+
+    Heat and flexibility enter only through avoided system-resource costs.
+    """
+    damage_value = (
+        cfg.independent_social_carbon_cost_eur_per_tco2
+        if carbon_damage_eur_per_tco2 is None
+        else float(carbon_damage_eur_per_tco2)
+    )
+    carbon_damage_eur = damage_value * emissions_tco2
+    if (
+        avoided_heat_cost_eur_per_mwhth is not None
+        and heat_delivered_mwth is not None
+        and len(avoided_heat_cost_eur_per_mwhth) == len(heat_delivered_mwth)
+    ):
+        w = weights if weights is not None and len(weights) == len(heat_delivered_mwth) else [1.0] * len(heat_delivered_mwth)
+        avoided_heat_cost_eur = sum(
+            avoided_heat_cost_eur_per_mwhth[t] * heat_delivered_mwth[t] * dt * w[t]
+            for t in range(len(heat_delivered_mwth))
+        )
+    else:
+        avoided_heat_cost_eur = cfg.independent_avoided_heat_cost_eur_per_mwhth * heat_delivered_mwhth
+    if (
+        avoided_flex_cost_eur_per_mw_h is not None
+        and flex_delivered_mw is not None
+        and len(avoided_flex_cost_eur_per_mw_h) == len(flex_delivered_mw)
+    ):
+        w = weights if weights is not None and len(weights) == len(flex_delivered_mw) else [1.0] * len(flex_delivered_mw)
+        avoided_flex_cost_eur = sum(
+            avoided_flex_cost_eur_per_mw_h[t] * flex_delivered_mw[t] * dt * w[t]
+            for t in range(len(flex_delivered_mw))
+        )
+    else:
+        avoided_flex_cost_eur = 0.0
+    peak_capacity_cost_eur = independent_peak_capacity_horizon(cfg) * peak_grid_mw
+    system_cost_eur = (
+        power_resource_cost_eur
+        + transmission_cost_eur
+        + carbon_damage_eur
+        + peak_capacity_cost_eur
+        - avoided_heat_cost_eur
+        - avoided_flex_cost_eur
+    )
+    return system_cost_eur, avoided_heat_cost_eur, avoided_flex_cost_eur, carbon_damage_eur, peak_capacity_cost_eur
+
+
+def design_size_proxy(
+    sc: Scenario,
+    K_HX: float,
+    K_FLEX: float,
+    K_BAT_E: float,
+    K_BAT_P: float,
+    cfg: Config,
+    K_HP: float = 0.0,
+) -> float:
     return (
         sc.base_it_mw
         + cfg.ramp_k_hx * K_HX
+        + cfg.ramp_k_hp * K_HP
         + cfg.ramp_k_flex * K_FLEX
         + cfg.ramp_k_bat_e * K_BAT_E
         + cfg.ramp_k_bat_p * K_BAT_P
