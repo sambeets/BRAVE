@@ -91,8 +91,18 @@ class Config:
     K_HX_max: float = 50.0
     K_HP_max: float = 25.0
     K_FLEX_max: float = 25.0
+    # Absolute fallback ceilings, only used when the corresponding min_bat_*
+    # floor below is disabled (set to 0). Otherwise battery capacity is
+    # bounded by battery_capacity_headroom_multiplier x the min_bat_* floor,
+    # scaled by each scenario's own base_it_mw -- see solve_perfect_foresight
+    # and solve_minmax_regret. A fixed absolute cap divided by facility size
+    # gives smaller facilities *more* per-MW-IT headroom, not less, which let
+    # small archetypes install batteries many times oversized relative to
+    # their own facility and earn an independent-benefit credit disconnected
+    # from their actual energy footprint.
     K_BAT_E_max: float = 80.0
     K_BAT_P_max: float = 50.0
+    battery_capacity_headroom_multiplier: float = 6.0
 
     eta_ch: float = 0.95
     eta_dis: float = 0.95

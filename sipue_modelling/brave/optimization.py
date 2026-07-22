@@ -1190,8 +1190,16 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
         K_HX = pulp.LpVariable("K_HX", lowBound=0, upBound=cfg.K_HX_max)
         K_HP = pulp.LpVariable("K_HP", lowBound=0, upBound=cfg.K_HP_max)
         K_FLEX = pulp.LpVariable("K_FLEX", lowBound=0, upBound=cfg.K_FLEX_max)
-        K_BAT_E = pulp.LpVariable("K_BAT_E", lowBound=0, upBound=cfg.K_BAT_E_max)
-        K_BAT_P = pulp.LpVariable("K_BAT_P", lowBound=0, upBound=cfg.K_BAT_P_max)
+        bat_e_bound = (
+            cfg.battery_capacity_headroom_multiplier * cfg.min_bat_e_hours * sc.base_it_mw
+            if cfg.min_bat_e_hours > 0 else cfg.K_BAT_E_max
+        )
+        bat_p_bound = (
+            cfg.battery_capacity_headroom_multiplier * cfg.min_bat_p_mw_per_it_mw * sc.base_it_mw
+            if cfg.min_bat_p_mw_per_it_mw > 0 else cfg.K_BAT_P_max
+        )
+        K_BAT_E = pulp.LpVariable("K_BAT_E", lowBound=0, upBound=bat_e_bound)
+        K_BAT_P = pulp.LpVariable("K_BAT_P", lowBound=0, upBound=bat_p_bound)
         if allow_heat and cfg.min_hx_mwth_per_it_mw > 0:
             min_hx = cfg.min_hx_mwth_per_it_mw * sc.base_it_mw
             m += K_HX >= min_hx, "MinHX"
@@ -1670,8 +1678,20 @@ def solve_minmax_regret(
         k_HX = pulp.LpVariable("k_HX_per_MW_IT", lowBound=0, upBound=cfg.K_HX_max / max_it_mw)
         k_HP = pulp.LpVariable("k_HP_per_MW_IT", lowBound=0, upBound=cfg.K_HP_max / max_it_mw)
         k_FLEX = pulp.LpVariable("k_FLEX_per_MW_IT", lowBound=0, upBound=cfg.K_FLEX_max / max_it_mw)
-        k_BAT_E = pulp.LpVariable("k_BAT_E_per_MW_IT", lowBound=0, upBound=cfg.K_BAT_E_max / max_it_mw)
-        k_BAT_P = pulp.LpVariable("k_BAT_P_per_MW_IT", lowBound=0, upBound=cfg.K_BAT_P_max / max_it_mw)
+        # Bounded by a headroom multiplier on the min_bat_* floor (both already
+        # per-MW-IT ratios) rather than an absolute cap divided by max_it_mw --
+        # the latter gives smaller archetypes a *larger* per-MW-IT ceiling,
+        # backwards from what a facility-size-invariant bound should do.
+        k_bat_e_bound = (
+            cfg.battery_capacity_headroom_multiplier * cfg.min_bat_e_hours
+            if cfg.min_bat_e_hours > 0 else cfg.K_BAT_E_max / max_it_mw
+        )
+        k_bat_p_bound = (
+            cfg.battery_capacity_headroom_multiplier * cfg.min_bat_p_mw_per_it_mw
+            if cfg.min_bat_p_mw_per_it_mw > 0 else cfg.K_BAT_P_max / max_it_mw
+        )
+        k_BAT_E = pulp.LpVariable("k_BAT_E_per_MW_IT", lowBound=0, upBound=k_bat_e_bound)
+        k_BAT_P = pulp.LpVariable("k_BAT_P_per_MW_IT", lowBound=0, upBound=k_bat_p_bound)
 
         if heat_enabled and cfg.min_hx_mwth_per_it_mw > 0:
             m += k_HX >= cfg.min_hx_mwth_per_it_mw, "MinHXIntensity"
