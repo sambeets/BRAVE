@@ -15,7 +15,6 @@ from brave.metrics import (
     land_cost_horizon,
     demand_charge_horizon,
     compute_independent_system_cost,
-    design_size_proxy,
     eff_capex_from_reduction,
     capex_scale,
 )
@@ -195,7 +194,6 @@ def solve_ops_given_design(
     p_heat = prof["p_heat"]
     p_flex = prof["p_flex"]
     dh_cap = prof["dh_cap"]
-    cf = prof["carbon_factor"]
     p_co2 = prof["p_co2"]
     cop_t = prof.get("cop_t", [sc.hp_cop] * T)
     node_loads = prof.get("node_loads", {n: [0.0] * T for n in cfg.network_nodes})
@@ -205,7 +203,6 @@ def solve_ops_given_design(
     allow_heat = bool(prof.get("allow_heat", True))
     allow_flex = bool(prof.get("allow_flex", True))
     allow_battery = bool(prof.get("allow_battery", True))
-    allow_it_shortfall = False
 
     alpha_base = prof.get("alpha_base", None)
     if alpha_base is None:
@@ -313,31 +310,18 @@ def solve_ops_given_design(
         ):
             m += constraint
             line_limit_constraints[key].append(constraint)
-        if allow_it_shortfall:
-            m += IT_SERV[t] <= it_demand[t]
-            m += IT_SERV[t] >= (1.0 - cfg.max_it_curtail_frac) * it_demand[t]
-            it_ub = it_demand[t]
-        elif force_it_flex:
+        if force_it_flex:
             lb = (1 - flex_frac_eff) * it_base[t]
             ub = (1 + flex_frac_eff) * it_base[t]
             m += IT_SERV[t] >= lb
             m += IT_SERV[t] <= ub
-            it_ub = ub
         elif cfg.fix_it_profile:
             m += IT_SERV[t] == it_base[t]
-            it_ub = it_base[t]
-        elif not cfg.fix_it_profile:
+        else:
             lb = (1 - flex_frac_eff) * it_base[t]
             ub = (1 + flex_frac_eff) * it_base[t]
             m += IT_SERV[t] >= lb
             m += IT_SERV[t] <= ub
-            it_ub = ub
-        else:
-            it_cap = sc.base_it_mw * cfg.it_capacity_multiplier
-            ramp_share = max(0.0, min(1.0, cfg.ramp_base_share - cfg.ramp_tau_per_mw * design_size_proxy(sc, K_HX, K_FLEX, K_BAT_E, K_BAT_P, cfg, K_HP=K_HP)))
-            m += IT_SERV[t] <= it_demand[t] * ramp_share
-            m += IT_SERV[t] <= it_cap
-            it_ub = it_demand[t] * ramp_share
 
         m += COOL[t] == alpha_eff[t] * IT_SERV[t]
 
@@ -423,22 +407,9 @@ def solve_ops_given_design(
 
         m += DC_LOAD[t] == IT_SERV[t] + COOL[t] + P_HP[t] + P_SERV + CH[t] - DIS[t]
         m += P_PEAK >= DC_LOAD[t]
-        if allow_it_shortfall:
-            dc_grid_cap_t = cfg.dc_grid_cap_share * it_demand[t] * (1.0 + alpha_eff[t])
-            m += DC_LOAD[t] <= dc_grid_cap_t
 
-        if allow_it_shortfall:
-            m += SLA_SHORT[t] >= it_demand[t] - IT_SERV[t]
-            m += SLA_SHORT[t] <= it_demand[t]
-            if cfg.sla_penalty_only_when_congested:
-                m += SLA_SHORT_EFF[t] <= SLA_SHORT[t]
-                m += SLA_SHORT_EFF[t] <= it_demand[t] * U_GRID[t]
-                m += SLA_SHORT_EFF[t] >= SLA_SHORT[t] - it_demand[t] * (1.0 - U_GRID[t])
-            else:
-                m += SLA_SHORT_EFF[t] == SLA_SHORT[t]
-        else:
-            m += SLA_SHORT[t] == 0
-            m += SLA_SHORT_EFF[t] == 0
+        m += SLA_SHORT[t] == 0
+        m += SLA_SHORT_EFF[t] == 0
 
         dc_at_n1 = DC_LOAD[t] if dc_node == n1 else 0.0
         dc_at_n2 = DC_LOAD[t] if dc_node == n2 else 0.0
@@ -545,10 +516,7 @@ def solve_ops_given_design(
     )
     demand_charge_expr = demand_charge_horizon(cfg) * P_PEAK
 
-    if allow_it_shortfall:
-        sla_penalty_expr = pulp.lpSum(cfg.sla_penalty_eur_per_mwh * SLA_SHORT_EFF[t] * dt * w[t] for t in range(T))
-    else:
-        sla_penalty_expr = 0
+    sla_penalty_expr = 0
     E_IT_expr = pulp.lpSum(IT_SERV[t] * dt * w[t] for t in range(T))
     E_FAC_expr = pulp.lpSum(DC_LOAD[t] * dt * w[t] for t in range(T))
     eff_benefit_expr = eff_reduction * (
@@ -850,15 +818,7 @@ def solve_ops_given_design(
         )
     flex_load_mwh = sum(RF_LOADv[t] * w[t] for t in range(T)) * dt
     flex_bat_mwh = sum(RF_BATv[t] * w[t] for t in range(T)) * dt
-    if allow_it_shortfall:
-        cong_factor_v = U_GRIDv if cfg.sla_penalty_only_when_congested else [1.0] * T
-        sla_penalty_val = sum(
-            (cfg.sla_penalty_eur_per_mwh * cong_factor_v[t])
-            * max(0.0, it_demand[t] - ITv[t]) * dt * w[t]
-            for t in range(T)
-        )
-    else:
-        sla_penalty_val = 0.0
+    sla_penalty_val = 0.0
     demand_charge_val = demand_charge_horizon(cfg) * peak_import_mw
 
     bat_charge_mwh = sum(CHv[t] * w[t] for t in range(T)) * dt
@@ -1162,7 +1122,6 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
     allow_heat = bool(prof.get("allow_heat", True))
     allow_flex = bool(prof.get("allow_flex", True))
     allow_battery = bool(prof.get("allow_battery", True))
-    allow_it_shortfall_pf = False
 
     alpha_base = prof.get("alpha_base", None)
     if alpha_base is None:
@@ -1270,8 +1229,6 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
             AF23 = {t: 0 for t in range(T)}
             AF13 = {t: 0 for t in range(T)}
 
-        ramp_share = pulp.LpVariable("ramp_share", lowBound=0, upBound=1)
-
         if not allow_heat:
             m += K_HX == 0, "DisableHeat"
             m += K_HP == 0, "DisableHeatPump"
@@ -1302,16 +1259,6 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
 
         m += K_BAT_P <= K_BAT_E, "BatteryPowerLeqEnergy"
 
-        size_proxy_expr = (
-            sc.base_it_mw
-            + cfg.ramp_k_hx * K_HX
-            + cfg.ramp_k_hp * K_HP
-            + cfg.ramp_k_flex * K_FLEX
-            + cfg.ramp_k_bat_e * K_BAT_E
-            + cfg.ramp_k_bat_p * K_BAT_P
-        )
-        m += ramp_share <= cfg.ramp_base_share - cfg.ramp_tau_per_mw * size_proxy_expr, "RampShareUb"
-
         alpha_eff = [a * (1.0 - eff_reduction) for a in alpha_base]
 
         cooling_capacity_mw = _existing_cooling_capacity_mw(sc, alpha_base)
@@ -1336,25 +1283,18 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
             m += -F23[t] <= cap23
             m += F13[t] <= cap13
             m += -F13[t] <= cap13
-            if allow_it_shortfall_pf:
-                m += IT_SERV[t] <= it_demand[t]
-                m += IT_SERV[t] >= (1.0 - cfg.max_it_curtail_frac) * it_demand[t]
-            elif force_it_flex:
+            if force_it_flex:
                 lb = (1 - flex_frac_eff) * it_base[t]
                 ub = (1 + flex_frac_eff) * it_base[t]
                 m += IT_SERV[t] >= lb
                 m += IT_SERV[t] <= ub
             elif cfg.fix_it_profile:
                 m += IT_SERV[t] == it_base[t]
-            elif not cfg.fix_it_profile:
+            else:
                 lb = (1 - flex_frac_eff) * it_base[t]
                 ub = (1 + flex_frac_eff) * it_base[t]
                 m += IT_SERV[t] >= lb
                 m += IT_SERV[t] <= ub
-            else:
-                it_cap = sc.base_it_mw * cfg.it_capacity_multiplier
-                m += IT_SERV[t] <= it_demand[t] * ramp_share
-                m += IT_SERV[t] <= it_cap
 
             m += COOL[t] == alpha_eff[t] * IT_SERV[t]
 
@@ -1443,22 +1383,9 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
             )
 
             m += DC_LOAD[t] == IT_SERV[t] + COOL[t] + P_HP[t] + P_SERV + CH[t] - DIS[t]
-            if allow_it_shortfall_pf:
-                dc_grid_cap_t = cfg.dc_grid_cap_share * it_demand[t] * (1.0 + alpha_eff[t])
-                m += DC_LOAD[t] <= dc_grid_cap_t
 
-            if allow_it_shortfall_pf:
-                m += SLA_SHORT[t] >= it_demand[t] - IT_SERV[t]
-                m += SLA_SHORT[t] <= it_demand[t]
-                if cfg.sla_penalty_only_when_congested:
-                    m += SLA_SHORT_EFF[t] <= SLA_SHORT[t]
-                    m += SLA_SHORT_EFF[t] <= it_demand[t] * U_GRID[t]
-                    m += SLA_SHORT_EFF[t] >= SLA_SHORT[t] - it_demand[t] * (1.0 - U_GRID[t])
-                else:
-                    m += SLA_SHORT_EFF[t] == SLA_SHORT[t]
-            else:
-                m += SLA_SHORT[t] == 0
-                m += SLA_SHORT_EFF[t] == 0
+            m += SLA_SHORT[t] == 0
+            m += SLA_SHORT_EFF[t] == 0
             m += P_PEAK >= DC_LOAD[t]
 
             dc_at_n1 = DC_LOAD[t] if dc_node == n1 else 0.0
@@ -1546,10 +1473,7 @@ def solve_perfect_foresight(sc: Scenario, prof: Dict[str, List[float]], cfg: Con
         )
         demand_charge_expr = demand_charge_horizon(cfg) * P_PEAK
 
-        if allow_it_shortfall_pf:
-            sla_penalty_expr = pulp.lpSum(cfg.sla_penalty_eur_per_mwh * SLA_SHORT_EFF[t] * dt * w[t] for t in range(T))
-        else:
-            sla_penalty_expr = 0
+        sla_penalty_expr = 0
         E_IT_expr = pulp.lpSum(IT_SERV[t] * dt * w[t] for t in range(T))
         E_FAC_expr = pulp.lpSum(DC_LOAD[t] * dt * w[t] for t in range(T))
         eff_benefit_expr = eff_reduction * (
@@ -1734,7 +1658,6 @@ def solve_minmax_regret(
             allow_heat = bool(prof.get("allow_heat", True))
             allow_flex = bool(prof.get("allow_flex", True))
             allow_battery = bool(prof.get("allow_battery", True))
-            allow_it_shortfall_sc = False
 
             alpha_base = prof.get("alpha_base", None)
             if alpha_base is None:
@@ -1814,8 +1737,6 @@ def solve_minmax_regret(
                 AF23 = {t: 0 for t in range(T)}
                 AF13 = {t: 0 for t in range(T)}
 
-            ramp_share = pulp.LpVariable(f"ramp_share_s{sc.sid}", lowBound=0, upBound=1)
-
             Cost = pulp.LpVariable(f"Cost_s{sc.sid}", lowBound=None)
             Cost_s_vars[sc.sid] = Cost
 
@@ -1831,16 +1752,6 @@ def solve_minmax_regret(
 
             n1, n2, n3 = cfg.network_nodes
 
-            size_proxy_expr = (
-                sc.base_it_mw
-                + cfg.ramp_k_hx * K_HX_s
-                + cfg.ramp_k_hp * K_HP_s
-                + cfg.ramp_k_flex * K_FLEX_s
-                + cfg.ramp_k_bat_e * K_BAT_E_s
-                + cfg.ramp_k_bat_p * K_BAT_P_s
-            )
-            m += ramp_share <= cfg.ramp_base_share - cfg.ramp_tau_per_mw * size_proxy_expr
-
             force_it_flex = bool(prof.get("force_it_flex", False))
             flex_frac_eff = min(0.30, sc.flex_frac * (cfg.it_flex_scale_services_active if allow_flex else 1.0))
             for t in range(T):
@@ -1854,25 +1765,18 @@ def solve_minmax_regret(
                 m += -F23[t] <= cap23
                 m += F13[t] <= cap13
                 m += -F13[t] <= cap13
-                if allow_it_shortfall_sc:
-                    m += IT_SERV[t] <= it_demand[t]
-                    m += IT_SERV[t] >= (1.0 - cfg.max_it_curtail_frac) * it_demand[t]
-                elif force_it_flex:
+                if force_it_flex:
                     lb = (1 - flex_frac_eff) * it_base[t]
                     ub = (1 + flex_frac_eff) * it_base[t]
                     m += IT_SERV[t] >= lb
                     m += IT_SERV[t] <= ub
                 elif cfg.fix_it_profile:
                     m += IT_SERV[t] == it_base[t]
-                elif not cfg.fix_it_profile:
+                else:
                     lb = (1 - flex_frac_eff) * it_base[t]
                     ub = (1 + flex_frac_eff) * it_base[t]
                     m += IT_SERV[t] >= lb
                     m += IT_SERV[t] <= ub
-                else:
-                    it_cap = sc.base_it_mw * cfg.it_capacity_multiplier
-                    m += IT_SERV[t] <= it_demand[t] * ramp_share
-                    m += IT_SERV[t] <= it_cap
 
                 m += COOL[t] == alpha_eff[t] * IT_SERV[t]
 
@@ -1956,22 +1860,9 @@ def solve_minmax_regret(
                 )
                 m += DC_LOAD[t] == IT_SERV[t] + COOL[t] + P_HP[t] + P_SERV + CH[t] - DIS[t]
                 m += P_PEAK >= DC_LOAD[t]
-                if allow_it_shortfall_sc:
-                    dc_grid_cap_t = cfg.dc_grid_cap_share * it_demand[t] * (1.0 + alpha_eff[t])
-                    m += DC_LOAD[t] <= dc_grid_cap_t
 
-                if allow_it_shortfall_sc:
-                    m += SLA_SHORT[t] >= it_demand[t] - IT_SERV[t]
-                    m += SLA_SHORT[t] <= it_demand[t]
-                    if cfg.sla_penalty_only_when_congested:
-                        m += SLA_SHORT_EFF[t] <= SLA_SHORT[t]
-                        m += SLA_SHORT_EFF[t] <= it_demand[t] * U_GRID[t]
-                        m += SLA_SHORT_EFF[t] >= SLA_SHORT[t] - it_demand[t] * (1.0 - U_GRID[t])
-                    else:
-                        m += SLA_SHORT_EFF[t] == SLA_SHORT[t]
-                else:
-                    m += SLA_SHORT[t] == 0
-                    m += SLA_SHORT_EFF[t] == 0
+                m += SLA_SHORT[t] == 0
+                m += SLA_SHORT_EFF[t] == 0
 
                 dc_at_n1 = DC_LOAD[t] if dc_node == n1 else 0.0
                 dc_at_n2 = DC_LOAD[t] if dc_node == n2 else 0.0
@@ -2056,10 +1947,7 @@ def solve_minmax_regret(
                 p_flex[t] * RF[t] * dt * w[t] for t in range(T)
             )
             demand_charge = demand_charge_horizon(cfg) * P_PEAK
-            if allow_it_shortfall_sc:
-                sla_penalty = pulp.lpSum(cfg.sla_penalty_eur_per_mwh * SLA_SHORT_EFF[t] * dt * w[t] for t in range(T))
-            else:
-                sla_penalty = 0
+            sla_penalty = 0
             E_IT_expr = pulp.lpSum(IT_SERV[t] * dt * w[t] for t in range(T))
             E_FAC_expr = pulp.lpSum(DC_LOAD[t] * dt * w[t] for t in range(T))
             eff_benefit = eff_reduction * (

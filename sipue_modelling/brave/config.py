@@ -263,10 +263,6 @@ class Config:
     ramp_k_bat_e: float = 0.0
     ramp_k_bat_p: float = 0.0
 
-    sla_penalty_eur_per_mwh: float = 200.0
-    sla_penalty_only_when_congested: bool = True
-    dc_grid_cap_share: float = 1.10
-
     export_csv: bool = True
     canonical_output_dir: str = "output/congested3"
     out_results_csv: str = "output/results_365day.csv"
