@@ -66,7 +66,7 @@ Three principal service channels:
    - "Energy hub" concepts co-locate data centers with renewables and storage; data center as anchor demand for local balancing.
 
 ### Cross-Level Misalignment and the KPI Gap
-- PUE classifies all non-IT electricity as overhead; integration assets worsen PUE even when creating external value.
+- PUE classifies all non-IT electricity as overhead; integration assets can increase PUE even when creating external value.
 - This misalignment is amplified by policy-driven reporting requirements (Directive 2023/1791).
 - An effective KPI must be both **backward-compatible** (comparable to PUE) and **forward-compatible** (recognizing system-value creation).
 
@@ -150,19 +150,21 @@ with `Z = max_s PlanningRegret_s`.
 
 - Hourly profiles from calibrated 3-node network time series (loads, renewable availability, fuel prices, optional CO₂ price).
 - **7 representative days** selected with year-month method (preserving seasonal structure; T=8760 hours).
-- **4 data-center archetypes x 10 shared uncertainty states = 40 services-active scenarios.** This replaced the earlier 10-named-country-scenario design (Hyperscale-Netherlands, AI-Norway, etc. -- that generator, `make_scenarios()`, still exists for legacy/test use but is no longer wired into any canonical runner). The new design lets each archetype face the identical set of ten uncertainty draws, which is what makes genuine out-of-sample/cross-validated evaluation possible (holding out uncertainty states, not just refitting on the same ten fixed scenarios):
+- **4 data-center archetypes x 10 shared uncertainty states = 40 services-active scenarios.** This replaced the earlier 10-named-country-scenario design (Hyperscale-Netherlands, AI-Norway, etc. -- that generator, `make_scenarios()`, still exists for legacy/test use but is no longer wired into the paper-facing canonical runner). The new design lets each archetype face the identical set of ten uncertainty draws.
 
 | Archetype | Base IT (MW) | flex_frac | base_pue | heat_recovery_frac | hp_cop | land_limit_m2 |
 |---|---|---|---|---|---|---|
-| AI/HPC | 40 | 0.24 | 1.12 | 0.60 | 3.8 | 1500 |
+| AI/HPC | 40 | 0.24 | 1.12 | 0.50 | 3.8 | 1500 |
 | Hyperscale cloud | 60 | 0.16 | 1.18 | 0.45 | 3.5 | 1900 |
-| Colocation | 25 | 0.08 | 1.30 | 0.32 | 3.1 | 1050 |
+| Colocation | 25 | 0.10 | 1.30 | 0.32 | 3.1 | 1050 |
 | Enterprise/edge | 8 | 0.05 | 1.42 | 0.20 | 2.8 | 620 |
 
+**2026-07-23, later same day -- archetype table now cited (was previously bare literals).** Review of `heat_recovery_frac`, `hp_cop`, and `flex_frac` in `DATA_CENTER_ARCHETYPES` (`brave/scenario.py`) found that several archetype assumptions lacked direct sourcing, unlike the broader parameter set in `brave/provenance.py`. Literature search (ACEEE Nadel 2025 white paper, a 2015 multi-tenant colocation demand-response study, liquid-cooling market-adoption data) found: (a) `base_pue` and `hp_cop` archetype values were already within cited/generic ranges, no change; (b) AI/HPC's `heat_recovery_frac` exceeded the project's own already-cited generic range of 0.30-0.50 -- capped to 0.50; (c) Colocation's `flex_frac` was below the one directly relevant citation's floor (10-25% achievable, arXiv:1504.07308) -- raised to 0.10; (d) Enterprise/edge's `heat_recovery_frac` and `flex_frac`, and Hyperscale's `flex_frac`, have no archetype-specific source at all -- left unchanged and explicitly flagged as evidence gaps in `provenance.py` rather than assigned unsupported precise-looking numbers. Full citations and per-archetype rows are in `brave/provenance.py`; rationale is also in `brave/scenario.py`'s comment above `DATA_CENTER_ARCHETYPES`. Regenerate `main.py` and validation outputs before citing archetype-level numbers affected by these assumptions.
+
 - **10 uncertainty states** (central-base, clean-cool, high-ets, heat-rich, flex-rich, cooling-stress, congestion-stress, storage-limited, cost-stress, service-upside) applied unchanged to every archetype, varying electricity/heat/flex/carbon prices, congestion, cooling overhead, storage availability, capex, and land cost via multipliers.
-- Known open item: archetype `land_limit_m2` does not scale proportionally with `base_it_mw` -- after netting the existing-core footprint, Enterprise/edge gets roughly 3x more land per MW of IT than Hyperscale, so land is not currently a reliable physical backstop on integration-equipment sizing for the smallest archetype. Not yet fixed.
+- The land representation is a stylized lease/opportunity-cost and feasibility diagnostic, not an engineering land-suitability model for integration-equipment sizing.
 - Uncertainty: stochastic weekly perturbations to heat availability and flexibility prices.
-- OAT sensitivity: price multipliers (0.5×/2×) for CO₂, heat, flex; congestion multipliers (1.5×/0.5×); construction-delay factors Δ ∈ {0, 0.25, 0.5}.
+- Sensitivity runners exist for diagnostic use, but their outputs should not be cited in the manuscript unless regenerated from the current source tree and reviewed separately.
 
 ---
 
@@ -174,33 +176,14 @@ with `Z = max_s PlanningRegret_s`.
 
 Market heat/flex revenues and carbon-market payments remain dispatch and diagnostic outputs only; they are not direct siPUE numerator terms. Paper tables should use compact labels such as `CO2 cost`, `DC CO2 share`, `DC CO2 change`, `carbon damage`, `system benefit`, `benefit per MWh IT`, and `delay factor`.
 
-**IMPORTANT -- provenance of the numbers below:** these were regenerated on 2026-07-22 after (a) fixing the siPUE double-counting bug, (b) fixing a facility-size-inconsistent battery capacity bound that had been clipping the smallest archetype's siPUE to exactly 0 (see `brave/config.py` `battery_capacity_headroom_multiplier`), and (c) confirming all 140 tests pass. They have **not** yet had the independent-review pass described in the Limitations section, and two open questions bear directly on their reliability:
-1. Battery capacity (`K_BAT_E`, `K_BAT_P`) is currently pinned at essentially the same per-MW-IT ratio in every one of the 40 scenarios regardless of how different the underlying prices/volatility are -- it is bound-driven, not yet shown to be scenario-driven. The magnitude of the headline numbers below is sensitive to `battery_capacity_headroom_multiplier` (currently 6x the minimum floor, chosen as a placeholder, not derived from a battery duration/C-rate assumption).
-2. `IndependentSystemCostEUR` is computed as the **entire 3-node network's** total resource + carbon cost (order of EUR 1.8-2.7 billion), and the siPUE credit is the delta between the no-services and case versions of that total (order of EUR 9-14 million, ~0.3-0.5% of the total). This delta is mathematically well-defined (both runs share the same background load/profiles), but it has not yet been cross-checked against a DC-attributable-only accounting (feasible via the existing `solve_no_dc_network`, not yet implemented).
+For the manuscript, treat numerical results as illustrative until the canonical outputs are regenerated from the current source tree. Defensible claims are limited to the metric mechanics and property checks:
 
-Given these open items, treat the numbers below as **the current best fixed-code run, not yet a validated final result** -- exactly the "one more independent look before a draft" the Limitations section calls for.
+- siPUE equals PUE in the no-services case.
+- A positive independent system-cost benefit lowers siPUE, subject to the configured nonnegative clip.
+- Construction delay weakens the credited system benefit.
+- PUE and siPUE can move in different directions because PUE counts integration electricity as overhead while siPUE credits independently valued system services.
 
-### Overall Metric Alignment (Annual Rep-Days, 4 Archetypes x 10 States)
-
-Current canonical outputs are in `output/congested3/results_4_archetypes_10_states.csv` (regenerate with `poetry run python main.py`). `output/results_365day.csv` is an orphaned artifact from the retired 10-named-scenario design -- no current script writes to it; do not cite it.
-
-- **Headline percentage changes (no-services vs. `robust` min-max-regret design, averaged over 40 scenarios):** PUE worsens by `+16.74%` on average, while siPUE improves by `-20.10%` on average. siPUE falls below the no-services PUE baseline (a level-wise net improvement, not merely "worsens less than PUE") in **all 40 scenarios**, ranging from -9% to -26% depending on scenario.
-- This is a materially different -- and more favorable -- headline than earlier sessions found ("siPUE still doesn't flip positive"). That earlier finding predates both the battery-bound fix and the archetype-design change, so it does not describe the current code. Given the open items above, do not yet write this into the manuscript as a confirmed result; it needs the independent-review pass and a sensitivity check on `battery_capacity_headroom_multiplier` first.
-- Planning-objective alignment and external system-validity rank correlations (rho vs. integrated planning surplus, rho vs. normalized independent system benefit) need to be recomputed from the regenerated validation tables -- the `rho = -0.903` / `rho = +0.988` figures previously reported here were computed on the pre-fix, 10-named-scenario design and no longer apply.
-
-Manuscript claims should therefore say that siPUE is a no-services-counterfactual system-integrated KPI that tracks system-adjusted burden per unit IT energy.
-
-### Sensitivity Analysis
-
-Under the updated formulation, price sensitivities should be interpreted through dispatch, integrated planning surplus, and independent system cost. A heat or flexibility price change affects siPUE only if it changes the independent no-services-vs-case system-cost counterfactual.
-- **CO2 price increase:** changes carbon-market cost and carbon-damage diagnostics.
-- **Heat price increase:** changes operator settlement economics and may change dispatch; siPUE changes only through the independent system-cost counterfactual.
-- **Flex price and congestion:** should be interpreted through independent system benefit and planning-surplus diagnostics separately.
-- **Status:** stale as of 2026-07-22 -- predates the battery-bound fix and the archetype-design change. Rerun `run_sensitivity_prices_congestion_repdays_annual.py` before citing any specific percentage here.
-
-### Construction Delay Sensitivity
-
-Construction-delay sensitivity should be regenerated with `run_sensitivity_prices_congestion_repdays_annual.py`. The output table reports siPUE change, independent system benefit, integrated planning surplus, PUE, ERE, and CUE. Do not reuse older profit-centered or pass-rate tables, or any figures computed before 2026-07-22, in the manuscript.
+Do not cite unsupported numerical or diagnostic claims from stale result files.
 
 ---
 ## Key Variables and Parameters

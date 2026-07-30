@@ -8,12 +8,19 @@ from brave.accounting import lifecycle_availability_factor
 if TYPE_CHECKING:
     from brave.scenario import Scenario
 
-# ---------------------------------------------------------------------------
-# Non-annual horizon scaling constants used when representative-day annual
-# compression is disabled.
-# ---------------------------------------------------------------------------
-_REP_TOTAL_DAYS: int = 7
 _EPS: float = 1e-9
+
+
+def _modeled_days_fraction_of_year(cfg: Config) -> float:
+    """Fraction of a calendar year covered by the modeled horizon.
+
+    A full 8,760-hour trace is annual regardless of the representative-day
+    weighting flag (mirrors ``_lifecycle_factors`` in optimization.py); only
+    genuinely short test/smoke horizons should scale down.
+    """
+    if cfg.T == 8760:
+        return 1.0
+    return (cfg.T / 24.0) / max(1, cfg.days_per_year)
 
 
 def nanmean(xs: List[float]) -> float:
@@ -172,7 +179,7 @@ def land_cost_horizon(land_m2: float, cfg: Config) -> float:
         if cfg.use_representative_days_annual:
             scale = 1.0  # weights already annualise operations; keep land annual too
         else:
-            scale = _REP_TOTAL_DAYS / max(1, cfg.days_per_year)
+            scale = _modeled_days_fraction_of_year(cfg)
     maint = 1.0 + max(0.0, cfg.land_maintenance_frac)
     return land_m2 * cfg.land_cost_eur_per_m2 * scale * maint
 
@@ -185,15 +192,13 @@ def demand_charge_horizon(cfg: Config) -> float:
         return 0.0
     if cfg.use_representative_days_annual:
         return cfg.demand_charge_eur_per_mw_year  # weights already annualise; keep demand charge annual
-    scale = _REP_TOTAL_DAYS / max(1, cfg.days_per_year)
-    return cfg.demand_charge_eur_per_mw_year * scale
+    return cfg.demand_charge_eur_per_mw_year * _modeled_days_fraction_of_year(cfg)
 
 
 def independent_peak_capacity_horizon(cfg: Config) -> float:
     if cfg.use_representative_days_annual:
         return cfg.independent_peak_capacity_value_eur_per_mw_year
-    scale = _REP_TOTAL_DAYS / max(1, cfg.days_per_year)
-    return cfg.independent_peak_capacity_value_eur_per_mw_year * scale
+    return cfg.independent_peak_capacity_value_eur_per_mw_year * _modeled_days_fraction_of_year(cfg)
 
 
 def compute_independent_system_cost(
@@ -280,6 +285,11 @@ def design_size_proxy(
 def eff_capex_from_reduction(eff_reduction: float, cfg: Config) -> float:
     if not cfg.eff_levels:
         return 0.0
+    if len(cfg.eff_capex_levels) != len(cfg.eff_levels):
+        raise ValueError(
+            f"eff_capex_levels (len={len(cfg.eff_capex_levels)}) must match "
+            f"eff_levels (len={len(cfg.eff_levels)})."
+        )
     idx = min(range(len(cfg.eff_levels)), key=lambda i: abs(cfg.eff_levels[i] - eff_reduction))
     return cfg.eff_capex_levels[idx]
 

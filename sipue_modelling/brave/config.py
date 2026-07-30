@@ -17,6 +17,7 @@ LOCKED_CALIBRATION = {
     "min_flex_mw_per_it_mw": 0.09,
     "min_bat_e_hours": 0.5,
     "min_bat_p_mw_per_it_mw": 0.10,
+    "battery_capacity_headroom_multiplier": 2.0,
     "heat_price_multiplier": 0.60,
     "flex_price_multiplier": 0.25,
     "heat_price_multipliers_by_sid": (1.0, 1.3, 1.1, 1.4, 0.7, 1.3, 1.1, 1.2, 0.9, 0.7),
@@ -75,7 +76,7 @@ class Config:
 
 
     eff_levels: Tuple[float, ...] = (0.00, 0.15)
-    eff_capex_levels: Tuple[float, ...] = (0.0, 16800000.0, 98000000.0)  # Upfront EUR.
+    eff_capex_levels: Tuple[float, ...] = (0.0, 16800000.0)  # Upfront EUR.
     eff_cost_saving_eur_per_mwh_fac_per_eff: float = 0.0
     eff_opex_credit_eur_per_mwh_it_per_eff: float = 0.0
     fixed_eff_reduction: Optional[float] = 0.15
@@ -102,7 +103,32 @@ class Config:
     # from their actual energy footprint.
     K_BAT_E_max: float = 80.0
     K_BAT_P_max: float = 50.0
-    battery_capacity_headroom_multiplier: float = 6.0
+    # Ceiling on installable battery capacity, expressed as a multiple of the
+    # min_bat_* floors (both already per-MW-IT ratios):
+    #   power ceiling  = battery_capacity_headroom_multiplier * min_bat_p_mw_per_it_mw   (MW per MW IT)
+    #   energy ceiling = battery_capacity_headroom_multiplier * min_bat_e_hours          (hours-equivalent per MW IT)
+    # At the current default (2.0) this allows up to 0.20 MW of battery power
+    # per MW of IT load (20% of IT) and 1.0 h of energy per MW of IT.
+    #
+    # Literature grounding for this multiplier:
+    #  - NREL's Annual Technology Baseline (Cost Projections for Utility-Scale
+    #    Battery Storage, 2024/2025 updates) treats 4-hour duration Li-ion as
+    #    the standard grid-scale configuration; >90% of newly installed
+    #    grid-scale capacity is 4 h or shorter.
+    #  - Real data-center-paired batteries deployed/announced in 2025-2026
+    #    (e.g. Aligned Data Centers' 31 MW / 62 MWh system) use ~2-hour
+    #    duration, sized as a large-but-partial fraction of campus IT load.
+    #  - This project's own "baseline" (non-optimized incumbent) design case
+    #    uses baseline_bat_p_mw_per_it_mw=0.20 (20% of IT MW) at
+    #    baseline_bat_e_hours=0.8 h -- i.e. roughly a 4-hour-duration battery
+    #    sized at 20% of IT load.
+    # A multiplier of 2.0 (20% of IT MW power ceiling) matches the project's
+    # own baseline power assumption and the low end of real deployments
+    # above. Higher multipliers remain available for diagnostic sweeps, but
+    # any manuscript claim should use outputs regenerated from the current
+    # source tree. Battery-ceiling sensitivity is intentionally excluded from
+    # the current manuscript sensitivity set.
+    battery_capacity_headroom_multiplier: float = 2.0
 
     eta_ch: float = 0.95
     eta_dis: float = 0.95
@@ -265,11 +291,10 @@ class Config:
 
     export_csv: bool = True
     canonical_output_dir: str = "output/congested3"
-    out_results_csv: str = "output/results_365day.csv"
-    out_scenarios_csv: str = "output/scenarios.csv"
     export_plots: bool = True
     plot_output_dir: str = "output/congested3/figures"
     plot_format: str = "pdf"
+    plot_extra_formats: Tuple[str, ...] = ()
     export_regret_landscape: bool = False
     landscape_grid_nx: int = 8
     landscape_grid_ny: int = 8
@@ -282,10 +307,9 @@ class Config:
     validation_oos_csv: str = "output/validation/out_of_sample_validation.csv"
     validation_oos_train_sids: Tuple[int, ...] = (1, 2, 3, 4, 5)
     validation_oos_test_sids: Tuple[int, ...] = (6, 7, 8, 9, 10)
-    validation_cv_folds: int = 5
-    validation_cv_csv: str = "output/validation/cross_validated_validation.csv"
-    validation_bootstrap_samples: int = 1000
-    validation_bootstrap_seed: int = 1701
+    # run_train_test_scenario_validation trains on uncertainty_id <= this
+    # value and evaluates on the rest, per archetype.
+    train_test_max_train_id: int = 7
     out_of_sample_case_count: int = 200
 
     baseline_hx_mwth_per_it_mw: float = 0.25

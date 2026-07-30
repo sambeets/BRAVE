@@ -3,13 +3,13 @@
 ## Current status (paper writing)
 Paper drafting is active. The user manually updated `research/paper/paper.tex` and `research/paper/references/references.bib` and we will use these as the authoritative sources for writing.
 
-### Model + results snapshot (latest committed)
-- 12 scenarios, country-only names; regimes: no_services / efficiency_only / services_active
-- Regime mix: n_no_services=3, n_efficiency_only=3, services_active=6
-- Annual run (365-day, profit_max) results: `toy_results_365day.csv`
-- Short run (30-day, profit_max) results: `toy_results_30day.csv`
-- Scenarios: `toy_scenarios.csv`
-- Figures (PDF): `sipue-modelling/paper-figures/*.pdf`
+### Model + results snapshot
+- Canonical study: four archetypes x ten shared uncertainty states.
+- Canonical cases: no_services, baseline, robust.
+- Canonical results: `output/congested3/results_4_archetypes_10_states.csv`.
+- KPI benchmark: `output/congested3/kpi_benchmark_summary.csv`.
+- Validation outputs: `output/validation/train-test/` and `output/validation/out-of-sample/`.
+- Creative figures: `output/congested3/figures/fig_*.pdf`.
 
 ### Writing workflow
 - Use `research/paper/paper.tex` and `research/paper/references/references.bib` as the source of truth.
@@ -18,5 +18,5 @@ Paper drafting is active. The user manually updated `research/paper/paper.tex` a
 ---
 
 ## Notes / guardrails
-- Preserve 12 scenarios and 3 regimes.
+- Do not use stale toy outputs or deleted result bundles as evidence.
 - Keep Windows-friendly output (avoid unicode symbols if needed).

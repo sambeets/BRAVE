@@ -1,0 +1,121 @@
+run_id,archetype,archetype_key,design_case,metric,unit,scenario_count,average_value,average_no_services_value,average_absolute_change_vs_no_services,average_pct_change_vs_no_services
+congested3-9180d3f3a854c008,all,all,no_services,pue,dimensionless,40,1.2182126536661757,1.2182126536661757,0.0,0.0
+congested3-9180d3f3a854c008,all,all,no_services,sipue,dimensionless,40,1.2182126536661757,1.2182126536661757,0.0,0.0
+congested3-9180d3f3a854c008,all,all,no_services,steady_sipue,dimensionless,40,1.2182126536661757,1.2182126536661757,0.0,0.0
+congested3-9180d3f3a854c008,all,all,no_services,cue,tCO2/MWh IT,40,0.2434827881615139,0.2434827881615139,0.0,0.0
+congested3-9180d3f3a854c008,all,all,no_services,modeled_erf,MWhth delivered useful heat/MWh facility electricity,40,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,all,all,no_services,system_benefit_per_mwh_it,EUR/MWh IT,40,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,all,all,no_services,emissions_tco2,tCO2,40,6269236.46456393,6269236.46456393,0.0,0.0
+congested3-9180d3f3a854c008,all,all,no_services,carbon_damage_eur,EUR,40,858753618.851655,858753618.851655,0.0,0.0
+congested3-9180d3f3a854c008,all,all,baseline,pue,dimensionless,40,1.27666440233629,1.2182126536661757,0.05845174867011438,4.79815642155789
+congested3-9180d3f3a854c008,all,all,baseline,sipue,dimensionless,40,1.1931781913670114,1.2182126536661757,-0.025034462299164284,-2.0550157826569766
+congested3-9180d3f3a854c008,all,all,baseline,steady_sipue,dimensionless,40,1.1897727360059598,1.2182126536661757,-0.02843991766021592,-2.3345610123673244
+congested3-9180d3f3a854c008,all,all,baseline,cue,tCO2/MWh IT,40,0.2299890876333301,0.2434827881615139,-0.0134937005281838,-5.541952525709035
+congested3-9180d3f3a854c008,all,all,baseline,modeled_erf,MWhth delivered useful heat/MWh facility electricity,40,0.08992921740872,0.0,0.08992921740872,
+congested3-9180d3f3a854c008,all,all,baseline,system_benefit_per_mwh_it,EUR/MWh IT,40,4.727622460784522,0.0,4.727622460784522,
+congested3-9180d3f3a854c008,all,all,baseline,emissions_tco2,tCO2,40,6264696.59925342,6269236.46456393,-4539.8653105106205,-0.0724149637068507
+congested3-9180d3f3a854c008,all,all,baseline,carbon_damage_eur,EUR,40,858125897.4407214,858753618.851655,-627721.4109336138,-0.0730967994956478
+congested3-9180d3f3a854c008,all,all,robust,pue,dimensionless,40,1.4129533705318214,1.2182126536661757,0.19474071686564565,15.985773606896881
+congested3-9180d3f3a854c008,all,all,robust,sipue,dimensionless,40,1.215965458486401,1.2182126536661757,-0.0022471951797746748,-0.18446657675175232
+congested3-9180d3f3a854c008,all,all,robust,steady_sipue,dimensionless,40,1.2085480454920192,1.2182126536661757,-0.009664608174156486,-0.7933432759109116
+congested3-9180d3f3a854c008,all,all,robust,cue,tCO2/MWh IT,40,0.19457090197668164,0.2434827881615139,-0.04891188618483225,-20.088436868230144
+congested3-9180d3f3a854c008,all,all,robust,modeled_erf,MWhth delivered useful heat/MWh facility electricity,40,0.2762690446940657,0.0,0.2762690446940657,
+congested3-9180d3f3a854c008,all,all,robust,system_benefit_per_mwh_it,EUR/MWh IT,40,11.154949621940249,0.0,11.154949621940249,
+congested3-9180d3f3a854c008,all,all,robust,emissions_tco2,tCO2,40,6256742.9421244515,6269236.46456393,-12493.522439478897,-0.1992829989759831
+congested3-9180d3f3a854c008,all,all,robust,carbon_damage_eur,EUR,40,857087279.1100714,858753618.851655,-1666339.7415835857,-0.19404165583742788
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,pue,dimensionless,10,1.1023974801438874,1.1023974801438874,0.0,0.0
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,sipue,dimensionless,10,1.1023974801438874,1.1023974801438874,0.0,0.0
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,steady_sipue,dimensionless,10,1.1023974801438874,1.1023974801438874,0.0,0.0
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,cue,tCO2/MWh IT,10,0.22040928355388711,0.22040928355388711,0.0,0.0
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,system_benefit_per_mwh_it,EUR/MWh IT,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,emissions_tco2,tCO2,10,6280232.082968662,6280232.082968662,0.0,0.0
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,no_services,carbon_damage_eur,EUR,10,860276261.7480352,860276261.7480352,0.0,0.0
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,pue,dimensionless,10,1.1548266767397786,1.1023974801438874,0.05242919659589118,4.7559249309104015
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,sipue,dimensionless,10,1.056328851400551,1.1023974801438874,-0.04606862874333628,-4.178949024568099
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,steady_sipue,dimensionless,10,1.052355670228307,1.1023974801438874,-0.05004180991558038,-4.539361783469317
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,cue,tCO2/MWh IT,10,0.20874772626667748,0.22040928355388711,-0.011661557287209634,-5.290864839800879
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.08613138456398632,0.0,0.08613138456398632,
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,system_benefit_per_mwh_it,EUR/MWh IT,10,5.577693921017922,0.0,5.577693921017922,
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,emissions_tco2,tCO2,10,6276208.869027688,6280232.082968662,-4023.2139409733936,-0.06406154880619672
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,baseline,carbon_damage_eur,EUR,10,859715402.9366157,860276261.7480352,-560858.811419487,-0.0651951979100123
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,pue,dimensionless,10,1.2986621572666657,1.1023974801438874,0.19626467712277829,17.80344028881138
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,sipue,dimensionless,10,1.0904019718418356,1.1023974801438874,-0.01199550830205176,-1.0881291474365562
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,steady_sipue,dimensionless,10,1.082601605759285,1.1023974801438874,-0.019795874384602286,-1.795711142411037
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,cue,tCO2/MWh IT,10,0.1709583373527825,0.22040928355388711,-0.0494509462011046,-22.43596340578572
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.30314841474793036,0.0,0.30314841474793036,
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,system_benefit_per_mwh_it,EUR/MWh IT,10,11.793271234502217,0.0,11.793271234502217,
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,emissions_tco2,tCO2,10,6263171.605431171,6280232.082968662,-17060.477537490427,-0.2716536158553228
+congested3-9180d3f3a854c008,AI/HPC,ai_hpc,robust,carbon_damage_eur,EUR,10,858006159.1930029,860276261.7480352,-2270102.5550322533,-0.263880645784591
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,pue,dimensionless,10,1.2575031118182833,1.2575031118182833,0.0,0.0
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,sipue,dimensionless,10,1.2575031118182833,1.2575031118182833,0.0,0.0
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,steady_sipue,dimensionless,10,1.2575031118182833,1.2575031118182833,0.0,0.0
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,cue,tCO2/MWh IT,10,0.2513727951041673,0.2513727951041673,0.0,0.0
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,system_benefit_per_mwh_it,EUR/MWh IT,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,emissions_tco2,tCO2,10,6251687.780180629,6251687.780180629,0.0,0.0
+congested3-9180d3f3a854c008,Colocation,colocation,no_services,carbon_damage_eur,EUR,10,856347358.9191577,856347358.9191577,0.0,0.0
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,pue,dimensionless,10,1.3132691581445806,1.2575031118182833,0.055766046326297225,4.4346646781384464
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,sipue,dimensionless,10,1.2318702828980757,1.2575031118182833,-0.025632828920207684,-2.0383908937723394
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,steady_sipue,dimensionless,10,1.2284731004725102,1.2575031118182833,-0.0290300113457731,-2.308543897262984
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,cue,tCO2/MWh IT,10,0.23846974862987894,0.2513727951041673,-0.012903046474288388,-5.1330321839089414
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.08233912996571105,0.0,0.08233912996571105,
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,system_benefit_per_mwh_it,EUR/MWh IT,10,4.6094216808998825,0.0,4.6094216808998825,
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,emissions_tco2,tCO2,10,6249242.663196188,6251687.780180629,-2445.116984440945,-0.0391113099440532
+congested3-9180d3f3a854c008,Colocation,colocation,baseline,carbon_damage_eur,EUR,10,856007936.7673972,856347358.9191577,-339422.15176057816,-0.03963603650147076
+congested3-9180d3f3a854c008,Colocation,colocation,robust,pue,dimensionless,10,1.4990672471803808,1.2575031118182833,0.24156413536209742,19.20982406260676
+congested3-9180d3f3a854c008,Colocation,colocation,robust,sipue,dimensionless,10,1.263163046336682,1.2575031118182833,0.005659934518398746,0.45009308249064917
+congested3-9180d3f3a854c008,Colocation,colocation,robust,steady_sipue,dimensionless,10,1.2542757171356604,1.2575031118182833,-0.003227394682622897,-0.2566510295116689
+congested3-9180d3f3a854c008,Colocation,colocation,robust,cue,tCO2/MWh IT,10,0.19012092487559257,0.2513727951041673,-0.061251870228574756,-24.366944801322816
+congested3-9180d3f3a854c008,Colocation,colocation,robust,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.32499973067774024,0.0,0.32499973067774024,
+congested3-9180d3f3a854c008,Colocation,colocation,robust,system_benefit_per_mwh_it,EUR/MWh IT,10,13.358685051744558,0.0,13.358685051744558,
+congested3-9180d3f3a854c008,Colocation,colocation,robust,emissions_tco2,tCO2,10,6240080.599773811,6251687.780180629,-11607.180406818166,-0.18566474870379407
+congested3-9180d3f3a854c008,Colocation,colocation,robust,carbon_damage_eur,EUR,10,854797831.7617264,856347358.9191577,-1549527.157431364,-0.1809461010526273
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,pue,dimensionless,10,1.3595135647863223,1.3595135647863223,0.0,0.0
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,sipue,dimensionless,10,1.3595135647863223,1.3595135647863223,0.0,0.0
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,steady_sipue,dimensionless,10,1.3595135647863223,1.3595135647863223,0.0,0.0
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,cue,tCO2/MWh IT,10,0.27150880963779683,0.27150880963779683,0.0,0.0
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,system_benefit_per_mwh_it,EUR/MWh IT,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,emissions_tco2,tCO2,10,6221337.245535031,6221337.245535031,0.0,0.0
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,no_services,carbon_damage_eur,EUR,10,852161692.4182222,852161692.4182222,0.0,0.0
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,pue,dimensionless,10,1.3919971086540188,1.3595135647863223,0.032483543867696474,2.3893504786619753
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,sipue,dimensionless,10,1.3505287820984075,1.3595135647863223,-0.008984782687914805,-0.6608821655506587
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,steady_sipue,dimensionless,10,1.3488028598249897,1.3595135647863223,-0.01071070496133264,-0.787833622168828
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,cue,tCO2/MWh IT,10,0.2638858713290003,0.27150880963779683,-0.007622938308796512,-2.8076209825256884
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.04559952620892725,0.0,0.04559952620892725,
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,system_benefit_per_mwh_it,EUR/MWh IT,10,2.348251163387892,0.0,2.348251163387892,
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,emissions_tco2,tCO2,10,6220868.471419145,6221337.245535031,-468.7741158856079,-0.007534941402220892
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,baseline,carbon_damage_eur,EUR,10,852096792.8385446,852161692.4182222,-64899.57967758179,-0.007615876218680164
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,pue,dimensionless,10,1.5557205494198647,1.3595135647863223,0.19620698463354236,14.432146152538069
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,sipue,dimensionless,10,1.382211800508768,1.3595135647863223,0.02269823572244567,1.6695850861931782
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,steady_sipue,dimensionless,10,1.3755275320841265,1.3595135647863223,0.016013967297804133,1.177918905157896
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,cue,tCO2/MWh IT,10,0.22202041740150222,0.27150880963779683,-0.049488392236294615,-18.227177343642744
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.25571991063051963,0.0,0.25571991063051963,
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,system_benefit_per_mwh_it,EUR/MWh IT,10,9.825381329098448,0.0,9.825381329098448,
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,emissions_tco2,tCO2,10,6218293.9469567835,6221337.245535031,-3043.298578247428,-0.048917113124377916
+congested3-9180d3f3a854c008,Enterprise/edge,enterprise_edge,robust,carbon_damage_eur,EUR,10,851749663.4137963,852161692.4182222,-412029.0044258833,-0.0483510357355595
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,pue,dimensionless,10,1.1534364579162089,1.1534364579162089,0.0,0.0
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,sipue,dimensionless,10,1.1534364579162089,1.1534364579162089,0.0,0.0
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,steady_sipue,dimensionless,10,1.1534364579162089,1.1534364579162089,0.0,0.0
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,cue,tCO2/MWh IT,10,0.23064026435020435,0.23064026435020435,0.0,0.0
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,system_benefit_per_mwh_it,EUR/MWh IT,10,0.0,0.0,0.0,
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,emissions_tco2,tCO2,10,6323688.749571399,6323688.749571399,0.0,0.0
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,no_services,carbon_damage_eur,EUR,10,866229162.3212055,866229162.3212055,0.0,0.0
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,pue,dimensionless,10,1.246564665806782,1.1534364579162089,0.09312820789057308,8.073978176380685
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,sipue,dimensionless,10,1.1339848490710118,1.1534364579162089,-0.019451608845197033,-1.6864048913746137
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,steady_sipue,dimensionless,10,1.1294593134980313,1.1534364579162089,-0.023977144418177554,-2.078757286855187
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,cue,tCO2/MWh IT,10,0.2088530043077635,0.23064026435020435,-0.02178726004244086,-9.446425195454628
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.1456468288962553,0.0,0.1456468288962553,
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,system_benefit_per_mwh_it,EUR/MWh IT,10,6.375123077832394,0.0,6.375123077832394,
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,emissions_tco2,tCO2,10,6312466.393370656,6323688.749571399,-11222.356200742535,-0.17746534728647348
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,baseline,carbon_damage_eur,EUR,10,864683457.2203277,866229162.3212055,-1545705.1008777618,-0.178440667679184
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,pue,dimensionless,10,1.2983635282603738,1.1534364579162089,0.14492707034416497,12.564807480248138
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,sipue,dimensionless,10,1.1280850152583164,1.1534364579162089,-0.025351442657892465,-2.197905440208837
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,steady_sipue,dimensionless,10,1.1217873269890062,1.1534364579162089,-0.03164913092720267,-2.7438989560274343
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,cue,tCO2/MWh IT,10,0.19518392827684933,0.23064026435020435,-0.03545633607335502,-15.373003570407853
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,modeled_erf,MWhth delivered useful heat/MWh facility electricity,10,0.2212081227200724,0.0,0.2212081227200724,
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,system_benefit_per_mwh_it,EUR/MWh IT,10,9.642460872415779,0.0,9.642460872415779,
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,emissions_tco2,tCO2,10,6305425.616336046,6323688.749571399,-18263.133235353045,-0.2888050623394592
+congested3-9180d3f3a854c008,Hyperscale cloud,hyperscale,robust,carbon_damage_eur,EUR,10,863795462.0717599,866229162.3212055,-2433700.2494455576,-0.2809533960879419

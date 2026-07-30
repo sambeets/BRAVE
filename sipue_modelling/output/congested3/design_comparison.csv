@@ -1,0 +1,121 @@
+archetype,uncertainty_state,scenario,design,market_cost_npv_eur,lifecycle_value_npv_eur,regret_comparable,regret_eur,regret_per_mwh_it,regret_share_of_lifecycle,regret_share_of_attainable_pct,scenario_perfect_attainable_improvement_eur,emissions_tco2,carbon_cap_satisfied,run_id
+AI/HPC,1,ai_hpc-central-base,no_services,28550725339.484085,-28550725339.484085,False,,,,,,6273764.413030947,False,congested3-9180d3f3a854c008
+AI/HPC,1,ai_hpc-central-base,baseline,28545809680.623737,-28545809680.623737,False,,,,,,6269108.9996689325,True,congested3-9180d3f3a854c008
+AI/HPC,1,ai_hpc-central-base,robust,28538288130.785713,-28538288130.785713,True,0.0,0.0,0.0,,,6256741.030822226,True,congested3-9180d3f3a854c008
+AI/HPC,2,ai_hpc-clean-cool,no_services,20837323598.72823,-20837323598.72823,False,,,,,,6293583.041935328,False,congested3-9180d3f3a854c008
+AI/HPC,2,ai_hpc-clean-cool,baseline,20830979921.722412,-20830979921.722412,False,,,,,,6289769.474672299,True,congested3-9180d3f3a854c008
+AI/HPC,2,ai_hpc-clean-cool,robust,20801520959.965527,-20801520959.965527,True,0.0,0.0,0.0,,,6267459.664084965,True,congested3-9180d3f3a854c008
+AI/HPC,3,ai_hpc-high-ets,no_services,34489821708.30634,-34489821708.30634,False,,,,,,6272885.940707042,False,congested3-9180d3f3a854c008
+AI/HPC,3,ai_hpc-high-ets,baseline,34480905618.73233,-34480905618.73233,False,,,,,,6267903.229718033,True,congested3-9180d3f3a854c008
+AI/HPC,3,ai_hpc-high-ets,robust,34468910850.35691,-34468910850.35691,True,0.0,0.0,0.0,,,6256224.354220608,True,congested3-9180d3f3a854c008
+AI/HPC,4,ai_hpc-heat-rich,no_services,27210260388.749786,-27210260388.749786,False,,,,,,6307857.5013103355,False,congested3-9180d3f3a854c008
+AI/HPC,4,ai_hpc-heat-rich,baseline,27196272497.983562,-27196272497.983562,False,,,,,,6304586.621341019,False,congested3-9180d3f3a854c008
+AI/HPC,4,ai_hpc-heat-rich,robust,27132641547.549732,-27132641547.549732,True,0.0,0.0,0.0,,,6285383.627540851,True,congested3-9180d3f3a854c008
+AI/HPC,5,ai_hpc-flex-rich,no_services,36769383388.40735,-36769383388.40735,False,,,,,,6262920.387500233,False,congested3-9180d3f3a854c008
+AI/HPC,5,ai_hpc-flex-rich,baseline,36764919543.6243,-36764919543.6243,False,,,,,,6261007.3152210945,False,congested3-9180d3f3a854c008
+AI/HPC,5,ai_hpc-flex-rich,robust,36767887999.39285,-36767887999.39285,True,3.835357666015625,9.999990634781008e-07,1.0431269987764754e-08,,,6256357.118554086,True,congested3-9180d3f3a854c008
+AI/HPC,6,ai_hpc-cooling-stress,no_services,30911635411.455833,-30911635411.455833,False,,,,,,6265992.693887572,False,congested3-9180d3f3a854c008
+AI/HPC,6,ai_hpc-cooling-stress,baseline,30908822187.82146,-30908822187.82146,False,,,,,,6261307.6741646975,True,congested3-9180d3f3a854c008
+AI/HPC,6,ai_hpc-cooling-stress,robust,30909248149.180267,-30909248149.180267,True,0.0,0.0,0.0,,,6254744.091806764,True,congested3-9180d3f3a854c008
+AI/HPC,7,ai_hpc-congestion-stress,no_services,35236718626.83932,-35236718626.83932,False,,,,,,6270819.576882799,False,congested3-9180d3f3a854c008
+AI/HPC,7,ai_hpc-congestion-stress,baseline,35230822833.33725,-35230822833.33725,False,,,,,,6266309.96238547,True,congested3-9180d3f3a854c008
+AI/HPC,7,ai_hpc-congestion-stress,robust,35226588656.27758,-35226588656.27758,True,0.0,0.0,0.0,,,6257331.510767594,True,congested3-9180d3f3a854c008
+AI/HPC,8,ai_hpc-storage-limited,no_services,24475908215.883076,-24475908215.883076,False,,,,,,6283656.659030736,False,congested3-9180d3f3a854c008
+AI/HPC,8,ai_hpc-storage-limited,baseline,24469402031.678303,-24469402031.678303,False,,,,,,6279767.992104187,True,congested3-9180d3f3a854c008
+AI/HPC,8,ai_hpc-storage-limited,robust,24451539947.037037,-24451539947.037037,True,0.0,0.0,0.0,,,6264330.4903622,True,congested3-9180d3f3a854c008
+AI/HPC,9,ai_hpc-cost-stress,no_services,34238500213.583122,-34238500213.583122,False,,,,,,6269686.302207108,False,congested3-9180d3f3a854c008
+AI/HPC,9,ai_hpc-cost-stress,baseline,34237272824.862926,-34237272824.862926,False,,,,,,6264724.939252788,True,congested3-9180d3f3a854c008
+AI/HPC,9,ai_hpc-cost-stress,robust,34237307088.731873,-34237307088.731873,True,0.0,0.0,0.0,,,6256673.383310454,True,congested3-9180d3f3a854c008
+AI/HPC,10,ai_hpc-service-upside,no_services,27895973685.431515,-27895973685.431515,False,,,,,,6301154.3131945105,False,congested3-9180d3f3a854c008
+AI/HPC,10,ai_hpc-service-upside,baseline,27877584697.606102,-27877584697.606102,False,,,,,,6297602.481748363,False,congested3-9180d3f3a854c008
+AI/HPC,10,ai_hpc-service-upside,robust,27804927592.487434,-27804927592.487434,True,0.0,0.0,0.0,,,6276470.782841976,True,congested3-9180d3f3a854c008
+Hyperscale cloud,1,hyperscale-central-base,no_services,28757515343.05067,-28757515343.05067,False,,,,,,6316506.146630952,False,congested3-9180d3f3a854c008
+Hyperscale cloud,1,hyperscale-central-base,baseline,28751282668.581295,-28751282668.581295,False,,,,,,6303183.068761395,True,congested3-9180d3f3a854c008
+Hyperscale cloud,1,hyperscale-central-base,robust,28747939701.509182,-28747939701.509182,True,0.0,0.0,0.0,,,6299429.67625199,True,congested3-9180d3f3a854c008
+Hyperscale cloud,2,hyperscale-clean-cool,no_services,20971391953.131344,-20971391953.131344,False,,,,,,6334255.322916678,False,congested3-9180d3f3a854c008
+Hyperscale cloud,2,hyperscale-clean-cool,baseline,20959675398.116776,-20959675398.116776,False,,,,,,6324315.7156054415,True,congested3-9180d3f3a854c008
+Hyperscale cloud,2,hyperscale-clean-cool,robust,20942703824.530037,-20942703824.530037,True,0.0,0.0,0.0,,,6311173.752134861,True,congested3-9180d3f3a854c008
+Hyperscale cloud,3,hyperscale-high-ets,no_services,34741294751.006386,-34741294751.006386,False,,,,,,6316063.860987045,False,congested3-9180d3f3a854c008
+Hyperscale cloud,3,hyperscale-high-ets,baseline,34726102682.47238,-34726102682.47238,False,,,,,,6302352.477255209,True,congested3-9180d3f3a854c008
+Hyperscale cloud,3,hyperscale-high-ets,robust,34721816671.08436,-34721816671.08436,True,0.0,0.0,0.0,,,6299564.091353449,True,congested3-9180d3f3a854c008
+Hyperscale cloud,4,hyperscale-heat-rich,no_services,27386414254.572144,-27386414254.572144,False,,,,,,6349396.677223526,False,congested3-9180d3f3a854c008
+Hyperscale cloud,4,hyperscale-heat-rich,baseline,27344343659.80683,-27344343659.80683,False,,,,,,6337499.037679444,True,congested3-9180d3f3a854c008
+Hyperscale cloud,4,hyperscale-heat-rich,robust,27299567320.581436,-27299567320.581436,True,0.0,0.0,0.0,,,6323389.143329082,True,congested3-9180d3f3a854c008
+Hyperscale cloud,5,hyperscale-flex-rich,no_services,37077467595.16066,-37077467595.16066,False,,,,,,6306360.0197882345,False,congested3-9180d3f3a854c008
+Hyperscale cloud,5,hyperscale-flex-rich,baseline,37073171563.86513,-37073171563.86513,False,,,,,,6301567.66045821,False,congested3-9180d3f3a854c008
+Hyperscale cloud,5,hyperscale-flex-rich,robust,37073275176.73408,-37073275176.73408,True,0.0,0.0,0.0,,,6300010.959237742,True,congested3-9180d3f3a854c008
+Hyperscale cloud,6,hyperscale-cooling-stress,no_services,31152788044.41707,-31152788044.41707,False,,,,,,6313667.822438627,False,congested3-9180d3f3a854c008
+Hyperscale cloud,6,hyperscale-cooling-stress,baseline,31152209197.467762,-31152209197.467762,False,,,,,,6302100.962216002,True,congested3-9180d3f3a854c008
+Hyperscale cloud,6,hyperscale-cooling-stress,robust,31151184129.665546,-31151184129.665546,True,0.0,0.0,0.0,,,6300957.621111167,True,congested3-9180d3f3a854c008
+Hyperscale cloud,7,hyperscale-congestion-stress,no_services,35502003374.09202,-35502003374.09202,False,,,,,,6314608.158514794,False,congested3-9180d3f3a854c008
+Hyperscale cloud,7,hyperscale-congestion-stress,baseline,35493701061.53532,-35493701061.53532,False,,,,,,6303420.503105532,True,congested3-9180d3f3a854c008
+Hyperscale cloud,7,hyperscale-congestion-stress,robust,35491113343.45338,-35491113343.45338,True,0.0,0.0,0.0,,,6300686.670519434,True,congested3-9180d3f3a854c008
+Hyperscale cloud,8,hyperscale-storage-limited,no_services,24641923087.681458,-24641923087.681458,False,,,,,,6329325.54468137,False,congested3-9180d3f3a854c008
+Hyperscale cloud,8,hyperscale-storage-limited,baseline,24625360292.666153,-24625360292.666153,False,,,,,,6316823.241689213,True,congested3-9180d3f3a854c008
+Hyperscale cloud,8,hyperscale-storage-limited,robust,24607533929.830044,-24607533929.830044,True,0.0,0.0,0.0,,,6304143.025428239,True,congested3-9180d3f3a854c008
+Hyperscale cloud,9,hyperscale-cost-stress,no_services,34498011288.150345,-34498011288.150345,False,,,,,,6313736.595847106,False,congested3-9180d3f3a854c008
+Hyperscale cloud,9,hyperscale-cost-stress,baseline,34501179387.92952,-34501179387.92952,False,,,,,,6302759.571917128,True,congested3-9180d3f3a854c008
+Hyperscale cloud,9,hyperscale-cost-stress,robust,34499979865.513466,-34499979865.513466,True,0.0,0.0,0.0,,,6300891.497106392,True,congested3-9180d3f3a854c008
+Hyperscale cloud,10,hyperscale-service-upside,no_services,28078041719.50579,-28078041719.50579,False,,,,,,6342967.346685645,False,congested3-9180d3f3a854c008
+Hyperscale cloud,10,hyperscale-service-upside,baseline,28027205054.374626,-28027205054.374626,False,,,,,,6330641.695018995,True,congested3-9180d3f3a854c008
+Hyperscale cloud,10,hyperscale-service-upside,robust,27972190768.658966,-27972190768.658966,True,0.0,0.0,0.0,,,6314009.726888098,True,congested3-9180d3f3a854c008
+Colocation,1,colocation-central-base,no_services,28409485919.92709,-28409485919.92709,False,,,,,,6242064.437302693,False,congested3-9180d3f3a854c008
+Colocation,1,colocation-central-base,baseline,28405619104.15124,-28405619104.15124,False,,,,,,6239314.651965239,True,congested3-9180d3f3a854c008
+Colocation,1,colocation-central-base,robust,28399712866.745445,-28399712866.745445,True,0.0,0.0,0.0,,,6230650.4487247765,True,congested3-9180d3f3a854c008
+Colocation,2,colocation-clean-cool,no_services,20746095074.615833,-20746095074.615833,False,,,,,,6264637.347802019,False,congested3-9180d3f3a854c008
+Colocation,2,colocation-clean-cool,baseline,20741466642.02692,-20741466642.02692,False,,,,,,6262321.405526446,True,congested3-9180d3f3a854c008
+Colocation,2,colocation-clean-cool,robust,20721530795.30815,-20721530795.30815,True,0.0,0.0,0.0,,,6248655.116445569,True,congested3-9180d3f3a854c008
+Colocation,3,colocation-high-ets,no_services,34330337766.077038,-34330337766.077038,False,,,,,,6244544.00570704,False,congested3-9180d3f3a854c008
+Colocation,3,colocation-high-ets,baseline,34324138613.930645,-34324138613.930645,False,,,,,,6241529.472517074,True,congested3-9180d3f3a854c008
+Colocation,3,colocation-high-ets,robust,34314284653.42506,-34314284653.42506,True,0.0,0.0,0.0,,,6231735.5134424195,True,congested3-9180d3f3a854c008
+Colocation,4,colocation-heat-rich,no_services,27093572278.33129,-27093572278.33129,False,,,,,,6279179.892083467,False,congested3-9180d3f3a854c008
+Colocation,4,colocation-heat-rich,baseline,27084518677.57178,-27084518677.57178,False,,,,,,6277163.219336245,False,congested3-9180d3f3a854c008
+Colocation,4,colocation-heat-rich,robust,27042601080.03053,-27042601080.03053,True,0.0,0.0,0.0,,,6265186.860746076,True,congested3-9180d3f3a854c008
+Colocation,5,colocation-flex-rich,no_services,36576271136.3721,-36576271136.3721,False,,,,,,6234657.247500233,False,congested3-9180d3f3a854c008
+Colocation,5,colocation-flex-rich,baseline,36572800219.115715,-36572800219.115715,False,,,,,,6233299.907798269,False,congested3-9180d3f3a854c008
+Colocation,5,colocation-flex-rich,robust,36573078896.76614,-36573078896.76614,True,0.0,0.0,0.0,,,6230714.214246967,True,congested3-9180d3f3a854c008
+Colocation,6,colocation-cooling-stress,no_services,30774953539.46525,-30774953539.46525,False,,,,,,6238470.177887452,False,congested3-9180d3f3a854c008
+Colocation,6,colocation-cooling-stress,baseline,30771896642.0802,-30771896642.0802,False,,,,,,6235679.063960506,True,congested3-9180d3f3a854c008
+Colocation,6,colocation-cooling-stress,robust,30771620455.043327,-30771620455.043327,True,0.0,0.0,0.0,,,6230857.831667459,True,congested3-9180d3f3a854c008
+Colocation,7,colocation-congestion-stress,no_services,35062428507.91579,-35062428507.91579,False,,,,,,6239804.833342676,False,congested3-9180d3f3a854c008
+Colocation,7,colocation-congestion-stress,baseline,35057914334.4496,-35057914334.4496,False,,,,,,6237292.829696448,True,congested3-9180d3f3a854c008
+Colocation,7,colocation-congestion-stress,robust,35053857268.42189,-35053857268.42189,True,0.0,0.0,0.0,,,6231033.325408709,True,congested3-9180d3f3a854c008
+Colocation,8,colocation-storage-limited,no_services,24378249071.158787,-24378249071.158787,False,,,,,,6259354.3709102385,False,congested3-9180d3f3a854c008
+Colocation,8,colocation-storage-limited,baseline,24373358436.45159,-24373358436.45159,False,,,,,,6256938.456301515,True,congested3-9180d3f3a854c008
+Colocation,8,colocation-storage-limited,robust,24354930537.72215,-24354930537.72215,True,0.0,0.0,0.0,,,6243833.167374535,True,congested3-9180d3f3a854c008
+Colocation,9,colocation-cost-stress,no_services,34079414171.76637,-34079414171.76637,False,,,,,,6241607.017207115,False,congested3-9180d3f3a854c008
+Colocation,9,colocation-cost-stress,baseline,34077278247.18028,-34077278247.18028,False,,,,,,6238698.938645112,True,congested3-9180d3f3a854c008
+Colocation,9,colocation-cost-stress,robust,34077338896.462803,-34077338896.462803,True,0.0,0.0,0.0,,,6232531.1840124065,True,congested3-9180d3f3a854c008
+Colocation,10,colocation-service-upside,no_services,27776501955.296474,-27776501955.296474,False,,,,,,6272558.472063356,False,congested3-9180d3f3a854c008
+Colocation,10,colocation-service-upside,baseline,27764542159.990364,-27764542159.990364,False,,,,,,6270188.686215031,True,congested3-9180d3f3a854c008
+Colocation,10,colocation-service-upside,robust,27711263860.820656,-27711263860.820656,True,0.0,0.0,0.0,,,6255608.335669184,True,congested3-9180d3f3a854c008
+Enterprise/edge,1,enterprise_edge-central-base,no_services,28261985888.82925,-28261985888.82925,False,,,,,,6214416.65111095,False,congested3-9180d3f3a854c008
+Enterprise/edge,1,enterprise_edge-central-base,baseline,28261418297.87985,-28261418297.87985,False,,,,,,6213877.805491179,False,congested3-9180d3f3a854c008
+Enterprise/edge,1,enterprise_edge-central-base,robust,28258473836.98133,-28258473836.98133,True,0.0,0.0,0.0,,,6211047.827208899,True,congested3-9180d3f3a854c008
+Enterprise/edge,2,enterprise_edge-clean-cool,no_services,20642540962.899006,-20642540962.899006,False,,,,,,6234884.724543365,False,congested3-9180d3f3a854c008
+Enterprise/edge,2,enterprise_edge-clean-cool,baseline,20641835028.382774,-20641835028.382774,False,,,,,,6234452.118919913,False,congested3-9180d3f3a854c008
+Enterprise/edge,2,enterprise_edge-clean-cool,robust,20636605739.175293,-20636605739.175293,True,0.0,0.0,0.0,,,6231327.71549396,True,congested3-9180d3f3a854c008
+Enterprise/edge,3,enterprise_edge-high-ets,no_services,34142112066.16453,-34142112066.16453,False,,,,,,6213405.818691043,False,congested3-9180d3f3a854c008
+Enterprise/edge,3,enterprise_edge-high-ets,baseline,34141253497.5883,-34141253497.5883,False,,,,,,6212898.408062703,False,congested3-9180d3f3a854c008
+Enterprise/edge,3,enterprise_edge-high-ets,robust,34138128682.18401,-34138128682.18401,True,0.0,0.0,0.0,,,6210601.2459879,True,congested3-9180d3f3a854c008
+Enterprise/edge,4,enterprise_edge-heat-rich,no_services,26958648551.893986,-26958648551.893986,False,,,,,,6248896.965939777,False,congested3-9180d3f3a854c008
+Enterprise/edge,4,enterprise_edge-heat-rich,baseline,26956806497.011925,-26956806497.011925,False,,,,,,6248437.182471159,False,congested3-9180d3f3a854c008
+Enterprise/edge,4,enterprise_edge-heat-rich,robust,26943598650.785076,-26943598650.785076,True,0.0,0.0,0.0,,,6245016.445894361,True,congested3-9180d3f3a854c008
+Enterprise/edge,5,enterprise_edge-flex-rich,no_services,36345074399.2912,-36345074399.2912,False,,,,,,6203360.849426631,False,congested3-9180d3f3a854c008
+Enterprise/edge,5,enterprise_edge-flex-rich,baseline,36344547977.006226,-36344547977.006226,False,,,,,,6203146.351531823,False,congested3-9180d3f3a854c008
+Enterprise/edge,5,enterprise_edge-flex-rich,robust,36343914526.72651,-36343914526.72651,True,0.0,0.0,0.0,,,6202429.608040262,True,congested3-9180d3f3a854c008
+Enterprise/edge,6,enterprise_edge-cooling-stress,no_services,30606527830.241146,-30606527830.241146,False,,,,,,6208394.464973023,False,congested3-9180d3f3a854c008
+Enterprise/edge,6,enterprise_edge-cooling-stress,baseline,30606111950.61691,-30606111950.61691,False,,,,,,6207790.167019399,False,congested3-9180d3f3a854c008
+Enterprise/edge,6,enterprise_edge-cooling-stress,robust,30604669765.607635,-30604669765.607635,True,0.0,0.0,0.0,,,6205409.226114966,True,congested3-9180d3f3a854c008
+Enterprise/edge,7,enterprise_edge-congestion-stress,no_services,34873220673.76798,-34873220673.76798,False,,,,,,6211154.150732393,False,congested3-9180d3f3a854c008
+Enterprise/edge,7,enterprise_edge-congestion-stress,baseline,34872673683.94611,-34872673683.94611,False,,,,,,6210714.411920007,False,congested3-9180d3f3a854c008
+Enterprise/edge,7,enterprise_edge-congestion-stress,robust,34871006516.53063,-34871006516.53063,True,0.0,0.0,0.0,,,6208533.90811794,True,congested3-9180d3f3a854c008
+Enterprise/edge,8,enterprise_edge-storage-limited,no_services,24256566858.615192,-24256566858.615192,False,,,,,,6229286.485587134,False,congested3-9180d3f3a854c008
+Enterprise/edge,8,enterprise_edge-storage-limited,baseline,24255822481.52775,-24255822481.52775,False,,,,,,6228833.079765853,False,congested3-9180d3f3a854c008
+Enterprise/edge,8,enterprise_edge-storage-limited,robust,24250849888.890514,-24250849888.890514,True,0.0,0.0,0.0,,,6225854.49262295,True,congested3-9180d3f3a854c008
+Enterprise/edge,9,enterprise_edge-cost-stress,no_services,33878963217.848175,-33878963217.848175,False,,,,,,6207461.858967252,False,congested3-9180d3f3a854c008
+Enterprise/edge,9,enterprise_edge-cost-stress,baseline,33878695369.918804,-33878695369.918804,False,,,,,,6206866.93664093,False,congested3-9180d3f3a854c008
+Enterprise/edge,9,enterprise_edge-cost-stress,robust,33877917415.658997,-33877917415.658997,True,0.0,0.0,0.0,,,6204518.183914224,True,congested3-9180d3f3a854c008
+Enterprise/edge,10,enterprise_edge-service-upside,no_services,27637243244.302547,-27637243244.302547,False,,,,,,6242110.4853787515,False,congested3-9180d3f3a854c008
+Enterprise/edge,10,enterprise_edge-service-upside,baseline,27635181284.828766,-27635181284.828766,False,,,,,,6241668.252368483,False,congested3-9180d3f3a854c008
+Enterprise/edge,10,enterprise_edge-service-upside,robust,27621059281.945118,-27621059281.945118,True,0.0,0.0,0.0,,,6238200.816172365,True,congested3-9180d3f3a854c008

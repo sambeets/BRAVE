@@ -60,18 +60,6 @@ class CarbonLedgers:
     carbon_market_cost_eur: float
     carbon_damage_eur: float
 
-    def validate_no_double_counting(self) -> None:
-        if not all(
-            value == value
-            for value in (
-                self.market_cost_eur,
-                self.independent_cost_eur,
-                self.carbon_market_cost_eur,
-                self.carbon_damage_eur,
-            )
-        ):
-            raise ValueError("Carbon ledger values must be finite.")
-
 
 def build_carbon_ledgers(
     *,
@@ -122,7 +110,6 @@ def build_carbon_ledgers(
         carbon_market_cost_eur=carbon_market_cost_eur,
         carbon_damage_eur=carbon_damage_eur,
     )
-    ledgers.validate_no_double_counting()
     return ledgers
 
 

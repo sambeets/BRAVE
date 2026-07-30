@@ -40,11 +40,7 @@ from brave.validation import build_validation_summary
 DESIGN_CASES = (
     "no_services",
     "baseline",
-    "deterministic",
-    "expected_value",
-    "pure_minmax",
     "robust",
-    "scenario_perfect",
 )
 
 
@@ -57,12 +53,16 @@ def _no_services_profile(prof: Dict[str, List[float]]) -> Dict[str, List[float]]
     return result
 
 
-def _make_cv_folds(scenarios: Sequence[Scenario], requested_folds: int) -> List[List[Scenario]]:
-    ordered = sorted(scenarios, key=lambda sc: sc.sid)
-    if len(ordered) < 2:
-        raise ValueError("Cross-validation requires at least two scenarios.")
-    k = max(2, min(int(requested_folds), len(ordered)))
-    return [ordered[i::k] for i in range(k) if ordered[i::k]]
+def _train_test_split(scenarios: Sequence[Scenario], max_train_uncertainty_id: int) -> List[List[Scenario]]:
+    """One fold: train on uncertainty_id <= max_train_uncertainty_id, test on the rest."""
+    test = [sc for sc in scenarios if sc.uncertainty_id > max_train_uncertainty_id]
+    train_count = sum(1 for sc in scenarios if sc.uncertainty_id <= max_train_uncertainty_id)
+    if not test or not train_count:
+        raise ValueError(
+            f"Train/test split at uncertainty_id={max_train_uncertainty_id} "
+            f"produced an empty train or test set."
+        )
+    return [test]
 
 
 def _prepare_profiles(
@@ -197,13 +197,15 @@ def _carbon_reference(
             cfg.line_cap_13 * sc.congestion_multiplier,
         )
         no_dc = solve_no_dc_network(profiles[sc.sid], cfg, line_caps)
+        no_dc_power_emissions = float(no_dc["emissions_tco2"])
         background = (
-            float(no_dc["emissions_tco2"])
+            no_dc_power_emissions
             + float(no_services[sc.sid]["baseline_heat_emissions_tco2"])
         )
         attributable = max(0.0, float(no_services[sc.sid]["emissions_tco2"]) - background)
         caps[sc.sid] = background + attributable * (1.0 - reduction)
         no_services[sc.sid]["background_emissions_tco2"] = background
+        no_services[sc.sid]["no_dc_power_emissions_tco2"] = no_dc_power_emissions
         no_services[sc.sid]["dc_attributable_emissions_tco2"] = attributable
     return no_services, caps
 
@@ -255,6 +257,8 @@ def _apply_emissions_attribution(ops: Dict, reference: Dict) -> None:
     background = float(reference["background_emissions_tco2"])
     ops["background_emissions_tco2"] = background
     ops["dc_attributable_emissions_tco2"] = float(ops["emissions_tco2"]) - background
+    ops["CUE_tCO2_per_MWh_IT"] = ops["dc_attributable_emissions_tco2"] / max(1e-9, float(ops["E_IT"]))
+    ops["dc_power_emissions_tco2"] = float(ops["power_emissions_tco2"]) - float(reference["no_dc_power_emissions_tco2"])
 
 
 def _rebase_lifecycle(ops: Dict, reference: Dict, cfg: Config, is_reference: bool = False) -> None:
@@ -287,83 +291,85 @@ def _rebase_lifecycle(ops: Dict, reference: Dict, cfg: Config, is_reference: boo
 
 def _case_fields(ops: Dict, suffix: str) -> Dict:
     fields = {
-        "PUE": "PUE",
-        "siPUE": "siPUE",
-        "SteadySiPUE": "steady_state_sipue",
-        "CUE": "CUE_tCO2_per_MWh_IT",
-        "EITMWh": "E_IT",
-        "EFACMWh": "E_FAC",
-        "CoolingMWh": "cooling_mwh",
-        "RecoveredHeatITMWhth": "recovered_heat_it_mwhth",
-        "RecoveredHeatCoolingMWhth": "recovered_heat_cooling_mwhth",
-        "HeatDeliveredMWhth": "heat_MWhth",
-        "FlexLoadMWh": "flex_load_mwh",
-        "FlexBatteryMWh": "flex_bat_mwh",
-        "BatteryChargeMWh": "bat_charge_mwh",
-        "BatteryDischargeMWh": "bat_discharge_mwh",
-        "StorageLossMWh": "storage_loss_mwh",
-        "MarketCostEUR": "market_planning_cost_eur",
-        "MarketCostNPVEUR": "market_planning_cost_npv_eur",
-        "MarketValueNPVEUR": "market_planning_value_npv_eur",
-        "PostConstructionMarketCostNPVEUR": "post_construction_market_cost_npv_eur",
-        "LifecycleValueLossEUR": "lifecycle_value_loss_eur",
-        "IndependentCostEUR": "independent_system_cost_eur",
-        "AnnualIndependentCostEUR": "independent_system_cost_eur",
-        "ResourceCostEUR": "el_cost_eur",
-        "CarbonMarketCostEUR": "co2_cost_eur",
-        "CarbonDamageEUR": "independent_carbon_damage_eur",
-        "TransmissionCostEUR": "trans_cost_eur",
-        "GridPeakCostEUR": "demand_charge_eur",
-        "IndependentPeakCostEUR": "independent_peak_capacity_cost_eur",
-        "SLACostEUR": "sla_penalty_eur",
-        "AvoidedHeatCostEUR": "independent_avoided_heat_cost_eur",
-        "AvoidedFlexCostEUR": "independent_avoided_flex_cost_eur",
-        "HeatRevenueEUR": "heat_revenue_eur",
-        "FlexRevenueEUR": "flex_revenue_eur",
-        "CapexEUR": "capex_eur",
-        "LandCostEUR": "land_cost_eur",
-        "LandCostNPVEUR": "land_cost_npv_eur",
-        "LandM2": "land_m2",
-        "ExistingCoreLandM2": "existing_core_land_m2",
-        "CoolingLandM2": "existing_cooling_land_m2",
-        "IntegrationLandM2": "integration_land_m2",
-        "LandLimitM2": "land_limit_m2",
-        "LandUtilizationPct": "land_utilization_pct",
-        "LandConstraintBinding": "land_constraint_binding",
-        "LandFeasible": "land_feasible",
-        "EmissionsTCO2": "emissions_tco2",
-        "BackgroundEmissionsTCO2": "background_emissions_tco2",
-        "DCAttributedEmissionsTCO2": "dc_attributable_emissions_tco2",
-        "PowerEmissionsTCO2": "power_emissions_tco2",
-        "BaselineHeatEmissionsTCO2": "baseline_heat_emissions_tco2",
-        "AvoidedHeatEmissionsTCO2": "avoided_heat_emissions_tco2",
-        "PowerCO2CostEUR": "power_co2_cost_eur",
-        "BaselineHeatCO2CostEUR": "baseline_heat_co2_cost_eur",
-        "AvoidedHeatCO2CostEUR": "avoided_heat_co2_cost_eur",
-        "PeakImportMW": "peak_import_mw",
-        "CongestionHours": "congestion_hours",
-        "CongestionMarginalValueEURPer1Pct": "congestion_marginal_value_eur_per_1pct",
-        "CongestionNativeDualMaxEURPerMW": "congestion_native_dual_max_eur_per_mw",
-        "RenewableCurtailmentMWh": "renewable_curtailment_mwh",
-        "ThermalGenerationMWh": "thermal_generation_mwh",
-        "LineCap12MW": "line_cap_12_mw",
-        "LineCap23MW": "line_cap_23_mw",
-        "LineCap13MW": "line_cap_13_mw",
-        "SystemBenefitEUR": "delay_adjusted_system_benefit_eur",
-        "UndelayedSystemBenefitEUR": "raw_system_benefit_eur",
-        "SystemCreditMWh": "system_credit_mwh",
-        "SiPUECreditLossMWh": "sipue_credit_loss_mwh",
-        "K_HX_MWth": "K_HX",
-        "K_HP_MW": "K_HP",
-        "K_FLEX_MW": "K_FLEX",
-        "K_BAT_E_MWh": "K_BAT_E",
-        "K_BAT_P_MW": "K_BAT_P",
+        "pue": "PUE",
+        "sipue": "siPUE",
+        "steady_sipue": "steady_state_sipue",
+        "cue": "CUE_tCO2_per_MWh_IT",
+        "e_it_mwh": "E_IT",
+        "e_fac_mwh": "E_FAC",
+        "cooling_mwh": "cooling_mwh",
+        "recovered_heat_it_mwhth": "recovered_heat_it_mwhth",
+        "recovered_heat_cooling_mwhth": "recovered_heat_cooling_mwhth",
+        "heat_mwhth": "heat_MWhth",
+        "heat_delivered_mwhth": "heat_MWhth",
+        "flex_load_mwh": "flex_load_mwh",
+        "flex_battery_mwh": "flex_bat_mwh",
+        "battery_charge_mwh": "bat_charge_mwh",
+        "battery_discharge_mwh": "bat_discharge_mwh",
+        "storage_loss_mwh": "storage_loss_mwh",
+        "market_cost_eur": "market_planning_cost_eur",
+        "market_cost_npv_eur": "market_planning_cost_npv_eur",
+        "market_value_npv_eur": "market_planning_value_npv_eur",
+        "post_construction_market_cost_npv_eur": "post_construction_market_cost_npv_eur",
+        "lifecycle_value_loss_eur": "lifecycle_value_loss_eur",
+        "independent_cost_eur": "independent_system_cost_eur",
+        "annual_independent_cost_eur": "independent_system_cost_eur",
+        "resource_cost_eur": "el_cost_eur",
+        "carbon_market_cost_eur": "co2_cost_eur",
+        "carbon_damage_eur": "independent_carbon_damage_eur",
+        "transmission_cost_eur": "trans_cost_eur",
+        "grid_peak_cost_eur": "demand_charge_eur",
+        "independent_peak_cost_eur": "independent_peak_capacity_cost_eur",
+        "sla_cost_eur": "sla_penalty_eur",
+        "avoided_heat_cost_eur": "independent_avoided_heat_cost_eur",
+        "avoided_flex_cost_eur": "independent_avoided_flex_cost_eur",
+        "heat_revenue_eur": "heat_revenue_eur",
+        "flex_revenue_eur": "flex_revenue_eur",
+        "capex_eur": "capex_eur",
+        "land_cost_eur": "land_cost_eur",
+        "land_cost_npv_eur": "land_cost_npv_eur",
+        "land_m2": "land_m2",
+        "existing_core_land_m2": "existing_core_land_m2",
+        "cooling_land_m2": "existing_cooling_land_m2",
+        "integration_land_m2": "integration_land_m2",
+        "land_limit_m2": "land_limit_m2",
+        "land_utilization_pct": "land_utilization_pct",
+        "land_constraint_binding": "land_constraint_binding",
+        "land_feasible": "land_feasible",
+        "emissions_tco2": "emissions_tco2",
+        "background_emissions_tco2": "background_emissions_tco2",
+        "dc_attributed_emissions_tco2": "dc_attributable_emissions_tco2",
+        "power_emissions_tco2": "power_emissions_tco2",
+        "dc_power_emissions_tco2": "dc_power_emissions_tco2",
+        "baseline_heat_emissions_tco2": "baseline_heat_emissions_tco2",
+        "avoided_heat_emissions_tco2": "avoided_heat_emissions_tco2",
+        "power_co2_cost_eur": "power_co2_cost_eur",
+        "baseline_heat_co2_cost_eur": "baseline_heat_co2_cost_eur",
+        "avoided_heat_co2_cost_eur": "avoided_heat_co2_cost_eur",
+        "peak_import_mw": "peak_import_mw",
+        "congestion_hours": "congestion_hours",
+        "congestion_marginal_value_eur_per_1pct": "congestion_marginal_value_eur_per_1pct",
+        "congestion_native_dual_max_eur_per_mw": "congestion_native_dual_max_eur_per_mw",
+        "renewable_curtailment_mwh": "renewable_curtailment_mwh",
+        "thermal_generation_mwh": "thermal_generation_mwh",
+        "line_cap_12_mw": "line_cap_12_mw",
+        "line_cap_23_mw": "line_cap_23_mw",
+        "line_cap_13_mw": "line_cap_13_mw",
+        "system_benefit_eur": "delay_adjusted_system_benefit_eur",
+        "undelayed_system_benefit_eur": "raw_system_benefit_eur",
+        "system_credit_mwh": "system_credit_mwh",
+        "sipue_credit_loss_mwh": "sipue_credit_loss_mwh",
+        "k_hx_mwth": "K_HX",
+        "k_hp_mw": "K_HP",
+        "k_flex_mw": "K_FLEX",
+        "k_bat_e_mwh": "K_BAT_E",
+        "k_bat_p_mw": "K_BAT_P",
     }
     result = {f"{name}_{suffix}": ops.get(key) for name, key in fields.items()}
     e_it = max(1e-9, float(ops["E_IT"]))
-    result[f"SystemBenefitPerMWhIT_{suffix}"] = float(ops.get("delay_adjusted_system_benefit_eur", 0.0)) / e_it
-    result[f"AnnualSystemBenefitEUR_{suffix}"] = float(ops.get("delay_adjusted_system_benefit_eur", 0.0))
-    result[f"AnnualSystemBenefitEURPerMWhIT_{suffix}"] = (
+    result[f"system_benefit_per_mwh_it_{suffix}"] = float(ops.get("delay_adjusted_system_benefit_eur", 0.0)) / e_it
+    result[f"annual_system_benefit_eur_{suffix}"] = float(ops.get("delay_adjusted_system_benefit_eur", 0.0))
+    result[f"annual_system_benefit_eur_per_mwh_it_{suffix}"] = (
         float(ops.get("delay_adjusted_system_benefit_eur", 0.0)) / e_it
     )
     base_it_mw = max(1e-9, float(ops["base_it_mw"]))
@@ -388,68 +394,68 @@ def _change_direction(reference: float, case: float, tolerance: float = 1e-9) ->
 
 
 def _add_percentage_fields(row: Dict) -> None:
-    ns_cost = float(row["MarketCostNPVEUR_no_services"])
-    baseline_cost = float(row["MarketCostNPVEUR_baseline"])
-    ns_independent = float(row["IndependentCostEUR_no_services"])
+    ns_cost = float(row["market_cost_npv_eur_no_services"])
+    baseline_cost = float(row["market_cost_npv_eur_baseline"])
+    ns_independent = float(row["independent_cost_eur_no_services"])
     for design in DESIGN_CASES:
-        cost = float(row[f"MarketCostNPVEUR_{design}"])
-        independent = float(row[f"IndependentCostEUR_{design}"])
-        emissions = float(row[f"EmissionsTCO2_{design}"])
-        co2_cost = float(row[f"CarbonMarketCostEUR_{design}"])
-        damage = float(row[f"CarbonDamageEUR_{design}"])
-        pue = float(row[f"PUE_{design}"])
-        sipue = float(row[f"siPUE_{design}"])
-        row[f"LifecycleCostReductionEURVsNoServices_{design}"] = ns_cost - cost
-        row[f"LifecycleCostReductionPctVsNoServices_{design}"] = _reduction_pct(ns_cost, cost)
-        row[f"LifecycleCostReductionEURVsBaseline_{design}"] = baseline_cost - cost
-        row[f"LifecycleCostReductionPctVsBaseline_{design}"] = _reduction_pct(baseline_cost, cost)
-        row[f"IndependentCostReductionPctVsNoServices_{design}"] = _reduction_pct(ns_independent, independent)
-        row[f"EmissionsReductionPctVsNoServices_{design}"] = _reduction_pct(
-            float(row["EmissionsTCO2_no_services"]), emissions
+        cost = float(row[f"market_cost_npv_eur_{design}"])
+        independent = float(row[f"independent_cost_eur_{design}"])
+        emissions = float(row[f"emissions_tco2_{design}"])
+        co2_cost = float(row[f"carbon_market_cost_eur_{design}"])
+        damage = float(row[f"carbon_damage_eur_{design}"])
+        pue = float(row[f"pue_{design}"])
+        sipue = float(row[f"sipue_{design}"])
+        row[f"lifecycle_cost_reduction_eur_vs_no_services_{design}"] = ns_cost - cost
+        row[f"lifecycle_cost_reduction_pct_vs_no_services_{design}"] = _reduction_pct(ns_cost, cost)
+        row[f"lifecycle_cost_reduction_eur_vs_baseline_{design}"] = baseline_cost - cost
+        row[f"lifecycle_cost_reduction_pct_vs_baseline_{design}"] = _reduction_pct(baseline_cost, cost)
+        row[f"independent_cost_reduction_pct_vs_no_services_{design}"] = _reduction_pct(ns_independent, independent)
+        row[f"emissions_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
+            float(row["emissions_tco2_no_services"]), emissions
         )
-        row[f"DCAttributedEmissionsReductionPctVsNoServices_{design}"] = _reduction_pct(
-            float(row["DCAttributedEmissionsTCO2_no_services"]),
-            float(row[f"DCAttributedEmissionsTCO2_{design}"]),
+        row[f"dc_attributed_emissions_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
+            float(row["dc_attributed_emissions_tco2_no_services"]),
+            float(row[f"dc_attributed_emissions_tco2_{design}"]),
         )
-        row[f"CO2CostReductionPctVsNoServices_{design}"] = _reduction_pct(
-            float(row["CarbonMarketCostEUR_no_services"]), co2_cost
+        row[f"co2_cost_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
+            float(row["carbon_market_cost_eur_no_services"]), co2_cost
         )
-        row[f"CarbonDamageReductionPctVsNoServices_{design}"] = _reduction_pct(
-            float(row["CarbonDamageEUR_no_services"]), damage
+        row[f"carbon_damage_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
+            float(row["carbon_damage_eur_no_services"]), damage
         )
-        row[f"PUEReductionPctVsNoServices_{design}"] = _reduction_pct(
-            float(row["PUE_no_services"]), pue
+        row[f"pue_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
+            float(row["pue_no_services"]), pue
         )
-        row[f"SiPUEReductionPctVsNoServices_{design}"] = _reduction_pct(
-            float(row["siPUE_no_services"]), sipue
+        row[f"sipue_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
+            float(row["sipue_no_services"]), sipue
         )
-        row[f"LandAreaChangePctVsNoServices_{design}"] = -_reduction_pct(
-            float(row["LandM2_no_services"]), float(row[f"LandM2_{design}"])
+        row[f"land_area_change_pct_vs_no_services_{design}"] = -_reduction_pct(
+            float(row["land_m2_no_services"]), float(row[f"land_m2_{design}"])
         )
-        row[f"LandLeaseCostChangePctVsNoServices_{design}"] = -_reduction_pct(
-            float(row["LandCostNPVEUR_no_services"]), float(row[f"LandCostNPVEUR_{design}"])
+        row[f"land_lease_cost_change_pct_vs_no_services_{design}"] = -_reduction_pct(
+            float(row["land_cost_npv_eur_no_services"]), float(row[f"land_cost_npv_eur_{design}"])
         )
-        steady_credit = float(row[f"SystemCreditMWh_{design}"]) + float(row[f"SiPUECreditLossMWh_{design}"])
-        row[f"SiPUECreditLossPct_{design}"] = (
-            100.0 * float(row[f"SiPUECreditLossMWh_{design}"]) / max(1e-9, abs(steady_credit))
+        steady_credit = float(row[f"system_credit_mwh_{design}"]) + float(row[f"sipue_credit_loss_mwh_{design}"])
+        row[f"sipue_credit_loss_pct_{design}"] = (
+            100.0 * float(row[f"sipue_credit_loss_mwh_{design}"]) / max(1e-9, abs(steady_credit))
         )
-        zero_delay_gain = ns_cost - float(row[f"PostConstructionMarketCostNPVEUR_{design}"])
-        row[f"DelayLossPctOfZeroDelayGain_{design}"] = (
-            100.0 * float(row[f"LifecycleValueLossEUR_{design}"]) / max(1e-9, abs(zero_delay_gain))
+        zero_delay_gain = ns_cost - float(row[f"post_construction_market_cost_npv_eur_{design}"])
+        row[f"delay_loss_pct_of_zero_delay_gain_{design}"] = (
+            100.0 * float(row[f"lifecycle_value_loss_eur_{design}"]) / max(1e-9, abs(zero_delay_gain))
         )
 
 
 def _add_land_status_fields(row: Dict, cfg: Config) -> None:
     for design in DESIGN_CASES:
-        land = float(row[f"LandM2_{design}"])
-        raw_limit = row.get(f"LandLimitM2_{design}")
+        land = float(row[f"land_m2_{design}"])
+        raw_limit = row.get(f"land_limit_m2_{design}")
         if raw_limit in (None, ""):
-            row[f"LandFeasible_{design}"] = True
-            row[f"LandConstraintBinding_{design}"] = False
+            row[f"land_feasible_{design}"] = True
+            row[f"land_constraint_binding_{design}"] = False
             continue
         limit = float(raw_limit)
-        row[f"LandFeasible_{design}"] = land <= limit + cfg.validate_tol
-        row[f"LandConstraintBinding_{design}"] = (
+        row[f"land_feasible_{design}"] = land <= limit + cfg.validate_tol
+        row[f"land_constraint_binding_{design}"] = (
             abs(limit - land) <= cfg.land_binding_tolerance_m2
         )
 
@@ -492,15 +498,15 @@ def _decomposition_rows(
 
     def row(ledger: str, name: str, value: float, ledger_total: float) -> Dict:
         return {
-            "Scenario": scenario,
-            "Design": suffix,
-            "Ledger": ledger,
-            "Component": name,
-            "ValueEUR": value,
-            "ValuePerMWhIT": value / e_it,
-            "ComponentSharePct": 100.0 * value / ledger_total if abs(ledger_total) > 1e-9 else 0.0,
-            "LedgerTotalEUR": ledger_total,
-            "EITMWh": e_it,
+            "scenario": scenario,
+            "design": suffix,
+            "ledger": ledger,
+            "component": name,
+            "value_eur": value,
+            "value_per_mwh_it": value / e_it,
+            "component_share_pct": 100.0 * value / ledger_total if abs(ledger_total) > 1e-9 else 0.0,
+            "ledger_total_eur": ledger_total,
+            "e_it_mwh": e_it,
         }
 
     rows = [row("market", name, value, expected) for name, value in components.items()]
@@ -528,25 +534,25 @@ def _decomposition_rows(
 def _summarize_decomposition(rows: Sequence[Dict]) -> List[Dict]:
     groups: Dict[Tuple[str, str, str, str], List[Dict]] = {}
     for row in rows:
-        for archetype in {"all", str(row.get("Archetype", "all"))}:
-            key = (archetype, row["Design"], row["Ledger"], row["Component"])
+        for archetype in {"all", str(row.get("archetype", "all"))}:
+            key = (archetype, row["design"], row["ledger"], row["component"])
             groups.setdefault(key, []).append(row)
     summary = []
     for (archetype, design, ledger, component), values in sorted(groups.items()):
-        eur = [float(value["ValueEUR"]) for value in values]
-        per_it = [float(value["ValuePerMWhIT"]) for value in values]
-        shares = [float(value["ComponentSharePct"]) for value in values]
+        eur = [float(value["value_eur"]) for value in values]
+        per_it = [float(value["value_per_mwh_it"]) for value in values]
+        shares = [float(value["component_share_pct"]) for value in values]
         summary.append({
-            "Archetype": archetype,
-            "Design": design,
-            "Ledger": ledger,
-            "Component": component,
-            "ScenarioCount": len(values),
-            "AverageEUR": sum(eur) / len(eur),
-            "MinimumEUR": min(eur),
-            "MaximumEUR": max(eur),
-            "AverageEURPerMWhIT": sum(per_it) / len(per_it),
-            "AverageComponentSharePct": sum(shares) / len(shares),
+            "archetype": archetype,
+            "design": design,
+            "ledger": ledger,
+            "component": component,
+            "scenario_count": len(values),
+            "average_eur": sum(eur) / len(eur),
+            "minimum_eur": min(eur),
+            "maximum_eur": max(eur),
+            "average_eur_per_mwh_it": sum(per_it) / len(per_it),
+            "average_component_share_pct": sum(shares) / len(shares),
         })
     return summary
 
@@ -554,81 +560,187 @@ def _summarize_decomposition(rows: Sequence[Dict]) -> List[Dict]:
 def _summarize_design_comparison(rows: Sequence[Dict]) -> List[Dict]:
     groups: Dict[Tuple[str, str], List[Dict]] = {}
     for row in rows:
-        for archetype in {"all", str(row.get("Archetype", "all"))}:
-            groups.setdefault((archetype, str(row["Design"])), []).append(row)
+        for archetype in {"all", str(row.get("archetype", "all"))}:
+            groups.setdefault((archetype, str(row["design"])), []).append(row)
     summary = []
     for (archetype, design), values in sorted(groups.items()):
-        comparable = [value for value in values if value.get("RegretEUR") not in (None, "")]
-        regret = [float(value["RegretEUR"]) for value in comparable]
-        regret_per_it = [float(value["RegretPerMWhIT"]) for value in comparable]
+        comparable = [value for value in values if value.get("regret_eur") not in (None, "")]
+        regret = [float(value["regret_eur"]) for value in comparable]
+        regret_per_it = [float(value["regret_per_mwh_it"]) for value in comparable]
         share = [
-            float(value["RegretShareOfAttainablePct"])
+            float(value["regret_share_of_attainable_pct"])
             for value in comparable
-            if value.get("RegretShareOfAttainablePct") not in (None, "")
+            if value.get("regret_share_of_attainable_pct") not in (None, "")
         ]
-        lifecycle_value = [float(value["LifecycleValueNPVEUR"]) for value in values]
+        cost_share = [
+            float(value["regret_share_of_lifecycle"])
+            for value in comparable
+            if value.get("regret_share_of_lifecycle") not in (None, "")
+        ]
+        lifecycle_value = [float(value["lifecycle_value_npv_eur"]) for value in values]
         summary.append({
-            "Archetype": archetype,
-            "Design": design,
-            "ScenarioCount": len(values),
-            "AverageLifecycleValueNPVEUR": sum(lifecycle_value) / len(lifecycle_value),
-            "ComparableScenarioCount": len(comparable),
-            "AverageRegretEUR": sum(regret) / len(regret) if regret else None,
-            "WorstRegretEUR": max(regret) if regret else None,
-            "AverageRegretPerMWhIT": sum(regret_per_it) / len(regret_per_it) if regret_per_it else None,
-            "AverageRegretShareOfAttainablePct": sum(share) / len(share) if share else None,
+            "archetype": archetype,
+            "design": design,
+            "scenario_count": len(values),
+            "average_lifecycle_value_npv_eur": sum(lifecycle_value) / len(lifecycle_value),
+            "comparable_scenario_count": len(comparable),
+            "average_regret_eur": sum(regret) / len(regret) if regret else None,
+            "worst_regret_eur": max(regret) if regret else None,
+            "average_regret_per_mwh_it": sum(regret_per_it) / len(regret_per_it) if regret_per_it else None,
+            "average_regret_share_of_attainable_pct": sum(share) / len(share) if share else None,
+            "average_regret_share_of_lifecycle": sum(cost_share) / len(cost_share) if cost_share else None,
+            "worst_regret_share_of_lifecycle": max(cost_share) if cost_share else None,
         })
     return summary
 
 
 def _paper_metric_rows(rows: Sequence[Dict]) -> List[Dict]:
     metrics = {
-        "PUE": ("PUE", "dimensionless"),
-        "siPUE": ("siPUE", "dimensionless"),
-        "post-construction siPUE": ("SteadySiPUE", "dimensionless"),
-        "CUE": ("CUE", "tCO2/MWh IT"),
-        "CO2 cost": ("CarbonMarketCostEUR", "EUR"),
-        "carbon damage": ("CarbonDamageEUR", "EUR"),
-        "heat revenue": ("HeatRevenueEUR", "EUR"),
-        "flexibility revenue": ("FlexRevenueEUR", "EUR"),
-        "emissions": ("EmissionsTCO2", "tCO2"),
-        "annual system benefit": ("AnnualSystemBenefitEUR", "annual EUR"),
-        "annual benefit per MWh IT": ("AnnualSystemBenefitEURPerMWhIT", "annual EUR/MWh IT"),
-        "lifecycle value": ("MarketValueNPVEUR", "EUR"),
-        "lifecycle delay loss": ("LifecycleValueLossEUR", "EUR"),
-        "cooling electricity": ("CoolingMWh", "MWh"),
-        "congestion hours": ("CongestionHours", "h"),
-        "renewable curtailment": ("RenewableCurtailmentMWh", "MWh"),
-        "thermal generation": ("ThermalGenerationMWh", "MWh"),
-        "IT-source recovered heat": ("RecoveredHeatITMWhth", "MWhth"),
-        "cooling-source recovered heat": ("RecoveredHeatCoolingMWhth", "MWhth"),
-        "total land": ("LandM2", "m2"),
-        "integration land": ("IntegrationLandM2", "m2"),
-        "land utilization": ("LandUtilizationPct", "%"),
-        "land lease NPV": ("LandCostNPVEUR", "EUR"),
-        "lifecycle cost reduction vs no-services": ("LifecycleCostReductionPctVsNoServices", "%"),
-        "lifecycle cost reduction vs baseline": ("LifecycleCostReductionPctVsBaseline", "%"),
-        "emissions reduction vs no-services": ("EmissionsReductionPctVsNoServices", "%"),
-        "CO2 cost reduction vs no-services": ("CO2CostReductionPctVsNoServices", "%"),
-        "PUE reduction vs no-services": ("PUEReductionPctVsNoServices", "%"),
-        "siPUE reduction vs no-services": ("SiPUEReductionPctVsNoServices", "%"),
-        "delay loss share": ("DelayLossPctOfZeroDelayGain", "% of zero-delay gain"),
+        "PUE": ("pue", "dimensionless"),
+        "siPUE": ("sipue", "dimensionless"),
+        "post-construction siPUE": ("steady_sipue", "dimensionless"),
+        "CUE": ("cue", "tCO2/MWh IT"),
+        "CO2 cost": ("carbon_market_cost_eur", "EUR"),
+        "carbon damage": ("carbon_damage_eur", "EUR"),
+        "heat revenue": ("heat_revenue_eur", "EUR"),
+        "flexibility revenue": ("flex_revenue_eur", "EUR"),
+        "emissions": ("emissions_tco2", "tCO2"),
+        "annual system benefit": ("annual_system_benefit_eur", "annual EUR"),
+        "annual benefit per MWh IT": ("annual_system_benefit_eur_per_mwh_it", "annual EUR/MWh IT"),
+        "lifecycle value": ("market_value_npv_eur", "EUR"),
+        "lifecycle delay loss": ("lifecycle_value_loss_eur", "EUR"),
+        "cooling electricity": ("cooling_mwh", "MWh"),
+        "congestion hours": ("congestion_hours", "h"),
+        "renewable curtailment": ("renewable_curtailment_mwh", "MWh"),
+        "thermal generation": ("thermal_generation_mwh", "MWh"),
+        "IT-source recovered heat": ("recovered_heat_it_mwhth", "MWhth"),
+        "cooling-source recovered heat": ("recovered_heat_cooling_mwhth", "MWhth"),
+        "total land": ("land_m2", "m2"),
+        "integration land": ("integration_land_m2", "m2"),
+        "land utilization": ("land_utilization_pct", "%"),
+        "land lease NPV": ("land_cost_npv_eur", "EUR"),
+        "lifecycle cost reduction vs no-services": ("lifecycle_cost_reduction_pct_vs_no_services", "%"),
+        "lifecycle cost reduction vs baseline": ("lifecycle_cost_reduction_pct_vs_baseline", "%"),
+        "emissions reduction vs no-services": ("emissions_reduction_pct_vs_no_services", "%"),
+        "CO2 cost reduction vs no-services": ("co2_cost_reduction_pct_vs_no_services", "%"),
+        "PUE reduction vs no-services": ("pue_reduction_pct_vs_no_services", "%"),
+        "siPUE reduction vs no-services": ("sipue_reduction_pct_vs_no_services", "%"),
+        "delay loss share": ("delay_loss_pct_of_zero_delay_gain", "% of zero-delay gain"),
     }
     output = []
     for row in rows:
         for design in DESIGN_CASES:
             for label, (stem, unit) in metrics.items():
                 output.append({
-                    "RunID": row.get("RunID"),
-                    "Archetype": row.get("Archetype"),
-                    "UncertaintyState": row.get("ScenarioID"),
-                    "Scenario": row["Scenario"],
-                    "Design": design,
-                    "Metric": label,
-                    "Value": row[f"{stem}_{design}"],
-                    "Unit": unit,
-                    "DelayFactor": row["LifecycleAvailability"],
+                    "run_id": row.get("run_id"),
+                    "archetype": row.get("archetype"),
+                    "uncertainty_state": row.get("scenario_id"),
+                    "scenario": row["scenario"],
+                    "design": design,
+                    "metric": label,
+                    "value": row[f"{stem}_{design}"],
+                    "unit": unit,
+                    "delay_factor": row["lifecycle_availability"],
                 })
+    return output
+
+
+def _metric_change_pct(reference: float, case: float) -> float | None:
+    if abs(reference) <= 1e-9:
+        return None
+    return 100.0 * (case - reference) / abs(reference)
+
+
+def _kpi_value(row: Dict, design: str, stem: str) -> float:
+    if stem == "modeled_erf":
+        heat = float(row[f"heat_mwhth_{design}"])
+        facility = max(1e-9, float(row[f"e_fac_mwh_{design}"]))
+        return max(0.0, heat) / facility
+    return float(row[f"{stem}_{design}"])
+
+
+def _kpi_benchmark_summary(rows: Sequence[Dict]) -> List[Dict]:
+    metrics = {
+        "pue": ("pue", "dimensionless"),
+        "sipue": ("sipue", "dimensionless"),
+        "steady_sipue": ("steady_sipue", "dimensionless"),
+        "cue": ("cue", "tCO2/MWh IT"),
+        "modeled_erf": ("modeled_erf", "MWhth delivered useful heat/MWh facility electricity"),
+        "system_benefit_per_mwh_it": ("system_benefit_per_mwh_it", "EUR/MWh IT"),
+        "emissions_tco2": ("emissions_tco2", "tCO2"),
+        "carbon_damage_eur": ("carbon_damage_eur", "EUR"),
+    }
+
+    groups: List[Tuple[str, str, Sequence[Dict]]] = [("all", "all", rows)]
+    archetypes = sorted({
+        (str(row["archetype"]), str(row["archetype_key"]))
+        for row in rows
+        if row.get("archetype") and row.get("archetype_key")
+    })
+    groups.extend(
+        (name, key, [row for row in rows if row.get("archetype_key") == key])
+        for name, key in archetypes
+    )
+
+    output: List[Dict] = []
+    for archetype, archetype_key, values in groups:
+        for design in DESIGN_CASES:
+            for metric, (stem, unit) in metrics.items():
+                case_values = [_kpi_value(row, design, stem) for row in values]
+                ref_values = [_kpi_value(row, "no_services", stem) for row in values]
+                average = sum(case_values) / len(case_values)
+                reference = sum(ref_values) / len(ref_values)
+                output.append({
+                    "run_id": values[0].get("run_id") if values else None,
+                    "archetype": archetype,
+                    "archetype_key": archetype_key,
+                    "design_case": design,
+                    "metric": metric,
+                    "unit": unit,
+                    "scenario_count": len(values),
+                    "average_value": average,
+                    "average_no_services_value": reference,
+                    "average_absolute_change_vs_no_services": average - reference,
+                    "average_pct_change_vs_no_services": _metric_change_pct(reference, average),
+                })
+    return output
+
+
+def _sipue_regret_summary(rows: Sequence[Dict]) -> List[Dict]:
+    """Diagnostic-only comparison of the robust design against the
+    scenario-perfect siPUE achievable with foresight of each scenario.
+
+    Stage 2 minimizes worst-case *cost* regret (Eq. normalized-regret in the
+    paper), never siPUE regret directly, so this quantifies how much siPUE
+    headroom the cost-optimal shared design leaves on the table relative to
+    a design chosen with perfect information about that one scenario. It is
+    not a canonical design case.
+    """
+    groups: List[Tuple[str, str, Sequence[Dict]]] = [("all", "all", rows)]
+    archetypes = sorted({
+        (str(row["archetype"]), str(row["archetype_key"]))
+        for row in rows
+        if row.get("archetype") and row.get("archetype_key")
+    })
+    groups.extend(
+        (name, key, [row for row in rows if row.get("archetype_key") == key])
+        for name, key in archetypes
+    )
+    output: List[Dict] = []
+    for archetype, archetype_key, values in groups:
+        abs_regrets = [float(row["sipue_regret_robust_vs_scenario_perfect"]) for row in values]
+        pct_regrets = [float(row["sipue_regret_pct_vs_scenario_perfect"]) for row in values]
+        output.append({
+            "run_id": values[0].get("run_id") if values else None,
+            "archetype": archetype,
+            "archetype_key": archetype_key,
+            "scenario_count": len(values),
+            "mean_sipue_regret": sum(abs_regrets) / len(abs_regrets),
+            "min_sipue_regret": min(abs_regrets),
+            "max_sipue_regret": max(abs_regrets),
+            "mean_sipue_regret_pct": sum(pct_regrets) / len(pct_regrets),
+            "max_sipue_regret_pct": max(pct_regrets),
+        })
     return output
 
 
@@ -642,108 +754,118 @@ def _conclusion_summary_for_rows(
 
     comparison_by_design: Dict[str, List[Dict]] = {}
     for item in comparison:
-        comparison_by_design.setdefault(str(item["Design"]), []).append(item)
-    ns_cost = mean("MarketCostNPVEUR_no_services")
-    baseline_cost = mean("MarketCostNPVEUR_baseline")
+        comparison_by_design.setdefault(str(item["design"]), []).append(item)
+    ns_cost = mean("market_cost_npv_eur_no_services")
+    baseline_cost = mean("market_cost_npv_eur_baseline")
     output = []
     for design in DESIGN_CASES:
-        case_cost = mean(f"MarketCostNPVEUR_{design}")
+        case_cost = mean(f"market_cost_npv_eur_{design}")
         items = comparison_by_design.get(design, [])
         comparable_regrets = [
-            float(item["RegretEUR"])
-            for item in items if item.get("RegretEUR") not in (None, "")
+            float(item["regret_eur"])
+            for item in items if item.get("regret_eur") not in (None, "")
         ]
         attainable_shares = [
-            float(item["RegretShareOfAttainablePct"])
-            for item in items if item.get("RegretShareOfAttainablePct") not in (None, "")
+            float(item["regret_share_of_attainable_pct"])
+            for item in items if item.get("regret_share_of_attainable_pct") not in (None, "")
+        ]
+        lifecycle_cost_shares = [
+            float(item["regret_share_of_lifecycle"])
+            for item in items if item.get("regret_share_of_lifecycle") not in (None, "")
         ]
         summary = {
-            "Archetype": archetype_label,
-            "Design": design,
-            "ScenarioCount": len(rows),
-            "AverageLifecycleCostNPVEUR": case_cost,
-            "AverageLifecycleCostReductionEURVsNoServices": ns_cost - case_cost,
-            "LifecycleCostReductionPctVsNoServices": _reduction_pct(ns_cost, case_cost),
-            "AverageScenarioLifecycleCostReductionPctVsNoServices": mean(f"LifecycleCostReductionPctVsNoServices_{design}"),
-            "ScenariosWithLowerLifecycleCostVsNoServices": sum(
-                float(row[f"LifecycleCostReductionEURVsNoServices_{design}"]) > 0.0 for row in rows
+            "archetype": archetype_label,
+            "design": design,
+            "scenario_count": len(rows),
+            "average_lifecycle_cost_npv_eur": case_cost,
+            "average_lifecycle_cost_reduction_eur_vs_no_services": ns_cost - case_cost,
+            "lifecycle_cost_reduction_pct_vs_no_services": _reduction_pct(ns_cost, case_cost),
+            "average_scenario_lifecycle_cost_reduction_pct_vs_no_services": mean(f"lifecycle_cost_reduction_pct_vs_no_services_{design}"),
+            "scenarios_with_lower_lifecycle_cost_vs_no_services": sum(
+                float(row[f"lifecycle_cost_reduction_eur_vs_no_services_{design}"]) > 0.0 for row in rows
             ),
-            "AverageLifecycleCostReductionEURVsBaseline": baseline_cost - case_cost,
-            "LifecycleCostReductionPctVsBaseline": _reduction_pct(baseline_cost, case_cost),
-            "AverageScenarioLifecycleCostReductionPctVsBaseline": mean(f"LifecycleCostReductionPctVsBaseline_{design}"),
-            "AverageIndependentCostReductionPctVsNoServices": mean(f"IndependentCostReductionPctVsNoServices_{design}"),
-            "AverageEmissionsReductionPctVsNoServices": mean(f"EmissionsReductionPctVsNoServices_{design}"),
-            "AverageDCAttributedEmissionsReductionPctVsNoServices": mean(f"DCAttributedEmissionsReductionPctVsNoServices_{design}"),
-            "AverageCO2CostReductionPctVsNoServices": mean(f"CO2CostReductionPctVsNoServices_{design}"),
-            "AverageCarbonDamageReductionPctVsNoServices": mean(f"CarbonDamageReductionPctVsNoServices_{design}"),
-            "AveragePUEReductionPctVsNoServices": mean(f"PUEReductionPctVsNoServices_{design}"),
-            "AverageSiPUEReductionPctVsNoServices": mean(f"SiPUEReductionPctVsNoServices_{design}"),
-            "AverageDelayLossEUR": mean(f"LifecycleValueLossEUR_{design}"),
-            "AverageDelayLossPctOfZeroDelayGain": mean(f"DelayLossPctOfZeroDelayGain_{design}"),
-            "AverageSiPUECreditLossPct": mean(f"SiPUECreditLossPct_{design}"),
-            "AverageLandM2": mean(f"LandM2_{design}"),
-            "AverageIntegrationLandM2": mean(f"IntegrationLandM2_{design}"),
-            "AverageLandUtilizationPct": mean(f"LandUtilizationPct_{design}"),
-            "BindingLandScenarioCount": sum(
-                str(row[f"LandConstraintBinding_{design}"]).lower() == "true" for row in rows
+            "average_lifecycle_cost_reduction_eur_vs_baseline": baseline_cost - case_cost,
+            "lifecycle_cost_reduction_pct_vs_baseline": _reduction_pct(baseline_cost, case_cost),
+            "average_scenario_lifecycle_cost_reduction_pct_vs_baseline": mean(f"lifecycle_cost_reduction_pct_vs_baseline_{design}"),
+            "average_independent_cost_reduction_pct_vs_no_services": mean(f"independent_cost_reduction_pct_vs_no_services_{design}"),
+            "average_emissions_reduction_pct_vs_no_services": mean(f"emissions_reduction_pct_vs_no_services_{design}"),
+            "average_dc_attributed_emissions_reduction_pct_vs_no_services": mean(f"dc_attributed_emissions_reduction_pct_vs_no_services_{design}"),
+            "average_co2_cost_reduction_pct_vs_no_services": mean(f"co2_cost_reduction_pct_vs_no_services_{design}"),
+            "average_carbon_damage_reduction_pct_vs_no_services": mean(f"carbon_damage_reduction_pct_vs_no_services_{design}"),
+            "average_pue_reduction_pct_vs_no_services": mean(f"pue_reduction_pct_vs_no_services_{design}"),
+            "average_sipue_reduction_pct_vs_no_services": mean(f"sipue_reduction_pct_vs_no_services_{design}"),
+            "average_delay_loss_eur": mean(f"lifecycle_value_loss_eur_{design}"),
+            "average_delay_loss_pct_of_zero_delay_gain": mean(f"delay_loss_pct_of_zero_delay_gain_{design}"),
+            "average_sipue_credit_loss_pct": mean(f"sipue_credit_loss_pct_{design}"),
+            "average_land_m2": mean(f"land_m2_{design}"),
+            "average_integration_land_m2": mean(f"integration_land_m2_{design}"),
+            "average_land_utilization_pct": mean(f"land_utilization_pct_{design}"),
+            "binding_land_scenario_count": sum(
+                str(row[f"land_constraint_binding_{design}"]).lower() == "true" for row in rows
             ),
-            "AverageLandLeaseNPVEUR": mean(f"LandCostNPVEUR_{design}"),
-            "AverageIncrementalLandLeaseNPVEURVsNoServices": (
-                mean(f"LandCostNPVEUR_{design}") - mean("LandCostNPVEUR_no_services")
+            "average_land_lease_npv_eur": mean(f"land_cost_npv_eur_{design}"),
+            "average_incremental_land_lease_npv_eur_vs_no_services": (
+                mean(f"land_cost_npv_eur_{design}") - mean("land_cost_npv_eur_no_services")
             ),
-            "IncrementalLandLeaseShareOfLifecycleGainPct": (
+            "incremental_land_lease_share_of_lifecycle_gain_pct": (
                 100.0
-                * (mean(f"LandCostNPVEUR_{design}") - mean("LandCostNPVEUR_no_services"))
+                * (mean(f"land_cost_npv_eur_{design}") - mean("land_cost_npv_eur_no_services"))
                 / max(1e-9, abs(ns_cost - case_cost))
             ),
-            "AverageRegretEUR": (
+            "average_regret_eur": (
                 sum(comparable_regrets) / len(comparable_regrets) if comparable_regrets else None
             ),
-            "WorstRegretEUR": max(comparable_regrets) if comparable_regrets else None,
-            "AverageRegretShareOfAttainablePct": (
+            "worst_regret_eur": max(comparable_regrets) if comparable_regrets else None,
+            "average_regret_share_of_attainable_pct": (
                 sum(attainable_shares) / len(attainable_shares) if attainable_shares else None
+            ),
+            "average_regret_share_of_lifecycle": (
+                sum(lifecycle_cost_shares) / len(lifecycle_cost_shares) if lifecycle_cost_shares else None
+            ),
+            "worst_regret_share_of_lifecycle": (
+                max(lifecycle_cost_shares) if lifecycle_cost_shares else None
             ),
         }
         directional_metrics = {
-            "LifecycleCost": (ns_cost, case_cost),
-            "IndependentCost": (
-                mean("IndependentCostEUR_no_services"),
-                mean(f"IndependentCostEUR_{design}"),
+            "lifecycle_cost": (ns_cost, case_cost),
+            "independent_cost": (
+                mean("independent_cost_eur_no_services"),
+                mean(f"independent_cost_eur_{design}"),
             ),
-            "Emissions": (mean("EmissionsTCO2_no_services"), mean(f"EmissionsTCO2_{design}")),
-            "CO2Cost": (
-                mean("CarbonMarketCostEUR_no_services"),
-                mean(f"CarbonMarketCostEUR_{design}"),
+            "emissions": (mean("emissions_tco2_no_services"), mean(f"emissions_tco2_{design}")),
+            "co2_cost": (
+                mean("carbon_market_cost_eur_no_services"),
+                mean(f"carbon_market_cost_eur_{design}"),
             ),
-            "CarbonDamage": (
-                mean("CarbonDamageEUR_no_services"),
-                mean(f"CarbonDamageEUR_{design}"),
+            "carbon_damage": (
+                mean("carbon_damage_eur_no_services"),
+                mean(f"carbon_damage_eur_{design}"),
             ),
-            "PUE": (mean("PUE_no_services"), mean(f"PUE_{design}")),
-            "SiPUE": (mean("siPUE_no_services"), mean(f"siPUE_{design}")),
-            "LandArea": (mean("LandM2_no_services"), mean(f"LandM2_{design}")),
-            "LandLeaseCost": (
-                mean("LandCostNPVEUR_no_services"),
-                mean(f"LandCostNPVEUR_{design}"),
+            "pue": (mean("pue_no_services"), mean(f"pue_{design}")),
+            "sipue": (mean("sipue_no_services"), mean(f"sipue_{design}")),
+            "land_area": (mean("land_m2_no_services"), mean(f"land_m2_{design}")),
+            "land_lease_cost": (
+                mean("land_cost_npv_eur_no_services"),
+                mean(f"land_cost_npv_eur_{design}"),
             ),
         }
         for label, (reference, case) in directional_metrics.items():
-            summary[f"{label}ChangePctVsNoServices"] = -_reduction_pct(reference, case)
-            summary[f"{label}DirectionVsNoServices"] = _change_direction(reference, case)
+            summary[f"{label}_change_pct_vs_no_services"] = -_reduction_pct(reference, case)
+            summary[f"{label}_direction_vs_no_services"] = _change_direction(reference, case)
         baseline_change = -_reduction_pct(baseline_cost, case_cost)
-        summary["LifecycleCostChangePctVsBaseline"] = baseline_change
-        summary["LifecycleCostDirectionVsBaseline"] = _change_direction(baseline_cost, case_cost)
+        summary["lifecycle_cost_change_pct_vs_baseline"] = baseline_change
+        summary["lifecycle_cost_direction_vs_baseline"] = _change_direction(baseline_cost, case_cost)
         output.append(summary)
     return output
 
 
 def _conclusion_summary(rows: Sequence[Dict], comparison: Sequence[Dict]) -> List[Dict]:
     output = _conclusion_summary_for_rows(rows, comparison, "all")
-    archetypes = sorted({str(row["Archetype"]) for row in rows if row.get("Archetype")})
+    archetypes = sorted({str(row["archetype"]) for row in rows if row.get("archetype")})
     for archetype in archetypes:
-        subset = [row for row in rows if row.get("Archetype") == archetype]
+        subset = [row for row in rows if row.get("archetype") == archetype]
         subset_comparison = [
-            row for row in comparison if row.get("Archetype") == archetype
+            row for row in comparison if row.get("archetype") == archetype
         ]
         output.extend(_conclusion_summary_for_rows(subset, subset_comparison, archetype))
     return output
@@ -792,10 +914,10 @@ def _write_manifest(cfg: Config, scenarios: Sequence[Scenario], output_dir: str)
     source_roots = [
         "brave",
         "main.py",
-        "run_cross_validated_validation.py",
+        "run_train_test_scenario_validation.py",
         "run_out_of_sample_validation.py",
-        "run_sensitivity_prices_congestion_repdays_annual.py",
-        "run_temporal_validation.py",
+        "run_manuscript_sensitivity_repdays_annual.py",
+        "run_creative_figures.py",
         "run_service_ablation_validation.py",
     ]
     for root in source_roots:
@@ -846,6 +968,12 @@ def _write_manifest(cfg: Config, scenarios: Sequence[Scenario], output_dir: str)
 
 
 def run_single(cfg: Config) -> List[Dict]:
+    """Run the paper-facing core workflow.
+
+    The default export is intentionally limited to the no-services
+    counterfactual, incumbent baseline, and robust shared design. Heavier
+    comparator, sensitivity, and validation runs live in separate scripts.
+    """
     random.seed(cfg.seed)
     if cfg.enforce_locked_calibration:
         _validate_locked_calibration(cfg)
@@ -859,54 +987,26 @@ def run_single(cfg: Config) -> List[Dict]:
     rows: List[Dict] = []
     decomposition: List[Dict] = []
     comparison: List[Dict] = []
-    redesign: List[Dict] = []
     for archetype in DATA_CENTER_ARCHETYPES:
         group = study[archetype.key]
         no_services, caps = _carbon_reference(group, profiles, cfg_local)
         constrained_cfg = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
         c_star, perfect_designs = _perfect_designs(group, profiles, constrained_cfg)
         robust = solve_minmax_regret(group, profiles, c_star, constrained_cfg)
-        expected = solve_minmax_regret(
-            group, profiles, c_star, replace(constrained_cfg, robust_objective="expected_value")
-        )
-        pure_cfg = replace(
-            cfg_local,
-            enforce_carbon_cap=False,
-            carbon_emissions_cap_tco2_by_sid=None,
-            robust_objective="pure_minmax",
-        )
-        pure_c_star, pure_perfect_designs = _perfect_designs(group, profiles, pure_cfg)
-        pure = solve_minmax_regret(group, profiles, pure_c_star, pure_cfg)
-        central = next(sc for sc in group if sc.uncertainty_id == 1)
-        deterministic = perfect_designs[central.sid]
-        steady_group = [
-            replace(sc, construction_delay_frac=0.0, construction_delay_months=0.0)
-            for sc in group
-        ]
-        steady_cfg = replace(constrained_cfg, construction_delay_frac=0.0, construction_delay_months=0.0)
-        steady_c_star, _ = _perfect_designs(steady_group, profiles, steady_cfg)
-        steady_design = solve_minmax_regret(steady_group, profiles, steady_c_star, steady_cfg)
 
         for sc in group:
             prof = profiles[sc.sid]
             cases = {
                 "no_services": no_services[sc.sid],
                 "baseline": _baseline_ops(sc, prof, cfg_local),
-                "deterministic": _solve_design_ops(sc, prof, constrained_cfg, deterministic),
-                "expected_value": _solve_design_ops(sc, prof, constrained_cfg, expected),
-                "pure_minmax": _solve_design_ops(sc, prof, pure_cfg, pure),
                 "robust": _solve_design_ops(sc, prof, constrained_cfg, robust),
-                "scenario_perfect": _solve_design_ops(sc, prof, constrained_cfg, perfect_designs[sc.sid]),
             }
-            pure_perfect = _solve_design_ops(sc, prof, pure_cfg, pure_perfect_designs[sc.sid])
             for ops in cases.values():
                 _apply_emissions_attribution(ops, cases["no_services"])
-            _apply_emissions_attribution(pure_perfect, cases["no_services"])
             _rebase_lifecycle(cases["no_services"], cases["no_services"], cfg_local, is_reference=True)
             for name in DESIGN_CASES:
                 if name != "no_services":
                     _rebase_lifecycle(cases[name], cases["no_services"], cfg_local)
-            _rebase_lifecycle(pure_perfect, cases["no_services"], cfg_local)
             availability = service_revenue_scale(cfg_local, sc)
             for name, ops in cases.items():
                 _apply_sipue(
@@ -915,55 +1015,43 @@ def run_single(cfg: Config) -> List[Dict]:
                     cfg_local,
                     1.0 if name == "no_services" else availability,
                 )
-            steady_under_delay = _solve_design_ops(sc, prof, constrained_cfg, steady_design)
-            _apply_emissions_attribution(steady_under_delay, cases["no_services"])
-            _rebase_lifecycle(steady_under_delay, cases["no_services"], cfg_local)
-            _apply_sipue(steady_under_delay, cases["no_services"], cfg_local, availability)
-            robust_realized = _realize_design(robust, sc)
-            steady_realized = _realize_design(steady_design, sc)
-            redesign.append({
-                "Archetype": archetype.name,
-                "UncertaintyState": sc.uncertainty_id,
-                "Scenario": sc.name,
-                "ConstructionDelayMonths": sc.construction_delay_months + cfg_local.construction_delay_months,
-                "DelayAwareCostNPVEUR": cases["robust"]["market_planning_cost_npv_eur"],
-                "ZeroDelayDesignCostNPVEUR": steady_under_delay["market_planning_cost_npv_eur"],
-                "RedesignValueEUR": steady_under_delay["market_planning_cost_npv_eur"] - cases["robust"]["market_planning_cost_npv_eur"],
-                "DelayAwareSiPUE": cases["robust"]["siPUE"],
-                "ZeroDelayDesignSiPUE": steady_under_delay["siPUE"],
-                "DelayAwareWorstRegretEUR": robust["worst_regret_eur"],
-                "DelayAwareWorstRegretEURPerMWhIT": robust["worst_regret_eur_per_mwh_it"],
-                "ZeroDelayWorstRegretEUR": steady_design["worst_regret_eur"],
-                "DelayAwareK_HX_MWth": robust_realized["K_HX"],
-                "ZeroDelayK_HX_MWth": steady_realized["K_HX"],
-                "DelayAwareK_HP_MW": robust_realized["K_HP"],
-                "ZeroDelayK_HP_MW": steady_realized["K_HP"],
-                "DelayAwareK_FLEX_MW": robust_realized["K_FLEX"],
-                "ZeroDelayK_FLEX_MW": steady_realized["K_FLEX"],
-                "DelayAwareK_BAT_E_MWh": robust_realized["K_BAT_E"],
-                "ZeroDelayK_BAT_E_MWh": steady_realized["K_BAT_E"],
-                "DelayAwareK_BAT_P_MW": robust_realized["K_BAT_P"],
-                "ZeroDelayK_BAT_P_MW": steady_realized["K_BAT_P"],
-            })
+
+            # Diagnostic only, not a canonical design case (Table "canonical
+            # design cases: 3" in the paper stays no_services/baseline/robust).
+            # Stage 2 minimizes worst-case *cost* regret, never siPUE regret,
+            # so this checks how far the cost-optimal robust design's siPUE
+            # sits from the siPUE attainable by the scenario-perfect design
+            # that had foresight of this scenario.
+            perfect_ops = _solve_design_ops(sc, prof, constrained_cfg, perfect_designs[sc.sid])
+            _apply_emissions_attribution(perfect_ops, cases["no_services"])
+            _rebase_lifecycle(perfect_ops, cases["no_services"], cfg_local)
+            _apply_sipue(perfect_ops, cases["no_services"], cfg_local, availability)
 
             row = {
-                "Archetype": archetype.name,
-                "ArchetypeKey": archetype.key,
-                "Scenario": sc.name,
-                "ScenarioID": sc.uncertainty_id,
-                "CaseID": sc.sid,
-                "Type": sc.dc_type,
-                "Location": sc.location,
-                "ConstructionDelayMonths": sc.construction_delay_months + cfg_local.construction_delay_months,
-                "LifecycleAvailability": availability,
-                "CarbonCapTCO2": caps[sc.sid],
-                "CarbonCapReductionTargetPct": 100.0 * cfg_local.carbon_cap_reduction_frac,
-                "ReferencePriceEURPerMWh": cfg_local.sipue_system_ref_price_eur_per_mwh,
-                "NoDCCongestionFraction": cfg_local.calibrated_no_dc_congestion_fraction,
-                "NoDCLoadSheddingMWh": cfg_local.calibrated_no_dc_load_shedding_mwh,
+                "archetype": archetype.name,
+                "archetype_key": archetype.key,
+                "scenario": sc.name,
+                "scenario_id": sc.uncertainty_id,
+                "case_id": sc.sid,
+                "type": sc.dc_type,
+                "location": sc.location,
+                "construction_delay_months": sc.construction_delay_months + cfg_local.construction_delay_months,
+                "lifecycle_availability": availability,
+                "carbon_cap_tco2": caps[sc.sid],
+                "carbon_cap_reduction_target_pct": 100.0 * cfg_local.carbon_cap_reduction_frac,
+                "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "no_dc_congestion_fraction": cfg_local.calibrated_no_dc_congestion_fraction,
+                "no_dc_load_shedding_mwh": cfg_local.calibrated_no_dc_load_shedding_mwh,
             }
             for name in DESIGN_CASES:
                 row.update(_case_fields(cases[name], name))
+            row.update(_case_fields(perfect_ops, "scenario_perfect"))
+            row["sipue_regret_robust_vs_scenario_perfect"] = (
+                float(cases["robust"]["siPUE"]) - float(perfect_ops["siPUE"])
+            )
+            row["sipue_regret_pct_vs_scenario_perfect"] = _change_pct(
+                float(perfect_ops["siPUE"]), float(cases["robust"]["siPUE"])
+            )
             _add_land_status_fields(row, cfg_local)
             _add_percentage_fields(row)
             rows.append(row)
@@ -974,57 +1062,57 @@ def run_single(cfg: Config) -> List[Dict]:
                         sc.name, cases["no_services"], cases[name], name
                     )
                     for item in component_rows:
-                        item["Archetype"] = archetype.name
-                        item["UncertaintyState"] = sc.uncertainty_id
+                        item["archetype"] = archetype.name
+                        item["uncertainty_state"] = sc.uncertainty_id
                     decomposition.extend(component_rows)
-                comparator = pure_perfect if name == "pure_minmax" else cases["scenario_perfect"]
-                perfect_cost = float(comparator["market_planning_cost_npv_eur"])
                 case_cost = float(cases[name]["market_planning_cost_npv_eur"])
-                no_services_cost = float(cases["no_services"]["market_planning_cost_npv_eur"])
-                attainable = no_services_cost - perfect_cost
                 discounted_it = max(1e-9, float(cases[name]["E_IT"]) * float(cases[name]["lifecycle_operating_factor"]))
                 comparable = name not in {"no_services", "baseline"}
-                regret = max(0.0, case_cost - perfect_cost) if comparable else None
+                regret = (
+                    max(0.0, float(robust["Regret_s"][sc.sid]))
+                    if name == "robust" else None
+                )
                 comparison.append({
-                    "Archetype": archetype.name,
-                    "UncertaintyState": sc.uncertainty_id,
-                    "Scenario": sc.name,
-                    "Design": name,
-                    "MarketCostNPVEUR": case_cost,
-                    "LifecycleValueNPVEUR": -case_cost,
-                    "RegretComparable": comparable,
-                    "RegretEUR": regret,
-                    "RegretPerMWhIT": regret / discounted_it if regret is not None else None,
-                    "RegretShareOfAttainablePct": (
-                        100.0 * regret / attainable
-                        if regret is not None and attainable > 1e-6 else None
+                    "archetype": archetype.name,
+                    "uncertainty_state": sc.uncertainty_id,
+                    "scenario": sc.name,
+                    "design": name,
+                    "market_cost_npv_eur": case_cost,
+                    "lifecycle_value_npv_eur": -case_cost,
+                    "regret_comparable": comparable,
+                    "regret_eur": regret,
+                    "regret_per_mwh_it": regret / discounted_it if regret is not None else None,
+                    "regret_share_of_lifecycle": (
+                        100.0 * regret / abs(case_cost) if regret is not None and case_cost != 0 else None
                     ),
-                    "ScenarioPerfectAttainableImprovementEUR": max(0.0, attainable),
-                    "EmissionsTCO2": cases[name]["emissions_tco2"],
-                    "CarbonCapSatisfied": cases[name]["emissions_tco2"] <= caps[sc.sid] + 1e-6,
+                    "regret_share_of_attainable_pct": None,
+                    "scenario_perfect_attainable_improvement_eur": None,
+                    "emissions_tco2": cases[name]["emissions_tco2"],
+                    "carbon_cap_satisfied": cases[name]["emissions_tco2"] <= caps[sc.sid] + 1e-6,
                 })
 
     if cfg.export_csv:
         output_dir = cfg.canonical_output_dir
         run_id = _run_id(cfg_local, scenarios)
-        for collection in (rows, decomposition, comparison, redesign):
+        for collection in (rows, decomposition, comparison):
             for item in collection:
-                item["RunID"] = run_id
+                item["run_id"] = run_id
         decomposition_summary = _summarize_decomposition(decomposition)
         comparison_summary = _summarize_design_comparison(comparison)
         conclusion_summary = _conclusion_summary(rows, comparison)
         metric_tests = build_validation_summary(rows)
         for collection in (decomposition_summary, comparison_summary, conclusion_summary, metric_tests):
             for item in collection:
-                item["RunID"] = run_id
+                item["run_id"] = run_id
         _write_csv(rows, os.path.join(output_dir, "results_4_archetypes_10_states.csv"))
         _write_csv(_paper_metric_rows(rows), os.path.join(output_dir, "paper_metrics_long.csv"))
+        _write_csv(_kpi_benchmark_summary(rows), os.path.join(output_dir, "kpi_benchmark_summary.csv"))
+        _write_csv(_sipue_regret_summary(rows), os.path.join(output_dir, "sipue_regret_summary.csv"))
         _write_csv(decomposition, os.path.join(output_dir, "decomposition.csv"))
         _write_csv(decomposition_summary, os.path.join(output_dir, "decomposition_summary.csv"))
         _write_csv(comparison, os.path.join(output_dir, "design_comparison.csv"))
         _write_csv(comparison_summary, os.path.join(output_dir, "design_comparison_summary.csv"))
         _write_csv(conclusion_summary, os.path.join(output_dir, "conclusion_summary.csv"))
-        _write_csv(redesign, os.path.join(output_dir, "delay_redesign_comparison.csv"))
         export_parameter_provenance(
             cfg_local,
             os.path.join(output_dir, "parameter_provenance.csv"),
@@ -1079,12 +1167,12 @@ def run_primary_design(cfg: Config) -> List[Dict]:
             _apply_sipue(robust_ops, reference, cfg_local, availability)
             _apply_sipue(perfect_ops, reference, cfg_local, availability)
             row = {
-                "Archetype": archetype.name,
-                "ArchetypeKey": archetype.key,
-                "Scenario": sc.name,
-                "ScenarioID": sc.uncertainty_id,
-                "CarbonCapTCO2": caps[sc.sid],
-                "ReferencePriceEURPerMWh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "archetype": archetype.name,
+                "archetype_key": archetype.key,
+                "scenario": sc.name,
+                "scenario_id": sc.uncertainty_id,
+                "carbon_cap_tco2": caps[sc.sid],
+                "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
             }
             row.update(_case_fields(reference, "no_services"))
             row.update(_case_fields(robust_ops, "robust"))
@@ -1092,11 +1180,115 @@ def run_primary_design(cfg: Config) -> List[Dict]:
             rows.append(row)
     run_id = _run_id(cfg_local, scenarios)
     for row in rows:
-        row["RunID"] = run_id
+        row["run_id"] = run_id
     return rows
 
 
-def run_cross_validated_validation(cfg: Config) -> List[Dict]:
+def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
+    """Compare a Stage-2 design chosen to minimize worst-case *cost* regret
+    (the paper's canonical "robust" design case, unchanged) against a design
+    chosen to minimize worst-case *siPUE* regret directly, for the same 40
+    canonical rows.
+
+    Both use the same Stage-1 scenario-perfect scenario set and the same
+    lexicographic cost tie-break; they differ only in what Stage 2 treats as
+    the worst-case criterion (cost regret vs. siPUE regret against a
+    per-scenario siPUE-perfect benchmark). This is a diagnostic-only
+    comparison run, not part of the canonical result bundle; it exists to
+    test whether cost-regret minimization leaves siPUE value on the table
+    relative to a design that targets siPUE directly.
+    """
+    random.seed(cfg.seed)
+    study = make_study_scenarios(cfg)
+    scenarios = [sc for group in study.values() for sc in group]
+    if len(scenarios) != 40 or any(len(group) != 10 for group in study.values()):
+        raise ValueError("Canonical study requires four archetypes and ten states per archetype.")
+    for group in study.values():
+        apply_global_heat_assumptions(group, cfg)
+    cfg_local, profiles = _prepare_profiles(cfg, scenarios)
+    rows: List[Dict] = []
+    for archetype in DATA_CENTER_ARCHETYPES:
+        group = study[archetype.key]
+        no_services, caps = _carbon_reference(group, profiles, cfg_local)
+        constrained_cfg = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
+        c_star, _ = _perfect_designs(group, profiles, constrained_cfg)
+
+        no_services_independent_cost = {
+            sc.sid: float(no_services[sc.sid]["independent_system_cost_eur"]) for sc in group
+        }
+        availability_by_sid = {sc.sid: service_revenue_scale(constrained_cfg, sc) for sc in group}
+
+        sipue_star: Dict[int, float] = {}
+        for sc in group:
+            _, sipue_perfect_design = solve_perfect_foresight(
+                sc, profiles[sc.sid], constrained_cfg,
+                objective_mode="sipue",
+                no_services_independent_cost_eur=no_services_independent_cost[sc.sid],
+                availability=availability_by_sid[sc.sid],
+            )
+            sipue_perfect_ops = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design)
+            _apply_emissions_attribution(sipue_perfect_ops, no_services[sc.sid])
+            _rebase_lifecycle(sipue_perfect_ops, no_services[sc.sid], cfg_local)
+            _apply_sipue(sipue_perfect_ops, no_services[sc.sid], cfg_local, availability_by_sid[sc.sid])
+            sipue_star[sc.sid] = float(sipue_perfect_ops["siPUE"])
+
+        robust_cost = solve_minmax_regret(group, profiles, c_star, constrained_cfg)
+        robust_sipue = solve_minmax_regret(
+            group, profiles, c_star, constrained_cfg,
+            objective_mode="sipue",
+            no_services_independent_cost=no_services_independent_cost,
+            availability_by_sid=availability_by_sid,
+            sipue_star=sipue_star,
+        )
+
+        for sc in group:
+            reference = no_services[sc.sid]
+            cases = {
+                "cost_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_cost),
+                "sipue_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_sipue),
+            }
+            for ops in cases.values():
+                _apply_emissions_attribution(ops, reference)
+            _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
+            for ops in cases.values():
+                _rebase_lifecycle(ops, reference, cfg_local)
+            availability = availability_by_sid[sc.sid]
+            _apply_sipue(reference, reference, cfg_local, 1.0)
+            for ops in cases.values():
+                _apply_sipue(ops, reference, cfg_local, availability)
+
+            row = {
+                "archetype": archetype.name,
+                "archetype_key": archetype.key,
+                "scenario": sc.name,
+                "scenario_id": sc.uncertainty_id,
+                "carbon_cap_tco2": caps[sc.sid],
+                "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "sipue_scenario_perfect_star": sipue_star[sc.sid],
+            }
+            row.update(_case_fields(reference, "no_services"))
+            for name, ops in cases.items():
+                row.update(_case_fields(ops, name))
+            row["sipue_delta_sipue_regret_minus_cost_regret"] = (
+                float(cases["sipue_regret_robust"]["siPUE"]) - float(cases["cost_regret_robust"]["siPUE"])
+            )
+            row["market_cost_delta_sipue_regret_minus_cost_regret_eur"] = (
+                float(cases["sipue_regret_robust"]["market_planning_cost_npv_eur"])
+                - float(cases["cost_regret_robust"]["market_planning_cost_npv_eur"])
+            )
+            rows.append(row)
+
+    run_id = _run_id(cfg_local, scenarios)
+    for row in rows:
+        row["run_id"] = run_id
+
+    if cfg.export_csv:
+        output_dir = cfg.canonical_output_dir
+        _write_csv(rows, os.path.join(output_dir, "sipue_objective_comparison.csv"))
+    return rows
+
+
+def run_train_test_scenario_validation(cfg: Config) -> List[Dict]:
     study = make_study_scenarios(cfg)
     scenarios = [sc for group in study.values() for sc in group]
     for group in study.values():
@@ -1107,7 +1299,8 @@ def run_cross_validated_validation(cfg: Config) -> List[Dict]:
         group = study[archetype.key]
         no_services, caps = _carbon_reference(group, profiles, cfg_local)
         constrained_cfg = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
-        for fold, test in enumerate(_make_cv_folds(group, cfg.validation_cv_folds), start=1):
+        folds = _train_test_split(group, cfg.train_test_max_train_id)
+        for fold, test in enumerate(folds, start=1):
             test_ids = {sc.sid for sc in test}
             train = [sc for sc in group if sc.sid not in test_ids]
             c_star, _ = _perfect_designs(train, profiles, constrained_cfg)
@@ -1134,54 +1327,60 @@ def run_cross_validated_validation(cfg: Config) -> List[Dict]:
                     )
                 realized = _realize_design(design, sc)
                 rows.append({
-                    "Archetype": archetype.name,
-                    "ArchetypeKey": archetype.key,
-                    "Fold": fold,
-                    "TrainCount": len(train),
-                    "TestCount": len(test),
-                    "Scenario": sc.name,
-                    "ScenarioID": sc.uncertainty_id,
-                    "TrainScenarioIDs": ",".join(str(x.uncertainty_id) for x in train),
-                    "MarketValueNPVEUR": ops["market_planning_value_npv_eur"],
-                    "MarketCostNPVEUR": ops["market_planning_cost_npv_eur"],
-                    "IndependentCostEUR": ops["independent_system_cost_eur"],
-                    "AnnualIndependentCostEUR": ops["independent_system_cost_eur"],
-                    "RegretEUR": max(0.0, regret) if heldout_feasible else None,
-                    "RegretEURPerMWhIT": max(0.0, regret) / discounted_it if heldout_feasible else None,
-                    "HeldOutDesignFeasible": heldout_feasible,
-                    "HeldOutLandFeasible": land_feasible,
-                    "HeldOutTechnicalFeasible": technical_feasible,
-                    "HeldOutTechnicalFailure": technical_failure,
-                    "DesignLandM2": design_land,
-                    "HeldOutLandLimitM2": land_limit,
-                    "HeldOutLandUtilizationPct": ops["land_utilization_pct"],
-                    "HeldOutLandConstraintBinding": ops["land_constraint_binding"],
-                    "EmissionsTCO2": ops["emissions_tco2"],
-                    "DCAttributedEmissionsTCO2": ops["dc_attributable_emissions_tco2"],
-                    "CarbonMarketCostEUR": ops["co2_cost_eur"],
-                    "CarbonDamageEUR": ops["independent_carbon_damage_eur"],
-                    "CarbonCapTCO2": caps[sc.sid],
-                    "CarbonCapSatisfied": ops["emissions_tco2"] <= caps[sc.sid] + 1e-6,
-                    "PUE": ops["PUE"],
-                    "siPUE": ops["siPUE"],
-                    "SteadySiPUE": ops["steady_state_sipue"],
-                    "CUE": ops["CUE_tCO2_per_MWh_IT"],
-                    "SystemBenefitPerMWhIT": ops["delay_adjusted_system_benefit_eur"] / max(1e-9, ops["E_IT"]),
-                    "CoolingMWh": ops["cooling_mwh"],
-                    "RecoveredHeatITMWhth": ops["recovered_heat_it_mwhth"],
-                    "RecoveredHeatCoolingMWhth": ops["recovered_heat_cooling_mwhth"],
-                    "K_HX_MWth": realized["K_HX"],
-                    "K_HP_MW": realized["K_HP"],
-                    "K_FLEX_MW": realized["K_FLEX"],
-                    "K_BAT_E_MWh": realized["K_BAT_E"],
-                    "K_BAT_P_MW": realized["K_BAT_P"],
+                    "archetype": archetype.name,
+                    "archetype_key": archetype.key,
+                    "fold": fold,
+                    "train_count": len(train),
+                    "test_count": len(test),
+                    "scenario": sc.name,
+                    "scenario_id": sc.uncertainty_id,
+                    "train_scenario_ids": ",".join(str(x.uncertainty_id) for x in train),
+                    "market_value_npv_eur": ops["market_planning_value_npv_eur"],
+                    "market_cost_npv_eur": ops["market_planning_cost_npv_eur"],
+                    "independent_cost_eur": ops["independent_system_cost_eur"],
+                    "annual_independent_cost_eur": ops["independent_system_cost_eur"],
+                    "regret_eur": max(0.0, regret) if heldout_feasible else None,
+                    "regret_eur_per_mwh_it": max(0.0, regret) / discounted_it if heldout_feasible else None,
+                    "regret_share_of_lifecycle": (
+                        100.0 * max(0.0, regret) / abs(ops["market_planning_cost_npv_eur"])
+                        if heldout_feasible else None
+                    ),
+                    "held_out_design_feasible": heldout_feasible,
+                    "held_out_land_feasible": land_feasible,
+                    "held_out_technical_feasible": technical_feasible,
+                    "held_out_technical_failure": technical_failure,
+                    "design_land_m2": design_land,
+                    "held_out_land_limit_m2": land_limit,
+                    "held_out_land_utilization_pct": ops["land_utilization_pct"],
+                    "held_out_land_constraint_binding": ops["land_constraint_binding"],
+                    "emissions_tco2": ops["emissions_tco2"],
+                    "dc_attributed_emissions_tco2": ops["dc_attributable_emissions_tco2"],
+                    "carbon_market_cost_eur": ops["co2_cost_eur"],
+                    "carbon_damage_eur": ops["independent_carbon_damage_eur"],
+                    "carbon_cap_tco2": caps[sc.sid],
+                    "carbon_cap_satisfied": ops["emissions_tco2"] <= caps[sc.sid] + 1e-6,
+                    "pue": ops["PUE"],
+                    "sipue": ops["siPUE"],
+                    "steady_sipue": ops["steady_state_sipue"],
+                    "cue": ops["CUE_tCO2_per_MWh_IT"],
+                    "system_benefit_per_mwh_it": ops["delay_adjusted_system_benefit_eur"] / max(1e-9, ops["E_IT"]),
+                    "cooling_mwh": ops["cooling_mwh"],
+                    "recovered_heat_it_mwhth": ops["recovered_heat_it_mwhth"],
+                    "recovered_heat_cooling_mwhth": ops["recovered_heat_cooling_mwhth"],
+                    "k_hx_mwth": realized["K_HX"],
+                    "k_hp_mw": realized["K_HP"],
+                    "k_flex_mw": realized["K_FLEX"],
+                    "k_bat_e_mwh": realized["K_BAT_E"],
+                    "k_bat_p_mw": realized["K_BAT_P"],
                 })
     run_id = _run_id(cfg_local, scenarios)
     for row in rows:
-        row["RunID"] = run_id
+        row["run_id"] = run_id
     if cfg.export_csv:
-        _write_csv(rows, os.path.join(cfg.canonical_output_dir, "cross_validated_design_performance.csv"))
-        _write_manifest(cfg_local, scenarios, cfg.canonical_output_dir)
+        out_name = f"train_test_1_{cfg.train_test_max_train_id}_vs_rest.csv"
+        output_dir = os.path.join(cfg.validation_output_dir, "train-test")
+        _write_csv(rows, os.path.join(output_dir, out_name))
+        _write_manifest(cfg_local, scenarios, output_dir)
     return rows
 
 
@@ -1256,55 +1455,67 @@ def run_out_of_sample_validation(cfg: Config) -> List[Dict]:
             carbon_satisfied = ops["emissions_tco2"] <= caps[sc.sid] + 1e-6
             comparable_regret = operational_feasible and policy_feasible and land_feasible
             rows.append({
-                "Archetype": archetype.name,
-                "ArchetypeKey": archetype.key,
-                "OOSCase": sc.uncertainty_id,
-                "Scenario": sc.name,
-                "OperationalFeasible": operational_feasible,
-                "CarbonConstrainedPerfectFeasible": policy_feasible,
-                "LandFeasible": land_feasible,
-                "CarbonCapSatisfied": carbon_satisfied,
-                "Failure": failure,
-                "MarketCostNPVEUR": ops["market_planning_cost_npv_eur"],
-                "AnnualIndependentCostEUR": ops["independent_system_cost_eur"],
-                "RegretEUR": max(0.0, regret) if comparable_regret else None,
-                "RegretEURPerMWhIT": max(0.0, regret) / discounted_it if comparable_regret else None,
-                "EmissionsTCO2": ops["emissions_tco2"],
-                "DCAttributedEmissionsTCO2": ops["dc_attributable_emissions_tco2"],
-                "CarbonCapTCO2": caps[sc.sid],
-                "PUE": ops["PUE"],
-                "siPUE": ops["siPUE"],
-                "SteadySiPUE": ops["steady_state_sipue"],
-                "SystemBenefitPerMWhIT": ops["delay_adjusted_system_benefit_eur"] / max(1e-9, ops["E_IT"]),
-                "LandM2": ops["land_m2"],
-                "LandLimitM2": ops["land_limit_m2"],
-                "CongestionHours": ops["congestion_hours"],
-                "RenewableCurtailmentMWh": ops["renewable_curtailment_mwh"],
+                "archetype": archetype.name,
+                "archetype_key": archetype.key,
+                "oos_case": sc.uncertainty_id,
+                "scenario": sc.name,
+                "operational_feasible": operational_feasible,
+                "carbon_constrained_perfect_feasible": policy_feasible,
+                "land_feasible": land_feasible,
+                "carbon_cap_satisfied": carbon_satisfied,
+                "failure": failure,
+                "market_cost_npv_eur": ops["market_planning_cost_npv_eur"],
+                "annual_independent_cost_eur": ops["independent_system_cost_eur"],
+                "regret_eur": max(0.0, regret) if comparable_regret else None,
+                "regret_eur_per_mwh_it": max(0.0, regret) / discounted_it if comparable_regret else None,
+                "regret_share_of_lifecycle": (
+                    100.0 * max(0.0, regret) / abs(ops["market_planning_cost_npv_eur"])
+                    if comparable_regret else None
+                ),
+                "emissions_tco2": ops["emissions_tco2"],
+                "dc_attributed_emissions_tco2": ops["dc_attributable_emissions_tco2"],
+                "carbon_cap_tco2": caps[sc.sid],
+                "pue": ops["PUE"],
+                "sipue": ops["siPUE"],
+                "steady_sipue": ops["steady_state_sipue"],
+                "system_benefit_per_mwh_it": ops["delay_adjusted_system_benefit_eur"] / max(1e-9, ops["E_IT"]),
+                "land_m2": ops["land_m2"],
+                "land_limit_m2": ops["land_limit_m2"],
+                "congestion_hours": ops["congestion_hours"],
+                "renewable_curtailment_mwh": ops["renewable_curtailment_mwh"],
             })
     run_id = _run_id(cfg_local, all_scenarios)
     for row in rows:
-        row["RunID"] = run_id
+        row["run_id"] = run_id
     if cfg.export_csv:
-        _write_csv(rows, os.path.join(cfg.canonical_output_dir, "out_of_sample_validation.csv"))
-        comparable = [row for row in rows if row["RegretEURPerMWhIT"] is not None]
+        output_dir = os.path.join(cfg.validation_output_dir, "out-of-sample")
+        _write_csv(rows, os.path.join(output_dir, "out_of_sample_validation.csv"))
+        comparable = [row for row in rows if row["regret_eur_per_mwh_it"] is not None]
         summary = [{
-            "RunID": run_id,
-            "CaseCount": len(rows),
-            "OperationalFeasibilityPct": 100.0 * sum(bool(row["OperationalFeasible"]) for row in rows) / max(1, len(rows)),
-            "CarbonConstrainedPerfectFeasibilityPct": 100.0 * sum(bool(row["CarbonConstrainedPerfectFeasible"]) for row in rows) / max(1, len(rows)),
-            "LandFeasibilityPct": 100.0 * sum(bool(row["LandFeasible"]) for row in rows) / max(1, len(rows)),
-            "CarbonCapSatisfactionPct": 100.0 * sum(bool(row["CarbonCapSatisfied"]) for row in rows) / max(1, len(rows)),
-            "ComparableRegretCaseCount": len(comparable),
-            "AverageRegretEURPerMWhIT": (
-                sum(float(row["RegretEURPerMWhIT"]) for row in comparable) / len(comparable)
+            "run_id": run_id,
+            "case_count": len(rows),
+            "operational_feasibility_pct": 100.0 * sum(bool(row["operational_feasible"]) for row in rows) / max(1, len(rows)),
+            "carbon_constrained_perfect_feasibility_pct": 100.0 * sum(bool(row["carbon_constrained_perfect_feasible"]) for row in rows) / max(1, len(rows)),
+            "land_feasibility_pct": 100.0 * sum(bool(row["land_feasible"]) for row in rows) / max(1, len(rows)),
+            "carbon_cap_satisfaction_pct": 100.0 * sum(bool(row["carbon_cap_satisfied"]) for row in rows) / max(1, len(rows)),
+            "comparable_regret_case_count": len(comparable),
+            "average_regret_eur_per_mwh_it": (
+                sum(float(row["regret_eur_per_mwh_it"]) for row in comparable) / len(comparable)
                 if comparable else None
             ),
-            "WorstRegretEURPerMWhIT": max(
-                (float(row["RegretEURPerMWhIT"]) for row in comparable), default=None
+            "worst_regret_eur_per_mwh_it": max(
+                (float(row["regret_eur_per_mwh_it"]) for row in comparable), default=None
+            ),
+            "average_regret_share_of_lifecycle": (
+                sum(float(row["regret_share_of_lifecycle"]) for row in comparable) / len(comparable)
+                if comparable else None
+            ),
+            "worst_regret_share_of_lifecycle": max(
+                (float(row["regret_share_of_lifecycle"]) for row in comparable), default=None
             ),
         }]
-        _write_csv(summary, os.path.join(cfg.canonical_output_dir, "out_of_sample_summary.csv"))
-        _write_manifest(cfg_local, all_scenarios, cfg.canonical_output_dir)
+        _write_csv(summary, os.path.join(output_dir, "out_of_sample_summary.csv"))
+        _write_manifest(cfg_local, all_scenarios, output_dir)
     return rows
 
 
@@ -1369,80 +1580,80 @@ def run_service_ablation_validation(cfg: Config) -> List[Dict]:
                 realized = _realize_design(design, sc)
                 discounted_it = max(1e-9, ops["E_IT"] * ops["lifecycle_operating_factor"])
                 rows.append({
-                    "Archetype": archetype.name,
-                    "ArchetypeKey": archetype.key,
-                    "Mode": mode,
-                    "ScenarioID": sc.uncertainty_id,
-                    "Scenario": sc.name,
-                    "CarbonConstrainedDesignFeasible": carbon_constrained_design_feasible,
-                    "EvaluationFormulation": (
+                    "archetype": archetype.name,
+                    "archetype_key": archetype.key,
+                    "mode": mode,
+                    "scenario_id": sc.uncertainty_id,
+                    "scenario": sc.name,
+                    "carbon_constrained_design_feasible": carbon_constrained_design_feasible,
+                    "evaluation_formulation": (
                         "carbon_constrained" if carbon_constrained_design_feasible else "unconstrained_diagnostic"
                     ),
-                    "MarketCostNPVEUR": ops["market_planning_cost_npv_eur"],
-                    "MarketCostChangePctVsNoServices": _change_pct(
+                    "market_cost_npv_eur": ops["market_planning_cost_npv_eur"],
+                    "market_cost_change_pct_vs_no_services": _change_pct(
                         reference["market_planning_cost_npv_eur"], ops["market_planning_cost_npv_eur"]
                     ),
-                    "IndependentBenefitEUR": reference["independent_system_cost_eur"] - ops["independent_system_cost_eur"],
-                    "IndependentBenefitEURPerMWhIT": (
+                    "independent_benefit_eur": reference["independent_system_cost_eur"] - ops["independent_system_cost_eur"],
+                    "independent_benefit_eur_per_mwh_it": (
                         reference["independent_system_cost_eur"] - ops["independent_system_cost_eur"]
                     ) / max(1e-9, ops["E_IT"]),
-                    "PUE": ops["PUE"],
-                    "siPUE": ops["siPUE"],
-                    "PostConstructionSiPUE": ops["steady_state_sipue"],
-                    "CUE": ops["CUE_tCO2_per_MWh_IT"],
-                    "EmissionsTCO2": ops["emissions_tco2"],
-                    "DCAttributedEmissionsTCO2": ops["dc_attributable_emissions_tco2"],
-                    "CarbonCapSatisfied": ops["emissions_tco2"] <= caps[sc.sid] + 1e-6,
-                    "HeatRevenueEUR": ops["heat_revenue_eur"],
-                    "FlexRevenueEUR": ops["flex_revenue_eur"],
-                    "AvoidedHeatCostEUR": ops["independent_avoided_heat_cost_eur"],
-                    "AvoidedFlexCostEUR": ops["independent_avoided_flex_cost_eur"],
-                    "CarbonMarketCostEUR": ops["co2_cost_eur"],
-                    "CarbonDamageEUR": ops["independent_carbon_damage_eur"],
-                    "ResourceCostEUR": ops["el_cost_eur"] + ops["baseline_heat_resource_cost_eur"],
-                    "TransmissionCostEUR": ops["trans_cost_eur"],
-                    "PeakCapacityCostEUR": ops["independent_peak_capacity_cost_eur"],
-                    "CoolingMWh": ops["cooling_mwh"],
-                    "RecoveredHeatITMWhth": ops["recovered_heat_it_mwhth"],
-                    "RecoveredHeatCoolingMWhth": ops["recovered_heat_cooling_mwhth"],
-                    "CongestionHours": ops["congestion_hours"],
-                    "CongestionMarginalValueEURPer1Pct": ops["congestion_marginal_value_eur_per_1pct"],
-                    "RenewableCurtailmentMWh": ops["renewable_curtailment_mwh"],
-                    "ThermalGenerationMWh": ops["thermal_generation_mwh"],
-                    "RegretEURPerMWhIT": design["NormalizedRegret_s"][sc.sid],
-                    "DiscountedITMWh": discounted_it,
-                    "K_HX_MWth": realized["K_HX"],
-                    "K_HP_MW": realized["K_HP"],
-                    "K_FLEX_MW": realized["K_FLEX"],
-                    "K_BAT_E_MWh": realized["K_BAT_E"],
-                    "K_BAT_P_MW": realized["K_BAT_P"],
+                    "pue": ops["PUE"],
+                    "sipue": ops["siPUE"],
+                    "post_construction_sipue": ops["steady_state_sipue"],
+                    "cue": ops["CUE_tCO2_per_MWh_IT"],
+                    "emissions_tco2": ops["emissions_tco2"],
+                    "dc_attributed_emissions_tco2": ops["dc_attributable_emissions_tco2"],
+                    "carbon_cap_satisfied": ops["emissions_tco2"] <= caps[sc.sid] + 1e-6,
+                    "heat_revenue_eur": ops["heat_revenue_eur"],
+                    "flex_revenue_eur": ops["flex_revenue_eur"],
+                    "avoided_heat_cost_eur": ops["independent_avoided_heat_cost_eur"],
+                    "avoided_flex_cost_eur": ops["independent_avoided_flex_cost_eur"],
+                    "carbon_market_cost_eur": ops["co2_cost_eur"],
+                    "carbon_damage_eur": ops["independent_carbon_damage_eur"],
+                    "resource_cost_eur": ops["el_cost_eur"] + ops["baseline_heat_resource_cost_eur"],
+                    "transmission_cost_eur": ops["trans_cost_eur"],
+                    "peak_capacity_cost_eur": ops["independent_peak_capacity_cost_eur"],
+                    "cooling_mwh": ops["cooling_mwh"],
+                    "recovered_heat_it_mwhth": ops["recovered_heat_it_mwhth"],
+                    "recovered_heat_cooling_mwhth": ops["recovered_heat_cooling_mwhth"],
+                    "congestion_hours": ops["congestion_hours"],
+                    "congestion_marginal_value_eur_per_1pct": ops["congestion_marginal_value_eur_per_1pct"],
+                    "renewable_curtailment_mwh": ops["renewable_curtailment_mwh"],
+                    "thermal_generation_mwh": ops["thermal_generation_mwh"],
+                    "regret_eur_per_mwh_it": design["NormalizedRegret_s"][sc.sid],
+                    "discounted_it_mwh": discounted_it,
+                    "k_hx_mwth": realized["K_HX"],
+                    "k_hp_mw": realized["K_HP"],
+                    "k_flex_mw": realized["K_FLEX"],
+                    "k_bat_e_mwh": realized["K_BAT_E"],
+                    "k_bat_p_mw": realized["K_BAT_P"],
                 })
     run_id = _run_id(cfg_local, scenarios)
     for row in rows:
-        row["RunID"] = run_id
+        row["run_id"] = run_id
     if cfg.export_csv:
         output_dir = cfg.canonical_output_dir
         _write_csv(rows, os.path.join(output_dir, "service_ablation_results.csv"))
         summary = []
         for archetype in ["all", *(item.name for item in DATA_CENTER_ARCHETYPES)]:
-            subset = rows if archetype == "all" else [row for row in rows if row["Archetype"] == archetype]
+            subset = rows if archetype == "all" else [row for row in rows if row["archetype"] == archetype]
             for mode in SERVICE_ABLATIONS:
-                values = [row for row in subset if row["Mode"] == mode]
+                values = [row for row in subset if row["mode"] == mode]
                 summary.append({
-                    "RunID": run_id,
-                    "Archetype": archetype,
-                    "Mode": mode,
-                    "ScenarioCount": len(values),
-                    "AverageMarketCostChangePctVsNoServices": sum(float(row["MarketCostChangePctVsNoServices"]) for row in values) / len(values),
-                    "AverageIndependentBenefitEURPerMWhIT": sum(float(row["IndependentBenefitEURPerMWhIT"]) for row in values) / len(values),
-                    "AveragePUE": sum(float(row["PUE"]) for row in values) / len(values),
-                    "AverageSiPUE": sum(float(row["siPUE"]) for row in values) / len(values),
-                    "AverageEmissionsTCO2": sum(float(row["EmissionsTCO2"]) for row in values) / len(values),
-                    "CarbonCapSatisfactionPct": 100.0 * sum(bool(row["CarbonCapSatisfied"]) for row in values) / len(values),
-                    "CarbonConstrainedDesignFeasible": all(bool(row["CarbonConstrainedDesignFeasible"]) for row in values),
-                    "AverageCongestionHours": sum(float(row["CongestionHours"]) for row in values) / len(values),
-                    "AverageCurtailmentMWh": sum(float(row["RenewableCurtailmentMWh"]) for row in values) / len(values),
-                    "WorstRegretEURPerMWhIT": max(float(row["RegretEURPerMWhIT"]) for row in values),
+                    "run_id": run_id,
+                    "archetype": archetype,
+                    "mode": mode,
+                    "scenario_count": len(values),
+                    "average_market_cost_change_pct_vs_no_services": sum(float(row["market_cost_change_pct_vs_no_services"]) for row in values) / len(values),
+                    "average_independent_benefit_eur_per_mwh_it": sum(float(row["independent_benefit_eur_per_mwh_it"]) for row in values) / len(values),
+                    "average_pue": sum(float(row["pue"]) for row in values) / len(values),
+                    "average_sipue": sum(float(row["sipue"]) for row in values) / len(values),
+                    "average_emissions_tco2": sum(float(row["emissions_tco2"]) for row in values) / len(values),
+                    "carbon_cap_satisfaction_pct": 100.0 * sum(bool(row["carbon_cap_satisfied"]) for row in values) / len(values),
+                    "carbon_constrained_design_feasible": all(bool(row["carbon_constrained_design_feasible"]) for row in values),
+                    "average_congestion_hours": sum(float(row["congestion_hours"]) for row in values) / len(values),
+                    "average_curtailment_mwh": sum(float(row["renewable_curtailment_mwh"]) for row in values) / len(values),
+                    "worst_regret_eur_per_mwh_it": max(float(row["regret_eur_per_mwh_it"]) for row in values),
                 })
         _write_csv(summary, os.path.join(output_dir, "service_ablation_summary.csv"))
         _write_manifest(cfg_local, scenarios, output_dir)

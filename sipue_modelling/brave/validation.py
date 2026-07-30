@@ -32,34 +32,30 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
     suffixes = (
         "no_services",
         "baseline",
-        "deterministic",
-        "expected_value",
-        "pure_minmax",
         "robust",
-        "scenario_perfect",
     )
     for suffix in suffixes:
-        available = [row for row in rows if _finite(row.get(f"siPUE_{suffix}"))]
+        available = [row for row in rows if _finite(row.get(f"sipue_{suffix}"))]
         if not available:
             continue
         checks.append({
             "test": "finite_nonnegative",
             "case": suffix,
             "n": len(available),
-            "passed": all(float(row[f"siPUE_{suffix}"]) >= -_TOL for row in available),
+            "passed": all(float(row[f"sipue_{suffix}"]) >= -_TOL for row in available),
             "note": "siPUE is finite and nonnegative",
         })
 
     identity_rows = [
         row for row in rows
-        if _finite(row.get("PUE_no_services")) and _finite(row.get("siPUE_no_services"))
+        if _finite(row.get("pue_no_services")) and _finite(row.get("sipue_no_services"))
     ]
     checks.append({
         "test": "no_services_identity",
         "case": "no_services",
         "n": len(identity_rows),
         "passed": all(
-            abs(float(row["PUE_no_services"]) - float(row["siPUE_no_services"])) <= _TOL
+            abs(float(row["pue_no_services"]) - float(row["sipue_no_services"])) <= _TOL
             for row in identity_rows
         ),
         "note": "siPUE equals PUE when system benefit is zero",
@@ -67,15 +63,15 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
 
     delay_rows = [
         row for row in rows
-        if _finite(row.get("siPUE_robust")) and _finite(row.get("SteadySiPUE_robust"))
+        if _finite(row.get("sipue_robust")) and _finite(row.get("steady_sipue_robust"))
     ]
     checks.append({
         "test": "delay_monotonicity",
         "case": "robust",
         "n": len(delay_rows),
         "passed": all(
-            float(row["siPUE_robust"]) + _TOL >= float(row["SteadySiPUE_robust"])
-            if float(row.get("SystemBenefitEUR_robust", 0.0)) >= 0.0 else True
+            float(row["sipue_robust"]) + _TOL >= float(row["steady_sipue_robust"])
+            if float(row.get("system_benefit_eur_robust", 0.0)) >= 0.0 else True
             for row in delay_rows
         ),
         "note": "construction delay cannot strengthen a positive system credit",
@@ -83,8 +79,8 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
 
     carbon_rows = [
         row for row in rows
-        if _finite(row.get("CarbonMarketCostEUR_robust"))
-        and _finite(row.get("CarbonDamageEUR_robust"))
+        if _finite(row.get("carbon_market_cost_eur_robust"))
+        and _finite(row.get("carbon_damage_eur_robust"))
     ]
     checks.append({
         "test": "carbon_ledger_separation",
@@ -94,10 +90,10 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
         "note": "ETS cost and carbon damage are exported as separate ledger terms",
     })
 
-    scenario_ids = {row.get("ScenarioID") for row in rows}
-    archetypes = {row.get("ArchetypeKey") for row in rows if row.get("ArchetypeKey") is not None}
+    scenario_ids = {row.get("scenario_id") for row in rows}
+    archetypes = {row.get("archetype_key") for row in rows if row.get("archetype_key") is not None}
     counts = {
-        archetype: sum(row.get("ArchetypeKey") == archetype for row in rows)
+        archetype: sum(row.get("archetype_key") == archetype for row in rows)
         for archetype in archetypes
     }
     checks.append({
@@ -126,7 +122,7 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
             "case": "synthetic",
             "n": 2,
             "passed": base <= zero_benefit + _TOL,
-            "note": "positive independent benefit cannot worsen siPUE",
+            "note": "positive independent benefit lowers siPUE relative to zero benefit",
         },
         {
             "test": "delay_behavior",
@@ -136,11 +132,11 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
             "note": "lower lifecycle availability weakens a positive credit",
         },
         {
-            "test": "reference_price_sensitivity",
+            "test": "reference_price_monotonicity",
             "case": "synthetic",
             "n": 3,
             "passed": low_ref <= base + _TOL and base <= high_ref + _TOL,
-            "note": "reference-price sensitivity has the expected direction",
+            "note": "reference-price monotonicity has the expected direction",
         },
     ])
     return checks

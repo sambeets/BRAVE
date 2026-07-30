@@ -1,0 +1,16 @@
+archetype,design,scenario_count,average_lifecycle_value_npv_eur,comparable_scenario_count,average_regret_eur,worst_regret_eur,average_regret_per_mwh_it,average_regret_share_of_attainable_pct,average_regret_share_of_lifecycle,worst_regret_share_of_lifecycle,run_id
+AI/HPC,baseline,10,-30054279183.799236,0,,,,,,,congested3-9180d3f3a854c008
+AI/HPC,no_services,10,-30061625057.686867,0,,,,,,,congested3-9180d3f3a854c008
+AI/HPC,robust,10,-30033886092.176495,10,0.3835357666015625,3.835357666015625,9.999990634781008e-08,,1.0431269987764754e-09,1.0431269987764754e-08,congested3-9180d3f3a854c008
+Colocation,baseline,10,-29917353307.694836,0,,,,,,,congested3-9180d3f3a854c008
+Colocation,no_services,10,-29922730942.0926,0,,,,,,,congested3-9180d3f3a854c008
+Colocation,robust,10,-29902021931.074615,10,0.0,0.0,0.0,,0.0,0.0,congested3-9180d3f3a854c008
+Enterprise/edge,baseline,10,-29759434606.87074,0,,,,,,,congested3-9180d3f3a854c008
+Enterprise/edge,no_services,10,-29760288369.385303,0,,,,,,,congested3-9180d3f3a854c008
+Enterprise/edge,robust,10,-29754622430.44851,10,0.0,0.0,0.0,,0.0,0.0,congested3-9180d3f3a854c008
+Hyperscale cloud,baseline,10,-30265423096.68158,0,,,,,,,congested3-9180d3f3a854c008
+Hyperscale cloud,no_services,10,-30280685141.07679,0,,,,,,,congested3-9180d3f3a854c008
+Hyperscale cloud,robust,10,-30250730473.156048,10,0.0,0.0,0.0,,0.0,0.0,congested3-9180d3f3a854c008
+all,baseline,40,-29999122548.761604,0,,,,,,,congested3-9180d3f3a854c008
+all,no_services,40,-30006332377.560387,0,,,,,,,congested3-9180d3f3a854c008
+all,robust,40,-29985315231.71391,40,0.09588394165039063,3.835357666015625,2.499997658695252e-08,,2.6078174969411884e-10,1.0431269987764754e-08,congested3-9180d3f3a854c008

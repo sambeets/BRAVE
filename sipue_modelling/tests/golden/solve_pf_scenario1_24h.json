@@ -1,5 +1,5 @@
 {
-  "cstar": 29246293.70695118,
+  "cstar": 29206817.156247906,
   "K_HX": 4.4,
   "K_HP": 1.7600000000000002,
   "K_FLEX": 3.5999999999999996,
@@ -9,5 +9,5 @@
   "eff_reduction": 0.15,
   "eff_capex": 16800000.0,
   "status": "Optimal",
-  "market_planning_cost_npv_eur": 75722831.80125381
+  "market_planning_cost_npv_eur": 75264556.29331331
 }

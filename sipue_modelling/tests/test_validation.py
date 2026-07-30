@@ -1,30 +1,40 @@
 import pytest
 
-from main import build_ablation_summary, build_validation_summary, compute_ere, _make_cv_folds
+from main import build_ablation_summary, build_validation_summary, compute_ere
 from brave.config import Config
-from brave.scenario import make_scenarios
+from brave.runners import _train_test_split
+from brave.scenario import DATA_CENTER_ARCHETYPES, make_archetype_scenarios
 
 
 pytestmark = pytest.mark.unit
 
 
 def _rows():
+    """Synthetic fixture rows for build_validation_summary's property checks.
+
+    Only two numeric relationships are actually load-bearing here:
+      - siPUE_no_services == PUE_no_services (checked by no_services_identity)
+      - siPUE_robust >= SteadySiPUE_robust, since SystemBenefitEUR_robust > 0
+        (checked by delay_monotonicity: a positive credit can only be
+        weakened, not strengthened, by construction delay)
+    Every other siPUE_* value just needs to be finite and >= -_TOL; nothing
+    asserts its exact magnitude, so a single shared credit is used for them.
+    """
+    undelayed_credit = 0.02
+    delayed_credit = 0.01  # smaller credit realized once delay is applied
     rows = []
     for sid in range(1, 11):
         pue = 1.2 + sid / 100.0
         rows.append({
-            "ScenarioID": sid,
-            "PUE_no_services": pue,
-            "siPUE_no_services": pue,
-            "siPUE_baseline": pue - 0.01,
-            "siPUE_robust": pue - 0.02,
-            "SteadySiPUE_robust": pue - 0.03,
-            "siPUE_expected_value": pue - 0.015,
-            "siPUE_pure_minmax": pue - 0.018,
-            "siPUE_scenario_perfect": pue - 0.025,
-            "SystemBenefitEUR_robust": 100.0,
-            "CarbonMarketCostEUR_robust": 50.0,
-            "CarbonDamageEUR_robust": 75.0,
+            "scenario_id": sid,
+            "pue_no_services": pue,
+            "sipue_no_services": pue,
+            "sipue_baseline": pue - undelayed_credit,
+            "sipue_robust": pue - delayed_credit,
+            "steady_sipue_robust": pue - undelayed_credit,
+            "system_benefit_eur_robust": 100.0,
+            "carbon_market_cost_eur_robust": 50.0,
+            "carbon_damage_eur_robust": 75.0,
         })
     return rows
 
@@ -51,11 +61,11 @@ def test_obsolete_market_credit_ablations_are_removed():
     assert build_ablation_summary(_rows()) == []
 
 
-def test_cv_folds_are_five_eight_train_two_test_splits():
-    scenarios = make_scenarios(Config(T=24))
-    folds = _make_cv_folds(scenarios, 5)
-    held_out_sids = sorted(sc.sid for fold in folds for sc in fold)
-    assert held_out_sids == list(range(1, 11))
-    assert len(folds) == 5
-    assert all(len(fold) == 2 for fold in folds)
-    assert all(len(scenarios) - len(fold) == 8 for fold in folds)
+def test_train_test_split_is_seven_train_three_test():
+    scenarios = make_archetype_scenarios(Config(T=24), DATA_CENTER_ARCHETYPES[0])
+    folds = _train_test_split(scenarios, 7)
+    assert len(folds) == 1
+    test = folds[0]
+    assert sorted(sc.uncertainty_id for sc in test) == [8, 9, 10]
+    train = [sc for sc in scenarios if sc not in test]
+    assert sorted(sc.uncertainty_id for sc in train) == [1, 2, 3, 4, 5, 6, 7]

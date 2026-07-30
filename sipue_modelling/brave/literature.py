@@ -9,7 +9,7 @@ def literature_matrix() -> List[Dict]:
     """Comparison matrix used to delimit the siPUE contribution."""
     return [
         _row(
-            "PUE", "ISO/IEC 30134-2:2026", "facility energy / IT energy",
+            "pue", "ISO/IEC 30134-2:2026", "facility energy / IT energy",
             facility=True, reuse=False, carbon=False, grid=False, economics=False, delay=False,
             source="https://www.iso.org/standard/30134-2",
             distinction="Standard facility-efficiency benchmark; no external system credit.",
@@ -21,7 +21,7 @@ def literature_matrix() -> List[Dict]:
             distinction="Measures reused energy but not net congestion, peak, reserve or carbon-damage effects.",
         ),
         _row(
-            "CUE", "The Green Grid WP#32", "carbon emissions / IT energy",
+            "cue", "The Green Grid WP#32", "carbon emissions / IT energy",
             facility=True, reuse=False, carbon=True, grid=False, economics=False, delay=False,
             source="https://www.thegreengrid.org/en/resources/library-and-tools/241-WP%2332---Carbon-Usage-Effectiveness-%28CUE%29%3A-A-Green-Grid-Data-Center-Sustainability-Metric",
             distinction="Carbon-intensity indicator; does not aggregate broader local-system burden.",
@@ -48,7 +48,7 @@ def literature_matrix() -> List[Dict]:
             distinction="Grid-planning formulation; no delay-aware PUE extension.",
         ),
         _row(
-            "siPUE", "This study", "delay-adjusted independent system benefit as energy-equivalent facility burden",
+            "sipue", "This study", "delay-adjusted independent system benefit as energy-equivalent facility burden",
             facility=True, reuse=True, carbon=True, grid=True, economics=True, delay=True,
             source="",
             distinction="Proposed model-based indicator; novelty claim remains conditional on structured review.",
@@ -71,17 +71,17 @@ def _row(
     distinction: str,
 ) -> Dict:
     return {
-        "MetricOrApproach": metric,
-        "Reference": reference,
-        "PrimaryScope": scope,
-        "FacilityEnergy": facility,
-        "EnergyReuse": reuse,
-        "Carbon": carbon,
-        "GridCongestionOrFlexibility": grid,
-        "EconomicSystemEffects": economics,
-        "ConstructionDelay": delay,
-        "Source": source,
-        "DistinctionFromSiPUE": distinction,
+        "metric_or_approach": metric,
+        "reference": reference,
+        "primary_scope": scope,
+        "facility_energy": facility,
+        "energy_reuse": reuse,
+        "carbon": carbon,
+        "grid_congestion_or_flexibility": grid,
+        "economic_system_effects": economics,
+        "construction_delay": delay,
+        "source": source,
+        "distinction_from_sipue": distinction,
     }
 
 
@@ -89,7 +89,7 @@ def export_literature_matrix(path: str, run_id: str = "") -> None:
     rows = literature_matrix()
     if run_id:
         for row in rows:
-            row["RunID"] = run_id
+            row["run_id"] = run_id
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()))

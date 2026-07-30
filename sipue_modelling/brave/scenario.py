@@ -79,15 +79,46 @@ class UncertaintyState:
     land_cost_multiplier: float
 
 
+# Field order: key, name, dc_type, base_it_mw, flex_frac, base_pue,
+# heat_recovery_frac, hp_cop, land_limit_m2.
+#
+# Provenance for heat_recovery_frac, hp_cop, and flex_frac (base_pue and
+# land_limit_m2 have their own separate history) -- full citations and
+# per-archetype ranges are in brave/provenance.py:
+#   - hp_cop (2.8-3.8 across archetypes): within the project's existing
+#     cited data-centre-wide range of 2.2-5.5 (DC_HEAT_COP). No revision
+#     needed.
+#   - heat_recovery_frac: the project's own cited generic range is 0.30-0.50
+#     (DC_HEAT_COP; the legacy make_scenarios()/apply_global_heat_assumptions
+#     path already enforces this 0.50 ceiling -- see
+#     tests/test_scenarios.py::test_caps_recovery_at_050). AI/HPC was
+#     previously 0.60, outside that range; capped to 0.50 (2026-07-23),
+#     consistent with AI/HPC being the highest-liquid-cooling-adoption
+#     archetype (ACEEE Nadel 2025, citing liquid-cooling market-adoption
+#     data) but not exceeding what the project already treats as
+#     evidence-supported. Hyperscale (0.45) and Colocation (0.32) are
+#     already within range. Enterprise/edge (0.20) has NO archetype-specific
+#     source and sits below even the generic floor -- left unchanged as a
+#     flagged evidence gap (see provenance.py) rather than assigning it an
+#     unsupported in-range number.
+#   - flex_frac: Colocation was previously 0.08, below the one directly
+#     relevant citation found (a multi-tenant colocation demand-response
+#     study reporting 10-25% achievable load reduction, arXiv:1504.07308);
+#     raised to 0.10, the cited floor (2026-07-23). AI/HPC (0.24) is close
+#     to a real demonstrated hyperscale/AI figure (Oracle's 25% peak-hour
+#     reduction via GPU workload orchestration; Allsup 2025, cited in ACEEE
+#     Nadel 2025) and is left unchanged. Hyperscale (0.16) and
+#     Enterprise/edge (0.05) have no archetype-specific source; left
+#     unchanged as flagged evidence gaps.
 DATA_CENTER_ARCHETYPES: Tuple[DataCenterArchetype, ...] = (
     DataCenterArchetype(
-        "ai_hpc", "AI/HPC", "ai", 40.0, 0.24, 1.12, 0.60, 3.8, 1500.0,
+        "ai_hpc", "AI/HPC", "ai", 40.0, 0.24, 1.12, 0.50, 3.8, 1500.0,
     ),
     DataCenterArchetype(
         "hyperscale", "Hyperscale cloud", "hyperscale", 60.0, 0.16, 1.18, 0.45, 3.5, 1900.0,
     ),
     DataCenterArchetype(
-        "colocation", "Colocation", "colocation", 25.0, 0.08, 1.30, 0.32, 3.1, 1050.0,
+        "colocation", "Colocation", "colocation", 25.0, 0.10, 1.30, 0.32, 3.1, 1050.0,
     ),
     DataCenterArchetype(
         "enterprise_edge", "Enterprise/edge", "enterprise_edge", 8.0, 0.05, 1.42, 0.20, 2.8, 620.0,

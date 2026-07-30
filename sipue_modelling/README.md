@@ -1,8 +1,8 @@
 # sipue_modelling
 
 Modeling code and experiment outputs for the paper:
-**"Impact of Datacenter on Local Energy Systems - A business and economic perspective"**
-by Sambeet Mishra, Ankana Singha, Khaled Aleikisha, Thomas Oyvang, Dominic Stephen, and Rob Hovsapianc.
+**"Evaluating Data Centers as Local Energy System Assets: A System-Integrated PUE Approach"**
+by Sambeet Mishra, Ankana Singha, Khaled Aleikish, Thomas Øyvang, Dominic Stephen, and Rob Hovsapian.
 
 ## Overview
 
@@ -18,7 +18,7 @@ The core idea is to evaluate data centers not only as electricity loads, but as 
 
 - `brave/`: core modeling package (config, scenario generation, optimization, metrics, plotting, exports).
 - `main.py`: thin compatibility entrypoint that re-exports public APIs from `brave`.
-- `run_sensitivity_prices_congestion_repdays_annual.py`: sensitivity-analysis runner.
+- `run_manuscript_sensitivity_repdays_annual.py`: optional manuscript sensitivity runner.
 - `data/network_3node_timeseries.csv`: network and time-series input data.
 - `output/`: generated results tables and paper figures.
 - `tests/`: unit and integration-style tests plus golden references.
@@ -35,9 +35,9 @@ From the referenced paper's abstract and setup:
 - Cooling electricity is included in facility load, PUE, and siPUE. The recoverable heat source includes IT load and cooling heat, but the current formulation does not model a separate cooling export service or cooling-service revenue.
 - Carbon market exposure is included in dispatch and profit through scenario or time-series CO2 prices.
 - Carbon outcomes are also reported through emissions, CUE, carbon market cost, independent carbon damage, and independent system-cost outcomes so siPUE can be checked against physical and system-level diagnostics.
-- Validation tables separate planning-objective alignment, external independent system-cost validity, incremental validity beyond PUE/ERE/CUE, and market/system-value diagnostics.
+- Validation tables currently report metric property checks and selected diagnostics. Broader validation claims should be regenerated and reviewed before manuscript use.
 - A min-max regret formulation is reported as an integrated planning objective. Ex-post settlement fields remain available for audit/backward compatibility but are not used as manuscript diagnostics.
-- In services-active scenarios, siPUE should be interpreted as a system-integrated metric based on the no-services independent system-cost counterfactual. Its primary external-validity target is normalized system benefit per MWh IT; absolute system benefit remains a scale/impact metric.
+- In services-active scenarios, siPUE should be interpreted as a system-integrated metric based on the no-services independent system-cost counterfactual. Absolute system benefit remains a scale/impact diagnostic.
 - Paper-facing tables should use compact labels such as `CO2 cost`, `DC CO2 share`, `DC CO2 change`, `carbon damage`, `system benefit`, `benefit per MWh IT`, and `delay factor`.
 
 ## Setup and Run
@@ -54,13 +54,22 @@ poetry install
 poetry run python main.py
 ```
 
-### 3. Run sensitivity analysis
+The base workflow exports the paper-facing core cases: no-services, baseline, and robust min-max design. Heavier sensitivity, out-of-sample, and service-ablation diagnostics are kept as separate optional scripts.
+
+### 3. Optional diagnostic sensitivity analysis
 
 ```bash
-poetry run python run_sensitivity_prices_congestion_repdays_annual.py
+poetry run python run_manuscript_sensitivity_repdays_annual.py
 ```
 
-### 4. Run out-of-sample validation
+This runner reports the manuscript sensitivity set with both labels and
+numeric settings: heat price multiplier `0.30/0.90`, flexibility price
+multiplier `0.125/0.375`, cooling overhead `0.8x/1.2x`, land availability
+`0.65x/1.2x/100x`, and construction delay `0/12` months. Carbon-damage
+valuation is kept as a separate policy ledger diagnostic, not a main
+physical/market sensitivity factor.
+
+### 4. Optional out-of-sample diagnostic
 
 This designs the robust portfolio on scenarios 1-5 and evaluates the fixed
 design under held-out scenarios 6-10.
@@ -69,13 +78,13 @@ design under held-out scenarios 6-10.
 poetry run python run_out_of_sample_validation.py
 ```
 
-### 5. Run cross-validated out-of-sample validation
+### 5. Optional train/test scenario diagnostic
 
-This repeats the design/evaluation split across deterministic folds so every
-scenario is evaluated once as unseen data.
+This designs the robust portfolio on uncertainty states 1-7 and evaluates the
+fixed design on held-out states 8-10, per archetype.
 
 ```bash
-poetry run python run_cross_validated_validation.py
+poetry run python run_train_test_scenario_validation.py
 ```
 
 ### 6. Run tests
@@ -92,9 +101,9 @@ flowchart TD
     B[Prepare inputs and assumptions<br/>data/network_3node_timeseries.csv + config]
     C[Run baseline optimization<br/>poetry run python main.py]
     D[Generate baseline outputs<br/>results + paper figures in output/]
-    E[Run sensitivity analysis<br/>poetry run python run_sensitivity_prices_congestion_repdays_annual.py]
-    F[Generate sensitivity outputs<br/>tables + figures in output/]
-    G[Interpret and compare findings<br/>baseline vs sensitivity]
+    E[Optional diagnostics<br/>sensitivity and validation scripts]
+    F[Review diagnostic outputs<br/>before manuscript use]
+    G[Interpret and compare findings<br/>only from source-consistent outputs]
 
     A --> B --> C --> D
     D --> E --> F --> G

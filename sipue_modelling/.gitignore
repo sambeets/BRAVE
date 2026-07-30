@@ -1,0 +1,17 @@
+# LaTeX build byproducts (paper.tex/references.bib/paper.pdf are the tracked deliverables)
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.spl
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Vendored/scratch dependency copies and tool state
+.deps/
+.claude/
+
+# Windows redirect-to-nul artifact
+nul

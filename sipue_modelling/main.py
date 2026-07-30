@@ -92,19 +92,20 @@ from brave.plotting import (  # noqa: F401
     _pretty_type_label,
     export_plots,
     export_study_plots,
+    export_creative_figure_package,
+    export_creative_figure_package_from_csv,
+    export_sensitivity_plots,
     export_regret_landscapes,
 )
 
 # ── brave.runners ─────────────────────────────────────────────────────────────
 from brave.runners import (  # noqa: F401
-    _make_cv_folds,
     run_single,
     run_out_of_sample_validation,
-    run_cross_validated_validation,
+    run_train_test_scenario_validation,
 )
 
 
 if __name__ == "__main__":
     cfg = Config()
-    cfg.export_regret_landscape = True
     run_single(cfg)

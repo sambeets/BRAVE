@@ -36,11 +36,11 @@ def summarize_interpretation(rows: List[Dict], cfg=None) -> None:
     if not rows:
         print("No results available.")
         return
-    avg_value = sum(float(row.get("MarketValueNPVEUR_robust", 0.0)) for row in rows) / len(rows)
-    avg_benefit = sum(float(row.get("SystemBenefitPerMWhIT_robust", 0.0)) for row in rows) / len(rows)
+    avg_value = sum(float(row.get("market_value_npv_eur_robust", 0.0)) for row in rows) / len(rows)
+    avg_benefit = sum(float(row.get("system_benefit_per_mwh_it_robust", 0.0)) for row in rows) / len(rows)
     carbon_ok = sum(
-        float(row.get("EmissionsTCO2_robust", float("inf")))
-        <= float(row.get("CarbonCapTCO2", -float("inf"))) + 1e-6
+        float(row.get("emissions_tco2_robust", float("inf")))
+        <= float(row.get("carbon_cap_tco2", -float("inf"))) + 1e-6
         for row in rows
     )
     print(f"Scenarios: {len(rows)}")
