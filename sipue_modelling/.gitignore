@@ -1,4 +1,4 @@
-# LaTeX build byproducts (paper.tex/references.bib/paper.pdf are the tracked deliverables)
+# LaTeX build byproducts
 *.aux
 *.bbl
 *.blg
@@ -8,6 +8,19 @@
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# Manuscript, generated results, and paper-writing notes are local-only:
+# this repo tracks the modeling code, not the paper or its output.
+paper.tex
+paper.pdf
+references.bib
+paper_excerpt.txt
+context.md
+context/
+sipue-modelling.md
+humanized_brave_wp3_proposal.tex
+humanized_brave_wp3_proposal.pdf
+output/
 
 # Vendored/scratch dependency copies and tool state
 .deps/
