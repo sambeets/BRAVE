@@ -79,28 +79,32 @@ class UncertaintyState:
     land_cost_multiplier: float
 
 
+BASE_HEAT_RECOVERY_GENERIC_CEILING = 0.50
+LEGACY_HEAT_RECOVERY_CAP = BASE_HEAT_RECOVERY_GENERIC_CEILING
+CANONICAL_HEAT_RECOVERY_SCENARIO_CAP = 0.90
+
+
 # Field order: key, name, dc_type, base_it_mw, flex_frac, base_pue,
 # heat_recovery_frac, hp_cop, land_limit_m2.
 #
-# Provenance for heat_recovery_frac, hp_cop, and flex_frac (base_pue and
+# Source basis for heat_recovery_frac, hp_cop, and flex_frac (base_pue and
 # land_limit_m2 have their own separate history) -- full citations and
 # per-archetype ranges are in brave/provenance.py:
 #   - hp_cop (2.8-3.8 across archetypes): within the project's existing
 #     cited data-centre-wide range of 2.2-5.5 (DC_HEAT_COP). No revision
 #     needed.
-#   - heat_recovery_frac: the project's own cited generic range is 0.30-0.50
-#     (DC_HEAT_COP; the legacy make_scenarios()/apply_global_heat_assumptions
-#     path already enforces this 0.50 ceiling -- see
-#     tests/test_scenarios.py::test_caps_recovery_at_050). AI/HPC was
-#     previously 0.60, outside that range; capped to 0.50 (2026-07-23),
-#     consistent with AI/HPC being the highest-liquid-cooling-adoption
-#     archetype (ACEEE Nadel 2025, citing liquid-cooling market-adoption
-#     data) but not exceeding what the project already treats as
-#     evidence-supported. Hyperscale (0.45) and Colocation (0.32) are
-#     already within range. Enterprise/edge (0.20) has NO archetype-specific
-#     source and sits below even the generic floor -- left unchanged as a
-#     flagged evidence gap (see provenance.py) rather than assigning it an
-#     unsupported in-range number.
+#   - heat_recovery_frac: archetype base values are bounded by the project's
+#     cited generic range of 0.30-0.50 (DC_HEAT_COP), except for
+#     Enterprise/edge (0.20), which is left below the floor as an evidence
+#     gap. AI/HPC was previously 0.60 and was reset to the 0.50 base ceiling
+#     on 2026-07-23. Canonical and out-of-sample uncertainty states then
+#     multiply the base value by heat_recovery_multiplier and cap the
+#     effective operational LP input at 0.90. Effective values can therefore
+#     exceed the generic base range in favorable local heat states; this is a
+#     scenario adjustment, not a claim that every LP input is capped to 0.50.
+#     The legacy make_scenarios()/apply_global_heat_assumptions path still
+#     enforces the 0.50 cap tested by
+#     tests/test_scenarios.py::test_caps_recovery_at_050.
 #   - flex_frac: Colocation was previously 0.08, below the one directly
 #     relevant citation found (a multi-tenant colocation demand-response
 #     study reporting 10-25% achievable load reduction, arXiv:1504.07308);
@@ -164,7 +168,7 @@ def make_archetype_scenarios(
             base_it_mw=archetype.base_it_mw,
             flex_frac=min(0.30, archetype.flex_frac * state.flex_availability_multiplier),
             base_pue=archetype.base_pue,
-            heat_recovery_frac=min(0.90, archetype.heat_recovery_frac * state.heat_recovery_multiplier),
+            heat_recovery_frac=min(CANONICAL_HEAT_RECOVERY_SCENARIO_CAP, archetype.heat_recovery_frac * state.heat_recovery_multiplier),
             hp_cop=max(1.1, archetype.hp_cop * state.hp_cop_multiplier),
             el_price_level=state.electricity_price_eur_per_mwh,
             el_price_vol=state.electricity_price_volatility,
@@ -247,7 +251,7 @@ def make_out_of_sample_scenarios(
             base_it_mw=archetype.base_it_mw,
             flex_frac=min(0.30, archetype.flex_frac * flex_multiplier),
             base_pue=archetype.base_pue,
-            heat_recovery_frac=min(0.90, archetype.heat_recovery_frac * heat_multiplier),
+            heat_recovery_frac=min(CANONICAL_HEAT_RECOVERY_SCENARIO_CAP, archetype.heat_recovery_frac * heat_multiplier),
             hp_cop=max(1.1, archetype.hp_cop * cop_multiplier),
             el_price_level=draw("electricity_price_eur_per_mwh"),
             el_price_vol=draw("electricity_price_volatility"),
@@ -402,7 +406,7 @@ def apply_global_heat_assumptions(scenarios: List[Scenario], cfg: Config) -> Non
             sc.heat_recovery_frac = frac
     else:
         for sc in scenarios:
-            limit = 0.50 if sc.archetype_key == "legacy" else 0.90
+            limit = LEGACY_HEAT_RECOVERY_CAP if sc.archetype_key == "legacy" else CANONICAL_HEAT_RECOVERY_SCENARIO_CAP
             sc.heat_recovery_frac = min(sc.heat_recovery_frac, limit)
 
     if cfg.override_hp_cop is not None:

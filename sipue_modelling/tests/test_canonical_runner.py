@@ -46,6 +46,20 @@ def test_no_services_has_complete_separate_carbon_ledgers(canonical_smoke_rows):
     assert all(row["carbon_damage_eur_no_services"] > 0.0 for row in canonical_smoke_rows)
 
 
+def test_headline_cases_share_carbon_cap(canonical_smoke_rows):
+    for row in canonical_smoke_rows:
+        cap = float(row["carbon_cap_tco2"])
+        for case in ("fair_services_disabled", "baseline", "robust", "scenario_perfect"):
+            assert float(row[f"emissions_tco2_{case}"]) <= cap + 1e-6
+
+
+def test_identity_and_fair_comparator_have_zero_sipue_credit(canonical_smoke_rows):
+    for row in canonical_smoke_rows:
+        for case in ("no_services", "fair_services_disabled"):
+            assert row[f"pue_{case}"] == pytest.approx(row[f"sipue_{case}"])
+            assert row[f"system_benefit_eur_{case}"] == pytest.approx(0.0, abs=1e-8)
+
+
 def test_canonical_schema_excludes_removed_kpis(canonical_smoke_rows):
     banned = ("operator", "settlement", "unitprofit", "profitpct", "co2costshare")
     assert not any(
@@ -132,10 +146,14 @@ def test_kpi_benchmark_summary_uses_supported_canonical_metrics(canonical_smoke_
     expected_metrics = {
         "pue",
         "sipue",
+        "sipue_no_carbon_damage",
+        "sipue_carbon_only",
         "steady_sipue",
         "cue",
         "modeled_erf",
         "system_benefit_per_mwh_it",
+        "system_benefit_no_carbon_damage_per_mwh_it",
+        "system_benefit_carbon_only_per_mwh_it",
         "emissions_tco2",
         "carbon_damage_eur",
     }

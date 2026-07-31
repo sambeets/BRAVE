@@ -298,7 +298,7 @@ def solve_ops_given_design(
 
     n1, n2, n3 = cfg.network_nodes
     force_it_flex = bool(prof.get("force_it_flex", False))
-    flex_frac_eff = min(0.30, sc.flex_frac * (cfg.it_flex_scale_services_active if allow_flex else 1.0))
+    flex_frac_eff = min(0.30, sc.flex_frac * cfg.it_flex_scale_services_active) if allow_flex else 0.0
     for t in range(T):
         m += THETA[n1][t] == 0.0
         m += F12[t] == b12 * (THETA[n1][t] - THETA[n2][t])
@@ -1306,7 +1306,7 @@ def solve_perfect_foresight(
             m += land_m2_expr <= land_limit, "LandLimit"
         land_cost_expr = sc.land_cost_multiplier * land_cost_horizon(land_m2_expr, cfg)
         force_it_flex = bool(prof.get("force_it_flex", False))
-        flex_frac_eff = min(0.30, sc.flex_frac * (cfg.it_flex_scale_services_active if allow_flex else 1.0))
+        flex_frac_eff = min(0.30, sc.flex_frac * cfg.it_flex_scale_services_active) if allow_flex else 0.0
         for t in range(T):
             m += THETA[n1][t] == 0.0
             m += F12[t] == b12 * (THETA[n1][t] - THETA[n2][t])
@@ -1841,7 +1841,7 @@ def solve_minmax_regret(
             n1, n2, n3 = cfg.network_nodes
 
             force_it_flex = bool(prof.get("force_it_flex", False))
-            flex_frac_eff = min(0.30, sc.flex_frac * (cfg.it_flex_scale_services_active if allow_flex else 1.0))
+            flex_frac_eff = min(0.30, sc.flex_frac * cfg.it_flex_scale_services_active) if allow_flex else 0.0
             for t in range(T):
                 m += THETA[n1][t] == 0.0
                 m += F12[t] == b12 * (THETA[n1][t] - THETA[n2][t])

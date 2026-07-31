@@ -1,2 +1,2 @@
 run_id,case_count,operational_feasibility_pct,carbon_constrained_perfect_feasibility_pct,land_feasibility_pct,carbon_cap_satisfaction_pct,comparable_regret_case_count,average_regret_eur_per_mwh_it,worst_regret_eur_per_mwh_it,average_regret_share_of_lifecycle,worst_regret_share_of_lifecycle
-congested3-dc00b06731513c5e,40,100.0,100.0,100.0,100.0,40,0.4292022529551117,1.2406125457265986,0.004743168649117865,0.016574503263163908
+congested3-dc00b06731513c5e,40,100.0,100.0,100.0,100.0,40,0.4024538175771884,1.2406125457265986,0.004247546898662932,0.016900672158556732

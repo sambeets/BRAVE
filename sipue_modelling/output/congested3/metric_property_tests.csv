@@ -1,5 +1,6 @@
 test,case,n,passed,note,run_id
 finite_nonnegative,no_services,40,True,siPUE is finite and nonnegative,congested3-9180d3f3a854c008
+finite_nonnegative,fair_services_disabled,40,True,siPUE is finite and nonnegative,congested3-9180d3f3a854c008
 finite_nonnegative,baseline,40,True,siPUE is finite and nonnegative,congested3-9180d3f3a854c008
 finite_nonnegative,robust,40,True,siPUE is finite and nonnegative,congested3-9180d3f3a854c008
 no_services_identity,no_services,40,True,siPUE equals PUE when system benefit is zero,congested3-9180d3f3a854c008

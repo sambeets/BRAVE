@@ -39,9 +39,12 @@ from brave.validation import build_validation_summary
 
 DESIGN_CASES = (
     "no_services",
+    "fair_services_disabled",
     "baseline",
     "robust",
 )
+
+HEADLINE_REFERENCE_CASE = "fair_services_disabled"
 
 
 def _no_services_profile(prof: Dict[str, List[float]]) -> Dict[str, List[float]]:
@@ -165,17 +168,30 @@ def _design_technical_feasibility(design: Dict, sc: Scenario, cfg: Config) -> Tu
 def _baseline_ops(sc: Scenario, prof: Dict[str, List[float]], cfg: Config) -> Dict:
     k_hx, k_hp, k_flex, k_bat_e, k_bat_p, eff = baseline_design_for_scenario(sc, prof, cfg)
     return solve_ops_given_design(
-        sc, prof, replace(cfg, enforce_carbon_cap=False),
+        sc, prof, cfg,
         k_hx, k_flex, k_bat_e, k_bat_p, eff_reduction=eff, K_HP=k_hp,
     )
 
 
 def _no_services_ops(sc: Scenario, prof: Dict[str, List[float]], cfg: Config) -> Dict:
-    eff = float(cfg.fixed_eff_reduction or 0.0)
+    # No-services is the zero-investment counterfactual: zero service capacity
+    # AND zero efficiency investment, independent of cfg.fixed_eff_reduction
+    # (which fixes the efficiency level for the baseline/robust/perfect-foresight
+    # cases, where an efficiency retrofit is actually installed and paid for).
     return solve_ops_given_design(
         sc,
         _no_services_profile(prof),
         replace(cfg, enforce_carbon_cap=False, carbon_emissions_cap_tco2_by_sid=None),
+        0.0, 0.0, 0.0, 0.0, eff_reduction=0.0, K_HP=0.0,
+    )
+
+
+def _fair_services_disabled_ops(sc: Scenario, prof: Dict[str, List[float]], cfg: Config) -> Dict:
+    eff = 0.0 if cfg.fixed_eff_reduction is None else float(cfg.fixed_eff_reduction)
+    return solve_ops_given_design(
+        sc,
+        _no_services_profile(prof),
+        cfg,
         0.0, 0.0, 0.0, 0.0, eff_reduction=eff, K_HP=0.0,
     )
 
@@ -188,6 +204,7 @@ def _carbon_reference(
     no_services = {
         sc.sid: _no_services_ops(sc, profiles[sc.sid], cfg) for sc in scenarios
     }
+    unconstrained_cfg = replace(cfg, enforce_carbon_cap=False, carbon_emissions_cap_tco2_by_sid=None)
     reduction = max(0.0, float(cfg.carbon_cap_reduction_frac))
     caps = {}
     for sc in scenarios:
@@ -203,10 +220,17 @@ def _carbon_reference(
             + float(no_services[sc.sid]["baseline_heat_emissions_tco2"])
         )
         attributable = max(0.0, float(no_services[sc.sid]["emissions_tco2"]) - background)
-        caps[sc.sid] = background + attributable * (1.0 - reduction)
+        policy_cap = background + attributable * (1.0 - reduction)
+        fair_floor = float(
+            _fair_services_disabled_ops(sc, profiles[sc.sid], unconstrained_cfg)["emissions_tco2"]
+        )
+        caps[sc.sid] = max(policy_cap, fair_floor)
         no_services[sc.sid]["background_emissions_tco2"] = background
         no_services[sc.sid]["no_dc_power_emissions_tco2"] = no_dc_power_emissions
         no_services[sc.sid]["dc_attributable_emissions_tco2"] = attributable
+        no_services[sc.sid]["unrelaxed_carbon_cap_tco2"] = policy_cap
+        no_services[sc.sid]["fair_services_disabled_emissions_floor_tco2"] = fair_floor
+        no_services[sc.sid]["carbon_cap_feasibility_floor_applied"] = caps[sc.sid] > policy_cap + 1e-9
     return no_services, caps
 
 
@@ -228,6 +252,11 @@ def _perfect_designs(
 
 def _apply_sipue(ops: Dict, reference: Dict, cfg: Config, availability: float) -> None:
     raw_benefit = float(reference["independent_system_cost_eur"]) - float(ops["independent_system_cost_eur"])
+    carbon_benefit = (
+        float(reference["independent_carbon_damage_eur"])
+        - float(ops["independent_carbon_damage_eur"])
+    )
+    no_carbon_benefit = raw_benefit - carbon_benefit
     delay_sipue, credit = compute_sipue(
         E_FAC=float(ops["E_FAC"]),
         E_IT=float(ops["E_IT"]),
@@ -244,12 +273,36 @@ def _apply_sipue(ops: Dict, reference: Dict, cfg: Config, availability: float) -
         clip_nonnegative=cfg.sipue_clip_nonnegative,
         benefit_availability_factor=1.0,
     )
+    no_carbon_sipue, no_carbon_credit = compute_sipue(
+        E_FAC=float(ops["E_FAC"]),
+        E_IT=float(ops["E_IT"]),
+        net_system_benefit_eur=no_carbon_benefit,
+        reference_price_eur_per_mwh=cfg.sipue_system_ref_price_eur_per_mwh,
+        clip_nonnegative=cfg.sipue_clip_nonnegative,
+        benefit_availability_factor=availability,
+    )
+    carbon_only_sipue, carbon_only_credit = compute_sipue(
+        E_FAC=float(ops["E_FAC"]),
+        E_IT=float(ops["E_IT"]),
+        net_system_benefit_eur=carbon_benefit,
+        reference_price_eur_per_mwh=cfg.sipue_system_ref_price_eur_per_mwh,
+        clip_nonnegative=cfg.sipue_clip_nonnegative,
+        benefit_availability_factor=availability,
+    )
     ops["siPUE"] = delay_sipue
     ops["steady_state_sipue"] = steady_sipue
+    ops["siPUE_no_carbon_damage"] = no_carbon_sipue
+    ops["siPUE_carbon_only"] = carbon_only_sipue
     ops["system_credit_mwh"] = credit
     ops["steady_state_system_credit_mwh"] = steady_credit
+    ops["system_credit_no_carbon_damage_mwh"] = no_carbon_credit
+    ops["system_credit_carbon_only_mwh"] = carbon_only_credit
     ops["raw_system_benefit_eur"] = raw_benefit
+    ops["raw_system_benefit_no_carbon_damage_eur"] = no_carbon_benefit
+    ops["raw_system_benefit_carbon_only_eur"] = carbon_benefit
     ops["delay_adjusted_system_benefit_eur"] = availability * raw_benefit
+    ops["delay_adjusted_system_benefit_no_carbon_damage_eur"] = availability * no_carbon_benefit
+    ops["delay_adjusted_system_benefit_carbon_only_eur"] = availability * carbon_benefit
     ops["sipue_credit_loss_mwh"] = steady_credit - credit
 
 
@@ -294,6 +347,8 @@ def _case_fields(ops: Dict, suffix: str) -> Dict:
         "pue": "PUE",
         "sipue": "siPUE",
         "steady_sipue": "steady_state_sipue",
+        "sipue_no_carbon_damage": "siPUE_no_carbon_damage",
+        "sipue_carbon_only": "siPUE_carbon_only",
         "cue": "CUE_tCO2_per_MWh_IT",
         "e_it_mwh": "E_IT",
         "e_fac_mwh": "E_FAC",
@@ -357,20 +412,45 @@ def _case_fields(ops: Dict, suffix: str) -> Dict:
         "line_cap_13_mw": "line_cap_13_mw",
         "system_benefit_eur": "delay_adjusted_system_benefit_eur",
         "undelayed_system_benefit_eur": "raw_system_benefit_eur",
+        "system_benefit_no_carbon_damage_eur": "delay_adjusted_system_benefit_no_carbon_damage_eur",
+        "system_benefit_carbon_only_eur": "delay_adjusted_system_benefit_carbon_only_eur",
+        "undelayed_system_benefit_no_carbon_damage_eur": "raw_system_benefit_no_carbon_damage_eur",
+        "undelayed_system_benefit_carbon_only_eur": "raw_system_benefit_carbon_only_eur",
         "system_credit_mwh": "system_credit_mwh",
+        "system_credit_no_carbon_damage_mwh": "system_credit_no_carbon_damage_mwh",
+        "system_credit_carbon_only_mwh": "system_credit_carbon_only_mwh",
         "sipue_credit_loss_mwh": "sipue_credit_loss_mwh",
         "k_hx_mwth": "K_HX",
         "k_hp_mw": "K_HP",
         "k_flex_mw": "K_FLEX",
         "k_bat_e_mwh": "K_BAT_E",
         "k_bat_p_mw": "K_BAT_P",
+        "eff_reduction": "eff_reduction",
     }
     result = {f"{name}_{suffix}": ops.get(key) for name, key in fields.items()}
     e_it = max(1e-9, float(ops["E_IT"]))
     result[f"system_benefit_per_mwh_it_{suffix}"] = float(ops.get("delay_adjusted_system_benefit_eur", 0.0)) / e_it
+    result[f"system_benefit_no_carbon_damage_per_mwh_it_{suffix}"] = (
+        float(ops.get("delay_adjusted_system_benefit_no_carbon_damage_eur", 0.0)) / e_it
+    )
+    result[f"system_benefit_carbon_only_per_mwh_it_{suffix}"] = (
+        float(ops.get("delay_adjusted_system_benefit_carbon_only_eur", 0.0)) / e_it
+    )
     result[f"annual_system_benefit_eur_{suffix}"] = float(ops.get("delay_adjusted_system_benefit_eur", 0.0))
     result[f"annual_system_benefit_eur_per_mwh_it_{suffix}"] = (
         float(ops.get("delay_adjusted_system_benefit_eur", 0.0)) / e_it
+    )
+    result[f"annual_system_benefit_no_carbon_damage_eur_{suffix}"] = (
+        float(ops.get("delay_adjusted_system_benefit_no_carbon_damage_eur", 0.0))
+    )
+    result[f"annual_system_benefit_no_carbon_damage_eur_per_mwh_it_{suffix}"] = (
+        float(ops.get("delay_adjusted_system_benefit_no_carbon_damage_eur", 0.0)) / e_it
+    )
+    result[f"annual_system_benefit_carbon_only_eur_{suffix}"] = (
+        float(ops.get("delay_adjusted_system_benefit_carbon_only_eur", 0.0))
+    )
+    result[f"annual_system_benefit_carbon_only_eur_per_mwh_it_{suffix}"] = (
+        float(ops.get("delay_adjusted_system_benefit_carbon_only_eur", 0.0)) / e_it
     )
     base_it_mw = max(1e-9, float(ops["base_it_mw"]))
     for name in ("K_HX", "K_HP", "K_FLEX", "K_BAT_E", "K_BAT_P"):
@@ -395,8 +475,10 @@ def _change_direction(reference: float, case: float, tolerance: float = 1e-9) ->
 
 def _add_percentage_fields(row: Dict) -> None:
     ns_cost = float(row["market_cost_npv_eur_no_services"])
+    fair_cost = float(row["market_cost_npv_eur_fair_services_disabled"])
     baseline_cost = float(row["market_cost_npv_eur_baseline"])
     ns_independent = float(row["independent_cost_eur_no_services"])
+    fair_independent = float(row["independent_cost_eur_fair_services_disabled"])
     for design in DESIGN_CASES:
         cost = float(row[f"market_cost_npv_eur_{design}"])
         independent = float(row[f"independent_cost_eur_{design}"])
@@ -407,33 +489,70 @@ def _add_percentage_fields(row: Dict) -> None:
         sipue = float(row[f"sipue_{design}"])
         row[f"lifecycle_cost_reduction_eur_vs_no_services_{design}"] = ns_cost - cost
         row[f"lifecycle_cost_reduction_pct_vs_no_services_{design}"] = _reduction_pct(ns_cost, cost)
+        row[f"lifecycle_cost_reduction_eur_vs_fair_services_disabled_{design}"] = fair_cost - cost
+        row[f"lifecycle_cost_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(fair_cost, cost)
         row[f"lifecycle_cost_reduction_eur_vs_baseline_{design}"] = baseline_cost - cost
         row[f"lifecycle_cost_reduction_pct_vs_baseline_{design}"] = _reduction_pct(baseline_cost, cost)
         row[f"independent_cost_reduction_pct_vs_no_services_{design}"] = _reduction_pct(ns_independent, independent)
+        row[f"independent_cost_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            fair_independent, independent
+        )
         row[f"emissions_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
             float(row["emissions_tco2_no_services"]), emissions
+        )
+        row[f"emissions_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            float(row["emissions_tco2_fair_services_disabled"]), emissions
         )
         row[f"dc_attributed_emissions_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
             float(row["dc_attributed_emissions_tco2_no_services"]),
             float(row[f"dc_attributed_emissions_tco2_{design}"]),
         )
+        row[f"dc_attributed_emissions_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            float(row["dc_attributed_emissions_tco2_fair_services_disabled"]),
+            float(row[f"dc_attributed_emissions_tco2_{design}"]),
+        )
         row[f"co2_cost_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
             float(row["carbon_market_cost_eur_no_services"]), co2_cost
+        )
+        row[f"co2_cost_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            float(row["carbon_market_cost_eur_fair_services_disabled"]), co2_cost
         )
         row[f"carbon_damage_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
             float(row["carbon_damage_eur_no_services"]), damage
         )
+        row[f"carbon_damage_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            float(row["carbon_damage_eur_fair_services_disabled"]), damage
+        )
         row[f"pue_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
             float(row["pue_no_services"]), pue
+        )
+        row[f"pue_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            float(row["pue_fair_services_disabled"]), pue
         )
         row[f"sipue_reduction_pct_vs_no_services_{design}"] = _reduction_pct(
             float(row["sipue_no_services"]), sipue
         )
+        row[f"sipue_reduction_pct_vs_fair_services_disabled_{design}"] = _reduction_pct(
+            float(row["sipue_fair_services_disabled"]), sipue
+        )
         row[f"land_area_change_pct_vs_no_services_{design}"] = -_reduction_pct(
             float(row["land_m2_no_services"]), float(row[f"land_m2_{design}"])
         )
+        row[f"land_area_change_pct_vs_fair_services_disabled_{design}"] = -_reduction_pct(
+            float(row["land_m2_fair_services_disabled"]), float(row[f"land_m2_{design}"])
+        )
         row[f"land_lease_cost_change_pct_vs_no_services_{design}"] = -_reduction_pct(
             float(row["land_cost_npv_eur_no_services"]), float(row[f"land_cost_npv_eur_{design}"])
+        )
+        row[f"land_lease_cost_change_pct_vs_fair_services_disabled_{design}"] = -_reduction_pct(
+            float(row["land_cost_npv_eur_fair_services_disabled"]), float(row[f"land_cost_npv_eur_{design}"])
+        )
+        facility_burden = pue - float(row["pue_fair_services_disabled"])
+        credit_per_it = float(row[f"system_credit_mwh_{design}"]) / max(1e-9, float(row[f"e_it_mwh_{design}"]))
+        row[f"facility_burden_pue_vs_fair_services_disabled_{design}"] = facility_burden
+        row[f"system_credit_mwh_per_mwh_it_{design}"] = credit_per_it
+        row[f"benefit_to_burden_ratio_vs_fair_services_disabled_{design}"] = (
+            credit_per_it / facility_burden if abs(facility_burden) > 1e-9 else None
         )
         steady_credit = float(row[f"system_credit_mwh_{design}"]) + float(row[f"sipue_credit_loss_mwh_{design}"])
         row[f"sipue_credit_loss_pct_{design}"] = (
@@ -532,6 +651,17 @@ def _decomposition_rows(
 
 
 def _summarize_decomposition(rows: Sequence[Dict]) -> List[Dict]:
+    """Summarize decomposition rows per (archetype group, design, ledger, component).
+
+    ``average_eur_per_mwh_it`` is the equal-weighted mean across rows in the
+    group, kept for backward compatibility; for the ``archetype == "all"``
+    group this gives every archetype the same one-quarter weight regardless
+    of IT energy scale. ``average_eur_per_mwh_it_it_weighted`` instead
+    weights each row by its own IT energy (a no-op within a single
+    archetype's group, since IT energy is constant across that archetype's
+    ten uncertainty states). The paper's credit-ablation table reports the
+    IT-weighted values for the ``all`` group.
+    """
     groups: Dict[Tuple[str, str, str, str], List[Dict]] = {}
     for row in rows:
         for archetype in {"all", str(row.get("archetype", "all"))}:
@@ -542,6 +672,7 @@ def _summarize_decomposition(rows: Sequence[Dict]) -> List[Dict]:
         eur = [float(value["value_eur"]) for value in values]
         per_it = [float(value["value_per_mwh_it"]) for value in values]
         shares = [float(value["component_share_pct"]) for value in values]
+        it_weights = [float(value["e_it_mwh"]) for value in values]
         summary.append({
             "archetype": archetype,
             "design": design,
@@ -553,6 +684,7 @@ def _summarize_decomposition(rows: Sequence[Dict]) -> List[Dict]:
             "maximum_eur": max(eur),
             "average_eur_per_mwh_it": sum(per_it) / len(per_it),
             "average_component_share_pct": sum(shares) / len(shares),
+            "average_eur_per_mwh_it_it_weighted": _weighted_avg(per_it, it_weights),
         })
     return summary
 
@@ -598,6 +730,8 @@ def _paper_metric_rows(rows: Sequence[Dict]) -> List[Dict]:
     metrics = {
         "PUE": ("pue", "dimensionless"),
         "siPUE": ("sipue", "dimensionless"),
+        "siPUE excluding carbon damage": ("sipue_no_carbon_damage", "dimensionless"),
+        "siPUE carbon damage only": ("sipue_carbon_only", "dimensionless"),
         "post-construction siPUE": ("steady_sipue", "dimensionless"),
         "CUE": ("cue", "tCO2/MWh IT"),
         "CO2 cost": ("carbon_market_cost_eur", "EUR"),
@@ -607,6 +741,16 @@ def _paper_metric_rows(rows: Sequence[Dict]) -> List[Dict]:
         "emissions": ("emissions_tco2", "tCO2"),
         "annual system benefit": ("annual_system_benefit_eur", "annual EUR"),
         "annual benefit per MWh IT": ("annual_system_benefit_eur_per_mwh_it", "annual EUR/MWh IT"),
+        "annual system benefit excluding carbon damage": ("annual_system_benefit_no_carbon_damage_eur", "annual EUR"),
+        "annual benefit excluding carbon damage per MWh IT": (
+            "annual_system_benefit_no_carbon_damage_eur_per_mwh_it",
+            "annual EUR/MWh IT",
+        ),
+        "annual carbon-damage benefit": ("annual_system_benefit_carbon_only_eur", "annual EUR"),
+        "annual carbon-damage benefit per MWh IT": (
+            "annual_system_benefit_carbon_only_eur_per_mwh_it",
+            "annual EUR/MWh IT",
+        ),
         "lifecycle value": ("market_value_npv_eur", "EUR"),
         "lifecycle delay loss": ("lifecycle_value_loss_eur", "EUR"),
         "cooling electricity": ("cooling_mwh", "MWh"),
@@ -620,11 +764,22 @@ def _paper_metric_rows(rows: Sequence[Dict]) -> List[Dict]:
         "land utilization": ("land_utilization_pct", "%"),
         "land lease NPV": ("land_cost_npv_eur", "EUR"),
         "lifecycle cost reduction vs no-services": ("lifecycle_cost_reduction_pct_vs_no_services", "%"),
+        "lifecycle cost reduction vs fair services-disabled": ("lifecycle_cost_reduction_pct_vs_fair_services_disabled", "%"),
         "lifecycle cost reduction vs baseline": ("lifecycle_cost_reduction_pct_vs_baseline", "%"),
         "emissions reduction vs no-services": ("emissions_reduction_pct_vs_no_services", "%"),
+        "emissions reduction vs fair services-disabled": ("emissions_reduction_pct_vs_fair_services_disabled", "%"),
         "CO2 cost reduction vs no-services": ("co2_cost_reduction_pct_vs_no_services", "%"),
+        "CO2 cost reduction vs fair services-disabled": ("co2_cost_reduction_pct_vs_fair_services_disabled", "%"),
         "PUE reduction vs no-services": ("pue_reduction_pct_vs_no_services", "%"),
+        "PUE reduction vs fair services-disabled": ("pue_reduction_pct_vs_fair_services_disabled", "%"),
         "siPUE reduction vs no-services": ("sipue_reduction_pct_vs_no_services", "%"),
+        "siPUE reduction vs fair services-disabled": ("sipue_reduction_pct_vs_fair_services_disabled", "%"),
+        "facility burden vs fair services-disabled": ("facility_burden_pue_vs_fair_services_disabled", "PUE units"),
+        "system credit per MWh IT": ("system_credit_mwh_per_mwh_it", "MWh/MWh IT"),
+        "benefit-to-burden ratio vs fair services-disabled": (
+            "benefit_to_burden_ratio_vs_fair_services_disabled",
+            "dimensionless",
+        ),
         "delay loss share": ("delay_loss_pct_of_zero_delay_gain", "% of zero-delay gain"),
     }
     output = []
@@ -659,14 +814,49 @@ def _kpi_value(row: Dict, design: str, stem: str) -> float:
     return float(row[f"{stem}_{design}"])
 
 
+def _weighted_avg(values: Sequence[float], weights: Sequence[float]) -> float:
+    total_weight = sum(weights)
+    if total_weight <= 0:
+        return sum(values) / len(values)
+    return sum(v * w for v, w in zip(values, weights)) / total_weight
+
+
 def _kpi_benchmark_summary(rows: Sequence[Dict]) -> List[Dict]:
+    """Compact KPI benchmark, one row per (archetype group, design case, metric).
+
+    ``average_value`` and its siblings are the simple equal-weighted mean
+    across rows in the group (each canonical row -- i.e. each uncertainty
+    state -- counts once), preserved for backward compatibility with any
+    existing consumer of this table. For the ``archetype == "all"`` group,
+    which pools rows across all four archetypes, this equal-weighting gives
+    every archetype the same one-quarter weight regardless of its IT energy
+    scale (8-60 MW installed IT capacity across archetypes in this study).
+    The ``*_it_weighted`` fields instead weight each row by that row's own
+    IT energy for the given design case (``e_it_mwh_{design}``), so a larger
+    archetype contributes proportionally more; within a single archetype's
+    group this is a no-op (IT energy is constant across that archetype's ten
+    uncertainty states), so it only changes the ``all`` group. The paper's
+    headline tables (KPI benchmark, sensitivity summary, credit ablation,
+    reference-price sensitivity) report the IT-weighted values for the
+    ``all`` group.
+    """
     metrics = {
         "pue": ("pue", "dimensionless"),
         "sipue": ("sipue", "dimensionless"),
+        "sipue_no_carbon_damage": ("sipue_no_carbon_damage", "dimensionless"),
+        "sipue_carbon_only": ("sipue_carbon_only", "dimensionless"),
         "steady_sipue": ("steady_sipue", "dimensionless"),
         "cue": ("cue", "tCO2/MWh IT"),
         "modeled_erf": ("modeled_erf", "MWhth delivered useful heat/MWh facility electricity"),
         "system_benefit_per_mwh_it": ("system_benefit_per_mwh_it", "EUR/MWh IT"),
+        "system_benefit_no_carbon_damage_per_mwh_it": (
+            "system_benefit_no_carbon_damage_per_mwh_it",
+            "EUR/MWh IT",
+        ),
+        "system_benefit_carbon_only_per_mwh_it": (
+            "system_benefit_carbon_only_per_mwh_it",
+            "EUR/MWh IT",
+        ),
         "emissions_tco2": ("emissions_tco2", "tCO2"),
         "carbon_damage_eur": ("carbon_damage_eur", "EUR"),
     }
@@ -685,11 +875,14 @@ def _kpi_benchmark_summary(rows: Sequence[Dict]) -> List[Dict]:
     output: List[Dict] = []
     for archetype, archetype_key, values in groups:
         for design in DESIGN_CASES:
+            it_weights = [float(row[f"e_it_mwh_{design}"]) for row in values]
             for metric, (stem, unit) in metrics.items():
                 case_values = [_kpi_value(row, design, stem) for row in values]
                 ref_values = [_kpi_value(row, "no_services", stem) for row in values]
                 average = sum(case_values) / len(case_values)
                 reference = sum(ref_values) / len(ref_values)
+                average_wt = _weighted_avg(case_values, it_weights)
+                reference_wt = _weighted_avg(ref_values, it_weights)
                 output.append({
                     "run_id": values[0].get("run_id") if values else None,
                     "archetype": archetype,
@@ -702,6 +895,10 @@ def _kpi_benchmark_summary(rows: Sequence[Dict]) -> List[Dict]:
                     "average_no_services_value": reference,
                     "average_absolute_change_vs_no_services": average - reference,
                     "average_pct_change_vs_no_services": _metric_change_pct(reference, average),
+                    "average_value_it_weighted": average_wt,
+                    "average_no_services_value_it_weighted": reference_wt,
+                    "average_absolute_change_vs_no_services_it_weighted": average_wt - reference_wt,
+                    "average_pct_change_vs_no_services_it_weighted": _metric_change_pct(reference_wt, average_wt),
                 })
     return output
 
@@ -756,6 +953,7 @@ def _conclusion_summary_for_rows(
     for item in comparison:
         comparison_by_design.setdefault(str(item["design"]), []).append(item)
     ns_cost = mean("market_cost_npv_eur_no_services")
+    fair_cost = mean("market_cost_npv_eur_fair_services_disabled")
     baseline_cost = mean("market_cost_npv_eur_baseline")
     output = []
     for design in DESIGN_CASES:
@@ -777,6 +975,7 @@ def _conclusion_summary_for_rows(
             "archetype": archetype_label,
             "design": design,
             "scenario_count": len(rows),
+            "headline_reference_case": HEADLINE_REFERENCE_CASE,
             "average_lifecycle_cost_npv_eur": case_cost,
             "average_lifecycle_cost_reduction_eur_vs_no_services": ns_cost - case_cost,
             "lifecycle_cost_reduction_pct_vs_no_services": _reduction_pct(ns_cost, case_cost),
@@ -784,16 +983,68 @@ def _conclusion_summary_for_rows(
             "scenarios_with_lower_lifecycle_cost_vs_no_services": sum(
                 float(row[f"lifecycle_cost_reduction_eur_vs_no_services_{design}"]) > 0.0 for row in rows
             ),
+            "average_lifecycle_cost_reduction_eur_vs_fair_services_disabled": fair_cost - case_cost,
+            "lifecycle_cost_reduction_pct_vs_fair_services_disabled": _reduction_pct(fair_cost, case_cost),
+            "average_scenario_lifecycle_cost_reduction_pct_vs_fair_services_disabled": mean(
+                f"lifecycle_cost_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
+            "scenarios_with_lower_lifecycle_cost_vs_fair_services_disabled": sum(
+                float(row[f"lifecycle_cost_reduction_eur_vs_fair_services_disabled_{design}"]) > 0.0
+                for row in rows
+            ),
             "average_lifecycle_cost_reduction_eur_vs_baseline": baseline_cost - case_cost,
             "lifecycle_cost_reduction_pct_vs_baseline": _reduction_pct(baseline_cost, case_cost),
             "average_scenario_lifecycle_cost_reduction_pct_vs_baseline": mean(f"lifecycle_cost_reduction_pct_vs_baseline_{design}"),
             "average_independent_cost_reduction_pct_vs_no_services": mean(f"independent_cost_reduction_pct_vs_no_services_{design}"),
+            "average_independent_cost_reduction_pct_vs_fair_services_disabled": mean(
+                f"independent_cost_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
             "average_emissions_reduction_pct_vs_no_services": mean(f"emissions_reduction_pct_vs_no_services_{design}"),
+            "average_emissions_reduction_pct_vs_fair_services_disabled": mean(
+                f"emissions_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
             "average_dc_attributed_emissions_reduction_pct_vs_no_services": mean(f"dc_attributed_emissions_reduction_pct_vs_no_services_{design}"),
+            "average_dc_attributed_emissions_reduction_pct_vs_fair_services_disabled": mean(
+                f"dc_attributed_emissions_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
             "average_co2_cost_reduction_pct_vs_no_services": mean(f"co2_cost_reduction_pct_vs_no_services_{design}"),
+            "average_co2_cost_reduction_pct_vs_fair_services_disabled": mean(
+                f"co2_cost_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
             "average_carbon_damage_reduction_pct_vs_no_services": mean(f"carbon_damage_reduction_pct_vs_no_services_{design}"),
+            "average_carbon_damage_reduction_pct_vs_fair_services_disabled": mean(
+                f"carbon_damage_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
             "average_pue_reduction_pct_vs_no_services": mean(f"pue_reduction_pct_vs_no_services_{design}"),
+            "average_pue_reduction_pct_vs_fair_services_disabled": mean(
+                f"pue_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
             "average_sipue_reduction_pct_vs_no_services": mean(f"sipue_reduction_pct_vs_no_services_{design}"),
+            "average_sipue_reduction_pct_vs_fair_services_disabled": mean(
+                f"sipue_reduction_pct_vs_fair_services_disabled_{design}"
+            ),
+            "scenarios_with_lower_sipue_vs_fair_services_disabled": sum(
+                float(row[f"sipue_{design}"]) < float(row["sipue_fair_services_disabled"])
+                for row in rows
+            ),
+            "average_facility_burden_pue_vs_fair_services_disabled": mean(
+                f"facility_burden_pue_vs_fair_services_disabled_{design}"
+            ),
+            "average_system_credit_mwh_per_mwh_it": mean(f"system_credit_mwh_per_mwh_it_{design}"),
+            "average_benefit_to_burden_ratio_vs_fair_services_disabled": (
+                sum(
+                    float(row[f"benefit_to_burden_ratio_vs_fair_services_disabled_{design}"])
+                    for row in rows
+                    if row[f"benefit_to_burden_ratio_vs_fair_services_disabled_{design}"] not in (None, "")
+                )
+                / max(
+                    1,
+                    sum(
+                        row[f"benefit_to_burden_ratio_vs_fair_services_disabled_{design}"] not in (None, "")
+                        for row in rows
+                    ),
+                )
+            ),
             "average_delay_loss_eur": mean(f"lifecycle_value_loss_eur_{design}"),
             "average_delay_loss_pct_of_zero_delay_gain": mean(f"delay_loss_pct_of_zero_delay_gain_{design}"),
             "average_sipue_credit_loss_pct": mean(f"sipue_credit_loss_pct_{design}"),
@@ -852,6 +1103,38 @@ def _conclusion_summary_for_rows(
         for label, (reference, case) in directional_metrics.items():
             summary[f"{label}_change_pct_vs_no_services"] = -_reduction_pct(reference, case)
             summary[f"{label}_direction_vs_no_services"] = _change_direction(reference, case)
+        fair_directional_metrics = {
+            "lifecycle_cost": (fair_cost, case_cost),
+            "independent_cost": (
+                mean("independent_cost_eur_fair_services_disabled"),
+                mean(f"independent_cost_eur_{design}"),
+            ),
+            "emissions": (
+                mean("emissions_tco2_fair_services_disabled"),
+                mean(f"emissions_tco2_{design}"),
+            ),
+            "co2_cost": (
+                mean("carbon_market_cost_eur_fair_services_disabled"),
+                mean(f"carbon_market_cost_eur_{design}"),
+            ),
+            "carbon_damage": (
+                mean("carbon_damage_eur_fair_services_disabled"),
+                mean(f"carbon_damage_eur_{design}"),
+            ),
+            "pue": (mean("pue_fair_services_disabled"), mean(f"pue_{design}")),
+            "sipue": (mean("sipue_fair_services_disabled"), mean(f"sipue_{design}")),
+            "land_area": (
+                mean("land_m2_fair_services_disabled"),
+                mean(f"land_m2_{design}"),
+            ),
+            "land_lease_cost": (
+                mean("land_cost_npv_eur_fair_services_disabled"),
+                mean(f"land_cost_npv_eur_{design}"),
+            ),
+        }
+        for label, (reference, case) in fair_directional_metrics.items():
+            summary[f"{label}_change_pct_vs_fair_services_disabled"] = -_reduction_pct(reference, case)
+            summary[f"{label}_direction_vs_fair_services_disabled"] = _change_direction(reference, case)
         baseline_change = -_reduction_pct(baseline_cost, case_cost)
         summary["lifecycle_cost_change_pct_vs_baseline"] = baseline_change
         summary["lifecycle_cost_direction_vs_baseline"] = _change_direction(baseline_cost, case_cost)
@@ -998,34 +1281,42 @@ def run_single(cfg: Config) -> List[Dict]:
             prof = profiles[sc.sid]
             cases = {
                 "no_services": no_services[sc.sid],
-                "baseline": _baseline_ops(sc, prof, cfg_local),
+                "fair_services_disabled": _fair_services_disabled_ops(sc, prof, constrained_cfg),
+                "baseline": _baseline_ops(sc, prof, constrained_cfg),
                 "robust": _solve_design_ops(sc, prof, constrained_cfg, robust),
             }
             for ops in cases.values():
                 _apply_emissions_attribution(ops, cases["no_services"])
             _rebase_lifecycle(cases["no_services"], cases["no_services"], cfg_local, is_reference=True)
+            _rebase_lifecycle(
+                cases["fair_services_disabled"],
+                cases["fair_services_disabled"],
+                cfg_local,
+                is_reference=True,
+            )
             for name in DESIGN_CASES:
-                if name != "no_services":
-                    _rebase_lifecycle(cases[name], cases["no_services"], cfg_local)
+                if name not in {"no_services", "fair_services_disabled"}:
+                    _rebase_lifecycle(cases[name], cases["fair_services_disabled"], cfg_local)
             availability = service_revenue_scale(cfg_local, sc)
             for name, ops in cases.items():
                 _apply_sipue(
                     ops,
-                    cases["no_services"],
+                    ops if name in {"no_services", "fair_services_disabled"} else cases["fair_services_disabled"],
                     cfg_local,
-                    1.0 if name == "no_services" else availability,
+                    1.0 if name in {"no_services", "fair_services_disabled"} else availability,
                 )
 
-            # Diagnostic only, not a canonical design case (Table "canonical
-            # design cases: 3" in the paper stays no_services/baseline/robust).
+            # Diagnostic only, not a canonical design case. The exported
+            # cases keep the identity no-services row separate from the
+            # fair services-disabled headline comparator.
             # Stage 2 minimizes worst-case *cost* regret, never siPUE regret,
             # so this checks how far the cost-optimal robust design's siPUE
             # sits from the siPUE attainable by the scenario-perfect design
             # that had foresight of this scenario.
             perfect_ops = _solve_design_ops(sc, prof, constrained_cfg, perfect_designs[sc.sid])
             _apply_emissions_attribution(perfect_ops, cases["no_services"])
-            _rebase_lifecycle(perfect_ops, cases["no_services"], cfg_local)
-            _apply_sipue(perfect_ops, cases["no_services"], cfg_local, availability)
+            _rebase_lifecycle(perfect_ops, cases["fair_services_disabled"], cfg_local)
+            _apply_sipue(perfect_ops, cases["fair_services_disabled"], cfg_local, availability)
 
             row = {
                 "archetype": archetype.name,
@@ -1038,8 +1329,17 @@ def run_single(cfg: Config) -> List[Dict]:
                 "construction_delay_months": sc.construction_delay_months + cfg_local.construction_delay_months,
                 "lifecycle_availability": availability,
                 "carbon_cap_tco2": caps[sc.sid],
+                "unrelaxed_carbon_cap_tco2": cases["no_services"].get("unrelaxed_carbon_cap_tco2"),
+                "fair_services_disabled_emissions_floor_tco2": cases["no_services"].get(
+                    "fair_services_disabled_emissions_floor_tco2"
+                ),
+                "carbon_cap_feasibility_floor_applied": cases["no_services"].get(
+                    "carbon_cap_feasibility_floor_applied"
+                ),
                 "carbon_cap_reduction_target_pct": 100.0 * cfg_local.carbon_cap_reduction_frac,
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "headline_reference_case": HEADLINE_REFERENCE_CASE,
+                "service_active_efficiency_reduction": cfg_local.fixed_eff_reduction,
                 "no_dc_congestion_fraction": cfg_local.calibrated_no_dc_congestion_fraction,
                 "no_dc_load_shedding_mwh": cfg_local.calibrated_no_dc_load_shedding_mwh,
             }
@@ -1057,9 +1357,9 @@ def run_single(cfg: Config) -> List[Dict]:
             rows.append(row)
 
             for name in DESIGN_CASES:
-                if name != "no_services":
+                if name not in {"no_services", "fair_services_disabled"}:
                     component_rows = _decomposition_rows(
-                        sc.name, cases["no_services"], cases[name], name
+                        sc.name, cases["fair_services_disabled"], cases[name], name
                     )
                     for item in component_rows:
                         item["archetype"] = archetype.name
@@ -1067,7 +1367,7 @@ def run_single(cfg: Config) -> List[Dict]:
                     decomposition.extend(component_rows)
                 case_cost = float(cases[name]["market_planning_cost_npv_eur"])
                 discounted_it = max(1e-9, float(cases[name]["E_IT"]) * float(cases[name]["lifecycle_operating_factor"]))
-                comparable = name not in {"no_services", "baseline"}
+                comparable = name == "robust"
                 regret = (
                     max(0.0, float(robust["Regret_s"][sc.sid]))
                     if name == "robust" else None
@@ -1152,18 +1452,24 @@ def run_primary_design(cfg: Config) -> List[Dict]:
         c_star, perfect_designs = _perfect_designs(group, profiles, constrained)
         robust = solve_minmax_regret(group, profiles, c_star, constrained)
         for sc in group:
-            reference = no_services[sc.sid]
+            identity_reference = no_services[sc.sid]
+            reference = _fair_services_disabled_ops(sc, profiles[sc.sid], constrained)
+            baseline_ops = _baseline_ops(sc, profiles[sc.sid], constrained)
             robust_ops = _solve_design_ops(sc, profiles[sc.sid], constrained, robust)
             perfect_ops = _solve_design_ops(
                 sc, profiles[sc.sid], constrained, perfect_designs[sc.sid]
             )
-            for ops in (reference, robust_ops, perfect_ops):
-                _apply_emissions_attribution(ops, reference)
+            for ops in (identity_reference, reference, baseline_ops, robust_ops, perfect_ops):
+                _apply_emissions_attribution(ops, identity_reference)
+            _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
             _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
+            _rebase_lifecycle(baseline_ops, reference, cfg_local)
             _rebase_lifecycle(robust_ops, reference, cfg_local)
             _rebase_lifecycle(perfect_ops, reference, cfg_local)
+            _apply_sipue(identity_reference, identity_reference, cfg_local, 1.0)
             _apply_sipue(reference, reference, cfg_local, 1.0)
             availability = service_revenue_scale(cfg_local, sc)
+            _apply_sipue(baseline_ops, reference, cfg_local, availability)
             _apply_sipue(robust_ops, reference, cfg_local, availability)
             _apply_sipue(perfect_ops, reference, cfg_local, availability)
             row = {
@@ -1172,11 +1478,23 @@ def run_primary_design(cfg: Config) -> List[Dict]:
                 "scenario": sc.name,
                 "scenario_id": sc.uncertainty_id,
                 "carbon_cap_tco2": caps[sc.sid],
+                "unrelaxed_carbon_cap_tco2": identity_reference.get("unrelaxed_carbon_cap_tco2"),
+                "fair_services_disabled_emissions_floor_tco2": identity_reference.get(
+                    "fair_services_disabled_emissions_floor_tco2"
+                ),
+                "carbon_cap_feasibility_floor_applied": identity_reference.get(
+                    "carbon_cap_feasibility_floor_applied"
+                ),
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "headline_reference_case": HEADLINE_REFERENCE_CASE,
             }
-            row.update(_case_fields(reference, "no_services"))
+            row.update(_case_fields(identity_reference, "no_services"))
+            row.update(_case_fields(reference, "fair_services_disabled"))
+            row.update(_case_fields(baseline_ops, "baseline"))
             row.update(_case_fields(robust_ops, "robust"))
             row.update(_case_fields(perfect_ops, "scenario_perfect"))
+            _add_land_status_fields(row, cfg_local)
+            _add_percentage_fields(row)
             rows.append(row)
     run_id = _run_id(cfg_local, scenarios)
     for row in rows:
@@ -1212,9 +1530,13 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
         no_services, caps = _carbon_reference(group, profiles, cfg_local)
         constrained_cfg = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
         c_star, _ = _perfect_designs(group, profiles, constrained_cfg)
+        fair_refs = {
+            sc.sid: _fair_services_disabled_ops(sc, profiles[sc.sid], constrained_cfg)
+            for sc in group
+        }
 
-        no_services_independent_cost = {
-            sc.sid: float(no_services[sc.sid]["independent_system_cost_eur"]) for sc in group
+        reference_independent_cost = {
+            sc.sid: float(fair_refs[sc.sid]["independent_system_cost_eur"]) for sc in group
         }
         availability_by_sid = {sc.sid: service_revenue_scale(constrained_cfg, sc) for sc in group}
 
@@ -1223,36 +1545,39 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
             _, sipue_perfect_design = solve_perfect_foresight(
                 sc, profiles[sc.sid], constrained_cfg,
                 objective_mode="sipue",
-                no_services_independent_cost_eur=no_services_independent_cost[sc.sid],
+                no_services_independent_cost_eur=reference_independent_cost[sc.sid],
                 availability=availability_by_sid[sc.sid],
             )
             sipue_perfect_ops = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design)
             _apply_emissions_attribution(sipue_perfect_ops, no_services[sc.sid])
-            _rebase_lifecycle(sipue_perfect_ops, no_services[sc.sid], cfg_local)
-            _apply_sipue(sipue_perfect_ops, no_services[sc.sid], cfg_local, availability_by_sid[sc.sid])
+            _rebase_lifecycle(sipue_perfect_ops, fair_refs[sc.sid], cfg_local)
+            _apply_sipue(sipue_perfect_ops, fair_refs[sc.sid], cfg_local, availability_by_sid[sc.sid])
             sipue_star[sc.sid] = float(sipue_perfect_ops["siPUE"])
 
         robust_cost = solve_minmax_regret(group, profiles, c_star, constrained_cfg)
         robust_sipue = solve_minmax_regret(
             group, profiles, c_star, constrained_cfg,
             objective_mode="sipue",
-            no_services_independent_cost=no_services_independent_cost,
+            no_services_independent_cost=reference_independent_cost,
             availability_by_sid=availability_by_sid,
             sipue_star=sipue_star,
         )
 
         for sc in group:
-            reference = no_services[sc.sid]
+            identity_reference = no_services[sc.sid]
+            reference = fair_refs[sc.sid]
             cases = {
                 "cost_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_cost),
                 "sipue_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_sipue),
             }
-            for ops in cases.values():
-                _apply_emissions_attribution(ops, reference)
+            for ops in (identity_reference, reference, *cases.values()):
+                _apply_emissions_attribution(ops, identity_reference)
+            _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
             _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
             for ops in cases.values():
                 _rebase_lifecycle(ops, reference, cfg_local)
             availability = availability_by_sid[sc.sid]
+            _apply_sipue(identity_reference, identity_reference, cfg_local, 1.0)
             _apply_sipue(reference, reference, cfg_local, 1.0)
             for ops in cases.values():
                 _apply_sipue(ops, reference, cfg_local, availability)
@@ -1264,9 +1589,11 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
                 "scenario_id": sc.uncertainty_id,
                 "carbon_cap_tco2": caps[sc.sid],
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "headline_reference_case": HEADLINE_REFERENCE_CASE,
                 "sipue_scenario_perfect_star": sipue_star[sc.sid],
             }
-            row.update(_case_fields(reference, "no_services"))
+            row.update(_case_fields(identity_reference, "no_services"))
+            row.update(_case_fields(reference, "fair_services_disabled"))
             for name, ops in cases.items():
                 row.update(_case_fields(ops, name))
             row["sipue_delta_sipue_regret_minus_cost_regret"] = (
@@ -1285,6 +1612,135 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
     if cfg.export_csv:
         output_dir = cfg.canonical_output_dir
         _write_csv(rows, os.path.join(output_dir, "sipue_objective_comparison.csv"))
+    return rows
+
+
+def run_sipue_objective_comparison_out_of_sample(cfg: Config, count_per_archetype: int = 10) -> List[Dict]:
+    """Out-of-sample counterpart to ``run_sipue_objective_comparison``.
+
+    The in-sample comparison trains and evaluates both Stage-2 objectives
+    (cost regret vs. siPUE regret) on the same ten canonical uncertainty
+    states used throughout the paper, which leaves open whether the
+    near-identical designs reported there are a structural property of the
+    two objectives or an artifact of having built and debugged the model
+    against those specific ten states. This function repeats the same
+    comparison end to end -- both Stage-1 benchmarks and both Stage-2
+    objectives, re-solved from scratch -- on freshly drawn uncertainty
+    scenarios from ``make_out_of_sample_scenarios``, using a seed offset
+    (900_001) disjoint from the one ``run_out_of_sample_validation`` uses
+    (100_003), so these draws have not appeared in any other output in this
+    repository. Nothing about the calibrated model itself (archetype
+    parameters, prices, capex, land cost, reference price) is changed.
+
+    Note the scope of this check: ``make_out_of_sample_scenarios`` draws each
+    uncertain input independently and uniformly within the min/max range
+    already spanned by the ten canonical states, so this tests robustness to
+    which combination of conditions is drawn within the assumed uncertainty
+    envelope, not robustness to the calibrated parameter values themselves.
+    This is a diagnostic-only comparison run, not part of the canonical
+    result bundle.
+    """
+    random.seed(cfg.seed)
+    study = {
+        archetype.key: make_out_of_sample_scenarios(
+            cfg, archetype, count_per_archetype, cfg.seed + 900_001 * (index + 1),
+        )
+        for index, archetype in enumerate(DATA_CENTER_ARCHETYPES)
+    }
+    scenarios = [sc for group in study.values() for sc in group]
+    if any(len(group) != count_per_archetype for group in study.values()):
+        raise ValueError("Out-of-sample comparison requires count_per_archetype states per archetype.")
+    for group in study.values():
+        apply_global_heat_assumptions(group, cfg)
+    cfg_local, profiles = _prepare_profiles(cfg, scenarios)
+    rows: List[Dict] = []
+    for archetype in DATA_CENTER_ARCHETYPES:
+        group = study[archetype.key]
+        no_services, caps = _carbon_reference(group, profiles, cfg_local)
+        constrained_cfg = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
+        c_star, _ = _perfect_designs(group, profiles, constrained_cfg)
+        fair_refs = {
+            sc.sid: _fair_services_disabled_ops(sc, profiles[sc.sid], constrained_cfg)
+            for sc in group
+        }
+
+        reference_independent_cost = {
+            sc.sid: float(fair_refs[sc.sid]["independent_system_cost_eur"]) for sc in group
+        }
+        availability_by_sid = {sc.sid: service_revenue_scale(constrained_cfg, sc) for sc in group}
+
+        sipue_star: Dict[int, float] = {}
+        for sc in group:
+            _, sipue_perfect_design = solve_perfect_foresight(
+                sc, profiles[sc.sid], constrained_cfg,
+                objective_mode="sipue",
+                no_services_independent_cost_eur=reference_independent_cost[sc.sid],
+                availability=availability_by_sid[sc.sid],
+            )
+            sipue_perfect_ops = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design)
+            _apply_emissions_attribution(sipue_perfect_ops, no_services[sc.sid])
+            _rebase_lifecycle(sipue_perfect_ops, fair_refs[sc.sid], cfg_local)
+            _apply_sipue(sipue_perfect_ops, fair_refs[sc.sid], cfg_local, availability_by_sid[sc.sid])
+            sipue_star[sc.sid] = float(sipue_perfect_ops["siPUE"])
+
+        robust_cost = solve_minmax_regret(group, profiles, c_star, constrained_cfg)
+        robust_sipue = solve_minmax_regret(
+            group, profiles, c_star, constrained_cfg,
+            objective_mode="sipue",
+            no_services_independent_cost=reference_independent_cost,
+            availability_by_sid=availability_by_sid,
+            sipue_star=sipue_star,
+        )
+
+        for sc in group:
+            identity_reference = no_services[sc.sid]
+            reference = fair_refs[sc.sid]
+            cases = {
+                "cost_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_cost),
+                "sipue_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_sipue),
+            }
+            for ops in (identity_reference, reference, *cases.values()):
+                _apply_emissions_attribution(ops, identity_reference)
+            _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
+            _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
+            for ops in cases.values():
+                _rebase_lifecycle(ops, reference, cfg_local)
+            availability = availability_by_sid[sc.sid]
+            _apply_sipue(identity_reference, identity_reference, cfg_local, 1.0)
+            _apply_sipue(reference, reference, cfg_local, 1.0)
+            for ops in cases.values():
+                _apply_sipue(ops, reference, cfg_local, availability)
+
+            row = {
+                "archetype": archetype.name,
+                "archetype_key": archetype.key,
+                "scenario": sc.name,
+                "scenario_id": sc.uncertainty_id,
+                "carbon_cap_tco2": caps[sc.sid],
+                "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
+                "headline_reference_case": HEADLINE_REFERENCE_CASE,
+                "sipue_scenario_perfect_star": sipue_star[sc.sid],
+            }
+            row.update(_case_fields(identity_reference, "no_services"))
+            row.update(_case_fields(reference, "fair_services_disabled"))
+            for name, ops in cases.items():
+                row.update(_case_fields(ops, name))
+            row["sipue_delta_sipue_regret_minus_cost_regret"] = (
+                float(cases["sipue_regret_robust"]["siPUE"]) - float(cases["cost_regret_robust"]["siPUE"])
+            )
+            row["market_cost_delta_sipue_regret_minus_cost_regret_eur"] = (
+                float(cases["sipue_regret_robust"]["market_planning_cost_npv_eur"])
+                - float(cases["cost_regret_robust"]["market_planning_cost_npv_eur"])
+            )
+            rows.append(row)
+
+    run_id = _run_id(cfg_local, scenarios)
+    for row in rows:
+        row["run_id"] = run_id
+
+    if cfg.export_csv:
+        output_dir = os.path.join(cfg.validation_output_dir, "out-of-sample")
+        _write_csv(rows, os.path.join(output_dir, "sipue_objective_comparison_out_of_sample.csv"))
     return rows
 
 
@@ -1307,7 +1763,11 @@ def run_train_test_scenario_validation(cfg: Config) -> List[Dict]:
             design = solve_minmax_regret(train, profiles, c_star, constrained_cfg)
             for sc in test:
                 ops = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, design)
-                _apply_emissions_attribution(ops, no_services[sc.sid])
+                identity_reference = no_services[sc.sid]
+                reference = _fair_services_disabled_ops(sc, profiles[sc.sid], constrained_cfg)
+                _apply_emissions_attribution(identity_reference, identity_reference)
+                _apply_emissions_attribution(reference, identity_reference)
+                _apply_emissions_attribution(ops, identity_reference)
                 design_land = float(ops["land_m2"])
                 land_limit = ops["land_limit_m2"]
                 land_feasible = land_limit is None or design_land <= float(land_limit) + 1e-6
@@ -1315,10 +1775,13 @@ def run_train_test_scenario_validation(cfg: Config) -> List[Dict]:
                 heldout_feasible = land_feasible and technical_feasible
                 _, heldout_designs = _perfect_designs([sc], profiles, constrained_cfg)
                 perfect = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, heldout_designs[sc.sid])
-                _rebase_lifecycle(no_services[sc.sid], no_services[sc.sid], cfg_local, is_reference=True)
-                _rebase_lifecycle(ops, no_services[sc.sid], cfg_local)
-                _rebase_lifecycle(perfect, no_services[sc.sid], cfg_local)
-                _apply_sipue(ops, no_services[sc.sid], cfg_local, service_revenue_scale(cfg_local, sc))
+                _apply_emissions_attribution(perfect, identity_reference)
+                _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
+                _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
+                _rebase_lifecycle(ops, reference, cfg_local)
+                _rebase_lifecycle(perfect, reference, cfg_local)
+                _apply_sipue(reference, reference, cfg_local, 1.0)
+                _apply_sipue(ops, reference, cfg_local, service_revenue_scale(cfg_local, sc))
                 regret = ops["market_planning_cost_npv_eur"] - perfect["market_planning_cost_npv_eur"]
                 discounted_it = max(1e-9, ops["E_IT"] * ops["lifecycle_operating_factor"])
                 if heldout_feasible and regret < -1e-3:
@@ -1416,6 +1879,8 @@ def run_out_of_sample_validation(cfg: Config) -> List[Dict]:
         no_services, caps = _carbon_reference(cases, profiles, cfg_local)
         eval_cfg = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
         for sc in cases:
+            identity_reference = no_services[sc.sid]
+            reference = _fair_services_disabled_ops(sc, profiles[sc.sid], eval_cfg)
             operational_feasible = True
             failure = ""
             technical_feasible, technical_failure = _design_technical_feasibility(design, sc, cfg_local)
@@ -1433,7 +1898,9 @@ def run_out_of_sample_validation(cfg: Config) -> List[Dict]:
                     replace(eval_cfg, enforce_carbon_cap=False),
                     design,
                 )
-            _apply_emissions_attribution(ops, no_services[sc.sid])
+            _apply_emissions_attribution(identity_reference, identity_reference)
+            _apply_emissions_attribution(reference, identity_reference)
+            _apply_emissions_attribution(ops, identity_reference)
             policy_feasible = True
             try:
                 _, perfect_designs = _perfect_designs([sc], profiles, eval_cfg)
@@ -1445,10 +1912,13 @@ def run_out_of_sample_validation(cfg: Config) -> List[Dict]:
                 perfect = _solve_design_ops(
                     sc, profiles[sc.sid], unconstrained_eval, perfect_designs[sc.sid]
                 )
-            _rebase_lifecycle(no_services[sc.sid], no_services[sc.sid], cfg_local, is_reference=True)
-            _rebase_lifecycle(ops, no_services[sc.sid], cfg_local)
-            _rebase_lifecycle(perfect, no_services[sc.sid], cfg_local)
-            _apply_sipue(ops, no_services[sc.sid], cfg_local, service_revenue_scale(cfg_local, sc))
+            _apply_emissions_attribution(perfect, identity_reference)
+            _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
+            _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
+            _rebase_lifecycle(ops, reference, cfg_local)
+            _rebase_lifecycle(perfect, reference, cfg_local)
+            _apply_sipue(reference, reference, cfg_local, 1.0)
+            _apply_sipue(ops, reference, cfg_local, service_revenue_scale(cfg_local, sc))
             regret = ops["market_planning_cost_npv_eur"] - perfect["market_planning_cost_npv_eur"]
             discounted_it = max(1e-9, ops["E_IT"] * ops["lifecycle_operating_factor"])
             land_feasible = bool(ops["land_feasible"])
@@ -1572,10 +2042,15 @@ def run_service_ablation_validation(cfg: Config) -> List[Dict]:
                 design = solve_minmax_regret(group, mode_profiles, c_star, formulation)
             for sc in group:
                 ops = _solve_design_ops(sc, mode_profiles[sc.sid], formulation, design)
-                reference = no_services[sc.sid]
-                _apply_emissions_attribution(ops, reference)
+                identity_reference = no_services[sc.sid]
+                reference = _fair_services_disabled_ops(sc, base_profiles[sc.sid], formulation)
+                _apply_emissions_attribution(identity_reference, identity_reference)
+                _apply_emissions_attribution(reference, identity_reference)
+                _apply_emissions_attribution(ops, identity_reference)
+                _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
                 _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
                 _rebase_lifecycle(ops, reference, cfg_local)
+                _apply_sipue(reference, reference, cfg_local, 1.0)
                 _apply_sipue(ops, reference, cfg_local, service_revenue_scale(cfg_local, sc))
                 realized = _realize_design(design, sc)
                 discounted_it = max(1e-9, ops["E_IT"] * ops["lifecycle_operating_factor"])

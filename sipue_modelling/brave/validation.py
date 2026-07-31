@@ -31,6 +31,7 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
     checks: List[Dict] = []
     suffixes = (
         "no_services",
+        "fair_services_disabled",
         "baseline",
         "robust",
     )

@@ -109,3 +109,16 @@ class TestPublicationStudyScenarios:
         assert {sc.base_it_mw for sc in study["hyperscale"]} == {60.0}
         assert {sc.base_it_mw for sc in study["colocation"]} == {25.0}
         assert {sc.base_it_mw for sc in study["enterprise_edge"]} == {8.0}
+
+    def test_base_heat_inputs_are_separate_from_state_adjusted_values(self):
+        bases = {item.key: item.heat_recovery_frac for item in DATA_CENTER_ARCHETYPES}
+        assert bases["ai_hpc"] == pytest.approx(0.50)
+        assert bases["hyperscale"] == pytest.approx(0.45)
+        assert bases["colocation"] == pytest.approx(0.32)
+        assert bases["enterprise_edge"] == pytest.approx(0.20)
+
+        study = make_study_scenarios(Config(enforce_locked_calibration=False))
+        assert max(sc.heat_recovery_frac for sc in study["ai_hpc"]) == pytest.approx(0.575)
+        assert max(sc.heat_recovery_frac for sc in study["hyperscale"]) == pytest.approx(0.5175)
+        assert max(sc.heat_recovery_frac for sc in study["colocation"]) <= 0.50
+        assert max(sc.heat_recovery_frac for sc in study["enterprise_edge"]) <= 0.50

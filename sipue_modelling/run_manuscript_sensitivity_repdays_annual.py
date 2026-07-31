@@ -138,6 +138,22 @@ def _mean(rows: List[Dict], key: str) -> float:
     return sum(float(row[key]) for row in rows) / len(rows)
 
 
+def _it_weighted_mean(rows: List[Dict], key: str, suffix: str) -> float:
+    """Weight each row by its own IT energy for the given design case.
+
+    A no-op when ``rows`` covers a single archetype (IT energy is constant
+    across that archetype's ten uncertainty states); only changes the
+    result when ``rows`` pools multiple archetypes together (the ``"all"``
+    group), where it avoids giving a small archetype the same weight as a
+    much larger one. The paper's sensitivity table reports this weighting.
+    """
+    weights = [float(row[f"e_it_mwh_{suffix}"]) for row in rows]
+    total_weight = sum(weights)
+    if total_weight <= 0:
+        return _mean(rows, key)
+    return sum(float(row[key]) * w for row, w in zip(rows, weights)) / total_weight
+
+
 def summarize(
     factor: str,
     level: str,
@@ -159,12 +175,15 @@ def summarize(
         "average_market_cost_npv_eur": _mean(rows, f"market_cost_npv_eur_{suffix}"),
         "average_system_benefit_eur": _mean(rows, f"system_benefit_eur_{suffix}"),
         "average_system_benefit_per_mwh_it": _mean(rows, f"system_benefit_per_mwh_it_{suffix}"),
+        "average_system_benefit_per_mwh_it_it_weighted": _it_weighted_mean(rows, f"system_benefit_per_mwh_it_{suffix}", suffix),
         "average_regret_eur": sum(
             float(row[f"market_cost_npv_eur_{suffix}"]) - float(row["market_cost_npv_eur_scenario_perfect"])
             for row in rows
         ) / len(rows),
         "average_pue": _mean(rows, f"pue_{suffix}"),
+        "average_pue_it_weighted": _it_weighted_mean(rows, f"pue_{suffix}", suffix),
         "average_sipue": _mean(rows, f"sipue_{suffix}"),
+        "average_sipue_it_weighted": _it_weighted_mean(rows, f"sipue_{suffix}", suffix),
         "average_steady_sipue": _mean(rows, f"steady_sipue_{suffix}"),
         "average_cue": _mean(rows, f"cue_{suffix}"),
         "average_emissions_tco2": _mean(rows, f"emissions_tco2_{suffix}"),
@@ -177,6 +196,7 @@ def summarize(
         "average_land_m2": _mean(rows, f"land_m2_{suffix}"),
         "average_integration_land_m2": _mean(rows, f"integration_land_m2_{suffix}"),
         "average_land_utilization_pct": _mean(rows, f"land_utilization_pct_{suffix}"),
+        "average_land_utilization_pct_it_weighted": _it_weighted_mean(rows, f"land_utilization_pct_{suffix}", suffix),
         "average_land_lease_npv_eur": _mean(rows, f"land_cost_npv_eur_{suffix}"),
         "binding_land_scenario_count": sum(bool(row[f"land_constraint_binding_{suffix}"]) for row in rows),
         "k_hx_mwth": _mean(rows, f"k_hx_mwth_{suffix}"),

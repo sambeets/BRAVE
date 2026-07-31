@@ -57,16 +57,16 @@ def parameter_provenance(cfg: Config) -> List[Dict]:
         _row("battery charge efficiency", "eta_ch", cfg.eta_ch, "fraction", "0.95-0.99", 2020, "not monetary", "none", DEA_STORAGE, "direct technical range"),
         _row("battery discharge efficiency", "eta_dis", cfg.eta_dis, "fraction", "0.95-0.98", 2020, "not monetary", "none", DEA_STORAGE, "direct technical range"),
         _row("heat-pump COP", "COP", cfg.cop_ref, "dimensionless", "2.2-5.5", 2024, "not monetary", "none", DC_HEAT_COP, "within published data-centre range"),
-        _row("heat recovery fraction", "r_heat", 0.40, "fraction", "0.30-0.50", 2024, "not monetary", "none", DC_HEAT_COP, "scenario range"),
+        _row("heat recovery fraction", "r_heat", 0.40, "fraction", "0.30-0.50 base range; canonical effective values may exceed this after state multipliers", 2024, "not monetary", "none", DC_HEAT_COP, "base archetype range; state multipliers model local heat-reuse opportunity"),
         # Archetype-level heat_recovery_frac, hp_cop, and flex_frac (added
         # 2026-07-23): these differentiate the four DATA_CENTER_ARCHETYPES in
         # brave/scenario.py and materially affect service-credit diagnostics.
         # They previously had no citation anywhere in the codebase; see
         # scenario.py's comment above DATA_CENTER_ARCHETYPES for the full
         # revision rationale.
-        _row("heat recovery fraction (AI/HPC)", "phi_ai_hpc", ai_hpc.heat_recovery_frac, "fraction", "0.30-0.50 (generic data-centre range)", 2025, "not monetary", "none", DC_LIQUID_COOLING_MARKET, "capped at generic cited ceiling; qualitatively supported by highest liquid-cooling adoption among archetypes (~76% of hyperscale/AI liquid-cooling market share vs ~36% colocation)"),
-        _row("heat recovery fraction (Hyperscale cloud)", "phi_hyperscale", hyperscale.heat_recovery_frac, "fraction", "0.30-0.50 (generic data-centre range)", 2024, "not monetary", "none", DC_HEAT_COP, "within generic source range"),
-        _row("heat recovery fraction (Colocation)", "phi_colocation", colocation.heat_recovery_frac, "fraction", "0.30-0.50 (generic data-centre range)", 2024, "not monetary", "none", DC_HEAT_COP, "within generic source range"),
+        _row("heat recovery fraction (AI/HPC)", "phi_ai_hpc", ai_hpc.heat_recovery_frac, "fraction", "0.30-0.50 base range; effective canonical values up to 0.575 after state multipliers", 2025, "not monetary", "none", DC_LIQUID_COOLING_MARKET, "base value capped at generic cited ceiling; favorable uncertainty states can raise the operational LP input"),
+        _row("heat recovery fraction (Hyperscale cloud)", "phi_hyperscale", hyperscale.heat_recovery_frac, "fraction", "0.30-0.50 base range; effective canonical values up to 0.5175 after state multipliers", 2024, "not monetary", "none", DC_HEAT_COP, "base value within generic source range; favorable uncertainty states can raise the operational LP input"),
+        _row("heat recovery fraction (Colocation)", "phi_colocation", colocation.heat_recovery_frac, "fraction", "0.30-0.50 base range; effective canonical values remain below 0.50 after state multipliers", 2024, "not monetary", "none", DC_HEAT_COP, "base and effective canonical values remain within generic source range"),
         _row("heat recovery fraction (Enterprise/edge)", "phi_enterprise_edge", enterprise_edge.heat_recovery_frac, "fraction", "evidence gap; below generic 0.30-0.50 floor", 2024, "not monetary", "none", "", "no archetype-specific source found; study assumption; sensitivity required"),
         _row("heat-pump COP (AI/HPC)", "COP_ai_hpc", ai_hpc.hp_cop, "dimensionless", "2.2-5.5 (generic data-centre range)", 2024, "not monetary", "none", DC_HEAT_COP, "within published data-centre range"),
         _row("heat-pump COP (Hyperscale cloud)", "COP_hyperscale", hyperscale.hp_cop, "dimensionless", "2.2-5.5 (generic data-centre range)", 2024, "not monetary", "none", DC_HEAT_COP, "within published data-centre range"),
