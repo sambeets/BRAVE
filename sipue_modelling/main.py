@@ -77,12 +77,7 @@ from brave.export import (  # noqa: F401
 )
 
 from brave.validation import (  # noqa: F401
-    compute_ere,
-    add_derived_validation_metrics,
     build_validation_summary,
-    build_ablation_summary,
-    export_validation_tables,
-    export_out_of_sample_tables,
 )
 
 # ── brave.plotting ────────────────────────────────────────────────────────────
@@ -90,12 +85,10 @@ from brave.plotting import (  # noqa: F401
     PLOT_FONT_SCALE,
     _fs,
     _pretty_type_label,
-    export_plots,
     export_study_plots,
     export_creative_figure_package,
     export_creative_figure_package_from_csv,
     export_sensitivity_plots,
-    export_regret_landscapes,
 )
 
 # ── brave.runners ─────────────────────────────────────────────────────────────

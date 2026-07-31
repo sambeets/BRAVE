@@ -62,7 +62,6 @@ class Config:
     solver_time_limit_sec: Optional[int] = 86400  # 24 hours
 
     enforce_locked_calibration: bool = True
-    calibration_tag: str = "locked_2026-03-07"
 
     robust_objective: str = "normalized_lexicographic"
     lexicographic_regret_tolerance: float = 1e-7
@@ -82,7 +81,6 @@ class Config:
     fixed_eff_reduction: Optional[float] = 0.15
 
     fix_it_profile: bool = True
-    it_capacity_multiplier: float = 1.0
     it_demand_scale: float = 1.15
     heat_price_multiplier: float = 0.60
     flex_price_multiplier: float = 0.25
@@ -149,35 +147,14 @@ class Config:
     nordic_night_overhead_drop: float = 0.20
     day_overhead_bump: float = 0.07
 
-    enable_congestion: bool = True
-    cong_base: float = 0.15
-    cong_amp: float = 0.30
-    cong_spike_prob: float = 0.08
-    cong_spike_mag: float = 0.50
-    k_cong_el: float = 0.55
-    k_cong_dh_cap: float = 0.35
-    k_cong_heat_price: float = 0.25
-    k_cong_gridcap: float = 0.30
-    enable_nodal: bool = True
-    grid_cap_share: Optional[float] = 1.5  # cap as multiple of base IT (if grid_cap_mw is None)
-    grid_cap_mw: Optional[float] = None
-
-    enable_temp_dependent_cop: bool = True
     cop_ref: float = 3.2
-    t_amb_ref_c: float = 10.0
     t_dh_supply_ref_c: float = 70.0
-    cop_slope_amb: float = 0.05
-    cop_slope_dh: float = 0.03
-    cop_min: float = 1.5
-    cop_max: float = 5.0
     service_parasitic_heat_frac: float = 0.03
     service_parasitic_flex_frac: float = 0.015
     service_parasitic_hx_mw_per_mwth: float = 0.0
     service_parasitic_flex_mw_per_mw: float = 0.0
     it_flex_scale_services_active: float = 1.2
 
-    enable_network_model: bool = True
-    network_topology: str = "triangle3"
     network_nodes: Tuple[str, ...] = ("N1", "N2", "N3")
     line_cap_12: float = 2500.0
     line_cap_23: float = 2000.0
@@ -199,7 +176,6 @@ class Config:
     node_cost_amp: Optional[Dict[str, float]] = None
     node_load_base: Optional[Dict[str, float]] = None
     node_load_amp: Optional[Dict[str, float]] = None
-    node_load_noise: float = 0.05
 
     network_timeseries_csv: str = "data/network_3node_timeseries.csv"
     network_load_scale: float = 0.04
@@ -238,7 +214,6 @@ class Config:
     dh_segments: int = 3
     dh_seg_fracs: Tuple[float, ...] = (0.40, 0.35, 0.25)
     dh_value_multipliers: Tuple[float, ...] = (1.20, 1.05, 0.90)
-    dh_base_value_source: str = "p_heat"
 
     lift_bins_c: Tuple[float, ...] = (0.0, 20.0, 40.0, 60.0, 80.0, 120.0)
     cop_by_bin: Tuple[float, ...] = (3.4, 2.9, 2.5, 2.2, 1.9)
@@ -264,7 +239,6 @@ class Config:
     land_a_bat_p: float = 5.0
     land_cost_eur_per_m2: float = 35.0
     land_cost_is_annual: bool = True
-    land_cost_treatment: str = "lease_or_opportunity"
     days_per_year: int = 365
     land_maintenance_frac: float = 0.0
     land_limit_m2: Optional[float] = None
@@ -281,8 +255,6 @@ class Config:
     override_heat_recovery_frac: Optional[float] = None
     override_hp_cop: Optional[float] = None
 
-    ramp_base_share: float = 1.0
-    ramp_tau_per_mw: float = 0.0
     ramp_k_hx: float = 0.0
     ramp_k_hp: float = 0.0
     ramp_k_flex: float = 0.0
@@ -295,18 +267,7 @@ class Config:
     plot_output_dir: str = "output/congested3/figures"
     plot_format: str = "pdf"
     plot_extra_formats: Tuple[str, ...] = ()
-    export_regret_landscape: bool = False
-    landscape_grid_nx: int = 8
-    landscape_grid_ny: int = 8
-    regret_landscape_tags: Optional[Tuple[str, ...]] = None
-    export_diagnostic_plots: bool = False
-    export_validation_tables: bool = True
     validation_output_dir: str = "output/validation"
-    validation_summary_csv: str = "output/validation/validation_summary.csv"
-    validation_ablation_csv: str = "output/validation/ablation_summary.csv"
-    validation_oos_csv: str = "output/validation/out_of_sample_validation.csv"
-    validation_oos_train_sids: Tuple[int, ...] = (1, 2, 3, 4, 5)
-    validation_oos_test_sids: Tuple[int, ...] = (6, 7, 8, 9, 10)
     # run_train_test_scenario_validation trains on uncertainty_id <= this
     # value and evaluates on the rest, per archetype.
     train_test_max_train_id: int = 7

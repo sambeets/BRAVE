@@ -5,44 +5,11 @@ import pytest
 from brave.config import Config
 from brave.plotting import (
     export_creative_figure_package,
-    export_plots,
     export_sensitivity_plots,
 )
 
 
 pytestmark = pytest.mark.unit
-
-
-def _plot_row(i: int):
-    return {
-        "scenario": f"Scenario-{i}",
-        "pue_no_services": 1.20,
-        "pue_robust": 1.21,
-        "sipue_no_services": 1.20,
-        "sipue_robust": 1.14,
-        "sipue_credit_loss_mwh_robust": 10.0 + i,
-        "carbon_market_cost_eur_robust": 50_000.0 + i,
-        "carbon_damage_eur_robust": 75_000.0 + i,
-        "cooling_mwh_robust": 100.0 + i,
-        "recovered_heat_it_mwhth_robust": 80.0 + i,
-        "recovered_heat_cooling_mwhth_robust": 20.0 + i,
-    }
-
-
-def test_export_plots_generates_descriptive_non_correlation_set(tmp_path):
-    cfg = replace(
-        Config(enforce_locked_calibration=False),
-        export_plots=True,
-        plot_output_dir=str(tmp_path),
-        plot_format="png",
-    )
-    export_plots([_plot_row(i) for i in range(4)], cfg)
-    assert {path.name for path in tmp_path.iterdir()} == {
-        "pue_sipue_system_direction.png",
-        "delay_credit_loss.png",
-        "carbon_ledgers.png",
-        "cooling_heat_sources.png",
-    }
 
 
 def _creative_row(archetype: str, key: str, scenario_id: int):

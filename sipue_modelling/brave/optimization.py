@@ -182,7 +182,25 @@ def solve_ops_given_design(
     eff_reduction: float,  # NEW: chosen efficiency level in [0,1)
     K_HP: Optional[float] = None,
     _compute_congestion_marginal: bool = True,
+    objective_mode: str = "cost",
+    no_services_independent_cost_eur: Optional[float] = None,
+    availability: float = 1.0,
 ) -> Dict:
+    """Re-solve operations for a fixed design.
+
+    ``objective_mode="cost"`` (default, unchanged) minimizes lifecycle market
+    cost, matching every existing call site. ``objective_mode="sipue"``
+    instead minimizes this scenario's own siPUE for the fixed design first,
+    then breaks ties on market cost -- the same lexicographic structure
+    ``solve_minmax_regret`` uses to *select* a siPUE-regret design, so that a
+    design chosen to minimize siPUE regret is also *reported* under
+    operations consistent with that objective, rather than under the
+    market-cost-only dispatch used for the cost-regret design.
+    """
+    if objective_mode not in {"cost", "sipue", "emissions"}:
+        raise ValueError("objective_mode must be 'cost', 'sipue', or 'emissions'.")
+    if objective_mode == "sipue" and no_services_independent_cost_eur is None:
+        raise ValueError("no_services_independent_cost_eur is required when objective_mode='sipue'.")
     T = len(prof["it_base"])
     dt = 1.0
     w = prof.get("w", [1.0] * T)
@@ -552,9 +570,51 @@ def solve_ops_given_design(
     carbon_cap = (cfg.carbon_emissions_cap_tco2_by_sid or {}).get(sc.sid)
     if cfg.enforce_carbon_cap and carbon_cap is not None:
         m += emissions_expr <= float(carbon_cap), "PhysicalCarbonCap"
-    m += lifecycle_market_cost_expr + cfg.eps_u_grid * pulp.lpSum(U_GRID[t] for t in range(T))
 
-    m.solve(make_solver_lp(cfg))
+    if objective_mode == "sipue":
+        independent_avoided_heat_cost_expr = pulp.lpSum(
+            avoided_heat_price[t] * H_SOLD[t] * dt * w[t] for t in range(T)
+        )
+        independent_avoided_flex_cost_expr = pulp.lpSum(
+            avoided_flex_price[t] * RF_LOAD[t] * dt * w[t] for t in range(T)
+        )
+        independent_carbon_damage_expr = (
+            cfg.independent_social_carbon_cost_eur_per_tco2
+            if sc.carbon_damage_eur_per_tco2 is None
+            else float(sc.carbon_damage_eur_per_tco2)
+        ) * emissions_expr
+        independent_peak_capacity_cost_expr = independent_peak_capacity_horizon(cfg) * P_PEAK
+        independent_cost_expr = (
+            el_cost_expr + baseline_heat_resource_cost_expr + trans_cost_expr
+            + independent_carbon_damage_expr + independent_peak_capacity_cost_expr
+            - independent_avoided_heat_cost_expr - independent_avoided_flex_cost_expr
+        )
+        b_sys_expr = no_services_independent_cost_eur - independent_cost_expr
+        e_it_const = max(1e-9, sum(it_base[t] * dt * w[t] for t in range(T)))
+        sipue_expr = (
+            E_FAC_expr - availability * b_sys_expr / cfg.sipue_system_ref_price_eur_per_mwh
+        ) / e_it_const
+        m += sipue_expr
+        m.solve(make_solver_lp(cfg))
+        sipue_opt = float(pulp.value(sipue_expr)) if pulp.LpStatus[m.status] == "Optimal" else float("nan")
+        tolerance = max(1e-9, abs(sipue_opt) * cfg.lexicographic_regret_tolerance)
+        m += sipue_expr <= sipue_opt + tolerance, "SipueTieBreakLimit"
+        m.setObjective(lifecycle_market_cost_expr + cfg.eps_u_grid * pulp.lpSum(U_GRID[t] for t in range(T)))
+        m.solve(make_solver_lp(cfg))
+    elif objective_mode == "emissions":
+        # Minimizes physical emissions directly rather than cost. Used only
+        # to find the true minimum emissions a fixed design can reach in a
+        # scenario (a feasibility floor for the carbon cap) -- not part of
+        # any reported design/operations case, so no cost tie-break is taken.
+        # The eps_u_grid term is negligible at emissions_expr's scale (tCO2,
+        # typically in the thousands to millions for the whole network) but
+        # is still needed to keep U_GRID pinned to its tight congestion value,
+        # exactly as it does for the cost objective below.
+        m += emissions_expr + cfg.eps_u_grid * pulp.lpSum(U_GRID[t] for t in range(T))
+        m.solve(make_solver_lp(cfg))
+    else:
+        m += lifecycle_market_cost_expr + cfg.eps_u_grid * pulp.lpSum(U_GRID[t] for t in range(T))
+        m.solve(make_solver_lp(cfg))
 
     status = pulp.LpStatus[m.status]
     if cfg.validate_solutions and status != "Optimal":
@@ -1591,10 +1651,16 @@ def solve_perfect_foresight(
     else:
         for i, eff in enumerate(cfg.eff_levels):
             obj, des = solve_fixed_eff(eff)
+            if des.get("status") != "Optimal":
+                continue
             if obj < best_obj:
                 best_obj = obj
                 best = des
                 best_idx = i
+        if not best:
+            raise RuntimeError(
+                f"No efficiency level in {cfg.eff_levels} is feasible for scenario {sc.sid}."
+            )
 
     pf_ops = solve_ops_given_design(
         sc, prof, cfg,
@@ -2194,11 +2260,14 @@ def solve_minmax_regret(
     else:
         for i, eff in enumerate(cfg.eff_levels):
             res = solve_fixed_eff(eff)
+            if res.get("status") != "Optimal":
+                continue
             if best is None or (res["Z"], res["avg_cost"]) < (best["Z"], best["avg_cost"]):
                 best = res
                 best_idx = i
 
-    assert best is not None
+    if best is None:
+        raise RuntimeError(f"No efficiency level in {cfg.eff_levels} is feasible for this scenario group.")
     best["eff_level_index"] = best_idx
     if cfg.fixed_eff_reduction is not None:
         best["eff_reduction"] = cfg.fixed_eff_reduction

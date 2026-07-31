@@ -8,7 +8,7 @@ import random
 import subprocess
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from brave.config import Config, _validate_locked_calibration
 from brave.metrics import compute_sipue, service_revenue_scale
@@ -44,7 +44,7 @@ DESIGN_CASES = (
     "robust",
 )
 
-HEADLINE_REFERENCE_CASE = "fair_services_disabled"
+REFERENCE_CASE = "fair_services_disabled"
 
 
 def _no_services_profile(prof: Dict[str, List[float]]) -> Dict[str, List[float]]:
@@ -121,6 +121,9 @@ def _solve_design_ops(
     prof: Dict[str, List[float]],
     cfg: Config,
     design: Dict,
+    objective_mode: str = "cost",
+    no_services_independent_cost_eur: Optional[float] = None,
+    availability: float = 1.0,
 ) -> Dict:
     realized = _realize_design(design, sc)
     return solve_ops_given_design(
@@ -133,6 +136,9 @@ def _solve_design_ops(
         realized["K_BAT_P"],
         eff_reduction=design["eff_reduction"],
         K_HP=realized["K_HP"],
+        objective_mode=objective_mode,
+        no_services_independent_cost_eur=no_services_independent_cost_eur,
+        availability=availability,
     )
 
 
@@ -219,18 +225,45 @@ def _carbon_reference(
             no_dc_power_emissions
             + float(no_services[sc.sid]["baseline_heat_emissions_tco2"])
         )
-        attributable = max(0.0, float(no_services[sc.sid]["emissions_tco2"]) - background)
-        policy_cap = background + attributable * (1.0 - reduction)
-        fair_floor = float(
+        # Anchored to the fair services-disabled design's own unconstrained
+        # emissions -- the design that actually carries the locked efficiency
+        # retrofit and is used as the reference comparator throughout the
+        # paper -- rather than the zero-efficiency no-services design. The
+        # previous no-services anchor could put the target below what the
+        # fair comparator can physically reach even with efficiency already
+        # applied, which required silently relaxing the cap to a feasibility
+        # floor in most rows. Anchoring to the fair comparator's own
+        # unconstrained (cost-minimizing) emissions makes the policy target
+        # tighter than before in most rows, but cost-minimizing dispatch is
+        # not emissions-minimizing dispatch, so this alone does not guarantee
+        # the reduction_frac target is physically reachable in every
+        # scenario. true_min_emissions below is the fair comparator's actual
+        # minimum achievable emissions (found by minimizing emissions
+        # directly, not cost) and is used only as a last-resort feasibility
+        # floor, so the floor now reflects a genuine physical limit rather
+        # than an artifact of cost-minimizing dispatch.
+        fair_unconstrained = float(
             _fair_services_disabled_ops(sc, profiles[sc.sid], unconstrained_cfg)["emissions_tco2"]
         )
-        caps[sc.sid] = max(policy_cap, fair_floor)
+        eff = 0.0 if cfg.fixed_eff_reduction is None else float(cfg.fixed_eff_reduction)
+        true_min_emissions = float(
+            solve_ops_given_design(
+                sc, profiles[sc.sid], unconstrained_cfg,
+                0.0, 0.0, 0.0, 0.0, eff_reduction=eff, K_HP=0.0,
+                objective_mode="emissions",
+            )["emissions_tco2"]
+        )
+        attributable = max(0.0, fair_unconstrained - background)
+        policy_cap = background + attributable * (1.0 - reduction)
+        caps[sc.sid] = max(policy_cap, true_min_emissions)
         no_services[sc.sid]["background_emissions_tco2"] = background
         no_services[sc.sid]["no_dc_power_emissions_tco2"] = no_dc_power_emissions
         no_services[sc.sid]["dc_attributable_emissions_tco2"] = attributable
         no_services[sc.sid]["unrelaxed_carbon_cap_tco2"] = policy_cap
-        no_services[sc.sid]["fair_services_disabled_emissions_floor_tco2"] = fair_floor
-        no_services[sc.sid]["carbon_cap_feasibility_floor_applied"] = caps[sc.sid] > policy_cap + 1e-9
+        no_services[sc.sid]["fair_services_disabled_emissions_floor_tco2"] = fair_unconstrained
+        no_services[sc.sid]["true_min_emissions_floor_tco2"] = true_min_emissions
+        no_services[sc.sid]["carbon_cap_feasibility_floor_applied"] = caps[sc.sid] > policy_cap + 1e-6
+        no_services[sc.sid]["carbon_cap_slack_tco2"] = caps[sc.sid] - true_min_emissions
     return no_services, caps
 
 
@@ -836,7 +869,7 @@ def _kpi_benchmark_summary(rows: Sequence[Dict]) -> List[Dict]:
     archetype contributes proportionally more; within a single archetype's
     group this is a no-op (IT energy is constant across that archetype's ten
     uncertainty states), so it only changes the ``all`` group. The paper's
-    headline tables (KPI benchmark, sensitivity summary, credit ablation,
+    main tables (KPI benchmark, sensitivity summary, credit ablation,
     reference-price sensitivity) report the IT-weighted values for the
     ``all`` group.
     """
@@ -975,7 +1008,7 @@ def _conclusion_summary_for_rows(
             "archetype": archetype_label,
             "design": design,
             "scenario_count": len(rows),
-            "headline_reference_case": HEADLINE_REFERENCE_CASE,
+            "reference_case": REFERENCE_CASE,
             "average_lifecycle_cost_npv_eur": case_cost,
             "average_lifecycle_cost_reduction_eur_vs_no_services": ns_cost - case_cost,
             "lifecycle_cost_reduction_pct_vs_no_services": _reduction_pct(ns_cost, case_cost),
@@ -1201,7 +1234,6 @@ def _write_manifest(cfg: Config, scenarios: Sequence[Scenario], output_dir: str)
         "run_out_of_sample_validation.py",
         "run_manuscript_sensitivity_repdays_annual.py",
         "run_creative_figures.py",
-        "run_service_ablation_validation.py",
     ]
     for root in source_roots:
         if os.path.isfile(root):
@@ -1308,7 +1340,7 @@ def run_single(cfg: Config) -> List[Dict]:
 
             # Diagnostic only, not a canonical design case. The exported
             # cases keep the identity no-services row separate from the
-            # fair services-disabled headline comparator.
+            # fair services-disabled reference comparator.
             # Stage 2 minimizes worst-case *cost* regret, never siPUE regret,
             # so this checks how far the cost-optimal robust design's siPUE
             # sits from the siPUE attainable by the scenario-perfect design
@@ -1333,12 +1365,14 @@ def run_single(cfg: Config) -> List[Dict]:
                 "fair_services_disabled_emissions_floor_tco2": cases["no_services"].get(
                     "fair_services_disabled_emissions_floor_tco2"
                 ),
+                "true_min_emissions_floor_tco2": cases["no_services"].get("true_min_emissions_floor_tco2"),
+                "carbon_cap_slack_tco2": cases["no_services"].get("carbon_cap_slack_tco2"),
                 "carbon_cap_feasibility_floor_applied": cases["no_services"].get(
                     "carbon_cap_feasibility_floor_applied"
                 ),
                 "carbon_cap_reduction_target_pct": 100.0 * cfg_local.carbon_cap_reduction_frac,
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
-                "headline_reference_case": HEADLINE_REFERENCE_CASE,
+                "reference_case": REFERENCE_CASE,
                 "service_active_efficiency_reduction": cfg_local.fixed_eff_reduction,
                 "no_dc_congestion_fraction": cfg_local.calibrated_no_dc_congestion_fraction,
                 "no_dc_load_shedding_mwh": cfg_local.calibrated_no_dc_load_shedding_mwh,
@@ -1482,11 +1516,13 @@ def run_primary_design(cfg: Config) -> List[Dict]:
                 "fair_services_disabled_emissions_floor_tco2": identity_reference.get(
                     "fair_services_disabled_emissions_floor_tco2"
                 ),
+                "true_min_emissions_floor_tco2": identity_reference.get("true_min_emissions_floor_tco2"),
+                "carbon_cap_slack_tco2": identity_reference.get("carbon_cap_slack_tco2"),
                 "carbon_cap_feasibility_floor_applied": identity_reference.get(
                     "carbon_cap_feasibility_floor_applied"
                 ),
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
-                "headline_reference_case": HEADLINE_REFERENCE_CASE,
+                "reference_case": REFERENCE_CASE,
             }
             row.update(_case_fields(identity_reference, "no_services"))
             row.update(_case_fields(reference, "fair_services_disabled"))
@@ -1548,7 +1584,12 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
                 no_services_independent_cost_eur=reference_independent_cost[sc.sid],
                 availability=availability_by_sid[sc.sid],
             )
-            sipue_perfect_ops = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design)
+            sipue_perfect_ops = _solve_design_ops(
+                sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design,
+                objective_mode="sipue",
+                no_services_independent_cost_eur=reference_independent_cost[sc.sid],
+                availability=availability_by_sid[sc.sid],
+            )
             _apply_emissions_attribution(sipue_perfect_ops, no_services[sc.sid])
             _rebase_lifecycle(sipue_perfect_ops, fair_refs[sc.sid], cfg_local)
             _apply_sipue(sipue_perfect_ops, fair_refs[sc.sid], cfg_local, availability_by_sid[sc.sid])
@@ -1568,7 +1609,12 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
             reference = fair_refs[sc.sid]
             cases = {
                 "cost_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_cost),
-                "sipue_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_sipue),
+                "sipue_regret_robust": _solve_design_ops(
+                    sc, profiles[sc.sid], constrained_cfg, robust_sipue,
+                    objective_mode="sipue",
+                    no_services_independent_cost_eur=reference_independent_cost[sc.sid],
+                    availability=availability_by_sid[sc.sid],
+                ),
             }
             for ops in (identity_reference, reference, *cases.values()):
                 _apply_emissions_attribution(ops, identity_reference)
@@ -1589,7 +1635,7 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
                 "scenario_id": sc.uncertainty_id,
                 "carbon_cap_tco2": caps[sc.sid],
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
-                "headline_reference_case": HEADLINE_REFERENCE_CASE,
+                "reference_case": REFERENCE_CASE,
                 "sipue_scenario_perfect_star": sipue_star[sc.sid],
             }
             row.update(_case_fields(identity_reference, "no_services"))
@@ -1677,7 +1723,12 @@ def run_sipue_objective_comparison_out_of_sample(cfg: Config, count_per_archetyp
                 no_services_independent_cost_eur=reference_independent_cost[sc.sid],
                 availability=availability_by_sid[sc.sid],
             )
-            sipue_perfect_ops = _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design)
+            sipue_perfect_ops = _solve_design_ops(
+                sc, profiles[sc.sid], constrained_cfg, sipue_perfect_design,
+                objective_mode="sipue",
+                no_services_independent_cost_eur=reference_independent_cost[sc.sid],
+                availability=availability_by_sid[sc.sid],
+            )
             _apply_emissions_attribution(sipue_perfect_ops, no_services[sc.sid])
             _rebase_lifecycle(sipue_perfect_ops, fair_refs[sc.sid], cfg_local)
             _apply_sipue(sipue_perfect_ops, fair_refs[sc.sid], cfg_local, availability_by_sid[sc.sid])
@@ -1697,7 +1748,12 @@ def run_sipue_objective_comparison_out_of_sample(cfg: Config, count_per_archetyp
             reference = fair_refs[sc.sid]
             cases = {
                 "cost_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_cost),
-                "sipue_regret_robust": _solve_design_ops(sc, profiles[sc.sid], constrained_cfg, robust_sipue),
+                "sipue_regret_robust": _solve_design_ops(
+                    sc, profiles[sc.sid], constrained_cfg, robust_sipue,
+                    objective_mode="sipue",
+                    no_services_independent_cost_eur=reference_independent_cost[sc.sid],
+                    availability=availability_by_sid[sc.sid],
+                ),
             }
             for ops in (identity_reference, reference, *cases.values()):
                 _apply_emissions_attribution(ops, identity_reference)
@@ -1718,7 +1774,7 @@ def run_sipue_objective_comparison_out_of_sample(cfg: Config, count_per_archetyp
                 "scenario_id": sc.uncertainty_id,
                 "carbon_cap_tco2": caps[sc.sid],
                 "reference_price_eur_per_mwh": cfg_local.sipue_system_ref_price_eur_per_mwh,
-                "headline_reference_case": HEADLINE_REFERENCE_CASE,
+                "reference_case": REFERENCE_CASE,
                 "sipue_scenario_perfect_star": sipue_star[sc.sid],
             }
             row.update(_case_fields(identity_reference, "no_services"))
@@ -1986,150 +2042,4 @@ def run_out_of_sample_validation(cfg: Config) -> List[Dict]:
         }]
         _write_csv(summary, os.path.join(output_dir, "out_of_sample_summary.csv"))
         _write_manifest(cfg_local, all_scenarios, output_dir)
-    return rows
-
-
-SERVICE_ABLATIONS = {
-    "cooling_only": (False, False, False),
-    "heat_only": (True, False, False),
-    "flexibility_only": (False, True, False),
-    "storage_only": (False, False, True),
-    "all_services": (True, True, True),
-}
-
-
-def _service_ablation_profile(profile: Dict, mode: str, storage_available: bool) -> Dict:
-    allow_heat, allow_flex, allow_battery = SERVICE_ABLATIONS[mode]
-    result = dict(profile)
-    result["allow_heat"] = allow_heat
-    result["allow_flex"] = allow_flex
-    result["allow_battery"] = allow_battery and storage_available
-    result["force_it_flex"] = False
-    return result
-
-
-def run_service_ablation_validation(cfg: Config) -> List[Dict]:
-    study = make_study_scenarios(cfg)
-    scenarios = [sc for group in study.values() for sc in group]
-    for group in study.values():
-        apply_global_heat_assumptions(group, cfg)
-    cfg_local, base_profiles = _prepare_profiles(cfg, scenarios)
-    rows: List[Dict] = []
-    for archetype in DATA_CENTER_ARCHETYPES:
-        group = study[archetype.key]
-        no_services, caps = _carbon_reference(group, base_profiles, cfg_local)
-        constrained = replace(cfg_local, carbon_emissions_cap_tco2_by_sid=caps)
-        for mode in SERVICE_ABLATIONS:
-            mode_profiles = {
-                sc.sid: _service_ablation_profile(
-                    base_profiles[sc.sid], mode, sc.storage_availability > 0.0
-                )
-                for sc in group
-            }
-            carbon_constrained_design_feasible = True
-            formulation = constrained
-            try:
-                c_star, _ = _perfect_designs(group, mode_profiles, formulation)
-                design = solve_minmax_regret(group, mode_profiles, c_star, formulation)
-            except RuntimeError:
-                carbon_constrained_design_feasible = False
-                formulation = replace(
-                    cfg_local,
-                    enforce_carbon_cap=False,
-                    carbon_emissions_cap_tco2_by_sid=None,
-                )
-                c_star, _ = _perfect_designs(group, mode_profiles, formulation)
-                design = solve_minmax_regret(group, mode_profiles, c_star, formulation)
-            for sc in group:
-                ops = _solve_design_ops(sc, mode_profiles[sc.sid], formulation, design)
-                identity_reference = no_services[sc.sid]
-                reference = _fair_services_disabled_ops(sc, base_profiles[sc.sid], formulation)
-                _apply_emissions_attribution(identity_reference, identity_reference)
-                _apply_emissions_attribution(reference, identity_reference)
-                _apply_emissions_attribution(ops, identity_reference)
-                _rebase_lifecycle(identity_reference, identity_reference, cfg_local, is_reference=True)
-                _rebase_lifecycle(reference, reference, cfg_local, is_reference=True)
-                _rebase_lifecycle(ops, reference, cfg_local)
-                _apply_sipue(reference, reference, cfg_local, 1.0)
-                _apply_sipue(ops, reference, cfg_local, service_revenue_scale(cfg_local, sc))
-                realized = _realize_design(design, sc)
-                discounted_it = max(1e-9, ops["E_IT"] * ops["lifecycle_operating_factor"])
-                rows.append({
-                    "archetype": archetype.name,
-                    "archetype_key": archetype.key,
-                    "mode": mode,
-                    "scenario_id": sc.uncertainty_id,
-                    "scenario": sc.name,
-                    "carbon_constrained_design_feasible": carbon_constrained_design_feasible,
-                    "evaluation_formulation": (
-                        "carbon_constrained" if carbon_constrained_design_feasible else "unconstrained_diagnostic"
-                    ),
-                    "market_cost_npv_eur": ops["market_planning_cost_npv_eur"],
-                    "market_cost_change_pct_vs_no_services": _change_pct(
-                        reference["market_planning_cost_npv_eur"], ops["market_planning_cost_npv_eur"]
-                    ),
-                    "independent_benefit_eur": reference["independent_system_cost_eur"] - ops["independent_system_cost_eur"],
-                    "independent_benefit_eur_per_mwh_it": (
-                        reference["independent_system_cost_eur"] - ops["independent_system_cost_eur"]
-                    ) / max(1e-9, ops["E_IT"]),
-                    "pue": ops["PUE"],
-                    "sipue": ops["siPUE"],
-                    "post_construction_sipue": ops["steady_state_sipue"],
-                    "cue": ops["CUE_tCO2_per_MWh_IT"],
-                    "emissions_tco2": ops["emissions_tco2"],
-                    "dc_attributed_emissions_tco2": ops["dc_attributable_emissions_tco2"],
-                    "carbon_cap_satisfied": ops["emissions_tco2"] <= caps[sc.sid] + 1e-6,
-                    "heat_revenue_eur": ops["heat_revenue_eur"],
-                    "flex_revenue_eur": ops["flex_revenue_eur"],
-                    "avoided_heat_cost_eur": ops["independent_avoided_heat_cost_eur"],
-                    "avoided_flex_cost_eur": ops["independent_avoided_flex_cost_eur"],
-                    "carbon_market_cost_eur": ops["co2_cost_eur"],
-                    "carbon_damage_eur": ops["independent_carbon_damage_eur"],
-                    "resource_cost_eur": ops["el_cost_eur"] + ops["baseline_heat_resource_cost_eur"],
-                    "transmission_cost_eur": ops["trans_cost_eur"],
-                    "peak_capacity_cost_eur": ops["independent_peak_capacity_cost_eur"],
-                    "cooling_mwh": ops["cooling_mwh"],
-                    "recovered_heat_it_mwhth": ops["recovered_heat_it_mwhth"],
-                    "recovered_heat_cooling_mwhth": ops["recovered_heat_cooling_mwhth"],
-                    "congestion_hours": ops["congestion_hours"],
-                    "congestion_marginal_value_eur_per_1pct": ops["congestion_marginal_value_eur_per_1pct"],
-                    "renewable_curtailment_mwh": ops["renewable_curtailment_mwh"],
-                    "thermal_generation_mwh": ops["thermal_generation_mwh"],
-                    "regret_eur_per_mwh_it": design["NormalizedRegret_s"][sc.sid],
-                    "discounted_it_mwh": discounted_it,
-                    "k_hx_mwth": realized["K_HX"],
-                    "k_hp_mw": realized["K_HP"],
-                    "k_flex_mw": realized["K_FLEX"],
-                    "k_bat_e_mwh": realized["K_BAT_E"],
-                    "k_bat_p_mw": realized["K_BAT_P"],
-                })
-    run_id = _run_id(cfg_local, scenarios)
-    for row in rows:
-        row["run_id"] = run_id
-    if cfg.export_csv:
-        output_dir = cfg.canonical_output_dir
-        _write_csv(rows, os.path.join(output_dir, "service_ablation_results.csv"))
-        summary = []
-        for archetype in ["all", *(item.name for item in DATA_CENTER_ARCHETYPES)]:
-            subset = rows if archetype == "all" else [row for row in rows if row["archetype"] == archetype]
-            for mode in SERVICE_ABLATIONS:
-                values = [row for row in subset if row["mode"] == mode]
-                summary.append({
-                    "run_id": run_id,
-                    "archetype": archetype,
-                    "mode": mode,
-                    "scenario_count": len(values),
-                    "average_market_cost_change_pct_vs_no_services": sum(float(row["market_cost_change_pct_vs_no_services"]) for row in values) / len(values),
-                    "average_independent_benefit_eur_per_mwh_it": sum(float(row["independent_benefit_eur_per_mwh_it"]) for row in values) / len(values),
-                    "average_pue": sum(float(row["pue"]) for row in values) / len(values),
-                    "average_sipue": sum(float(row["sipue"]) for row in values) / len(values),
-                    "average_emissions_tco2": sum(float(row["emissions_tco2"]) for row in values) / len(values),
-                    "carbon_cap_satisfaction_pct": 100.0 * sum(bool(row["carbon_cap_satisfied"]) for row in values) / len(values),
-                    "carbon_constrained_design_feasible": all(bool(row["carbon_constrained_design_feasible"]) for row in values),
-                    "average_congestion_hours": sum(float(row["congestion_hours"]) for row in values) / len(values),
-                    "average_curtailment_mwh": sum(float(row["renewable_curtailment_mwh"]) for row in values) / len(values),
-                    "worst_regret_eur_per_mwh_it": max(float(row["regret_eur_per_mwh_it"]) for row in values),
-                })
-        _write_csv(summary, os.path.join(output_dir, "service_ablation_summary.csv"))
-        _write_manifest(cfg_local, scenarios, output_dir)
     return rows

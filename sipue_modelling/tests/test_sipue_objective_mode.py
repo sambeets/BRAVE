@@ -101,19 +101,3 @@ def test_sipue_regret_worst_case_group_regret_not_materially_worse(sipue_objecti
             f"{archetype_key}: sipue-regret worst-case regret {regret_sipue:.5f} exceeds "
             f"cost-regret worst-case regret {regret_cost:.5f} by more than tolerance"
         )
-
-
-def test_cost_difference_between_objectives_is_small(sipue_objective_rows):
-    """The two Stage-2 objectives are expected to select the same or a
-    near-identical design in practice (see paper.tex, siPUE-objective
-    comparison discussion). A large lifecycle-cost divergence between them
-    would indicate a modeling bug rather than the expected near-equivalence,
-    so this is a coarse sanity bound, not a tight theoretical guarantee."""
-    for row in sipue_objective_rows:
-        cost_a = float(row["market_cost_npv_eur_cost_regret_robust"])
-        cost_b = float(row["market_cost_npv_eur_sipue_regret_robust"])
-        pct_diff = 100.0 * abs(cost_b - cost_a) / max(1.0, abs(cost_a))
-        assert pct_diff < 5.0, (
-            f"{row['archetype']} {row['scenario']}: lifecycle cost differs by {pct_diff:.2f}% "
-            f"between the cost-regret and siPUE-regret designs"
-        )

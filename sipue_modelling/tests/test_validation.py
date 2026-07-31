@@ -1,6 +1,6 @@
 import pytest
 
-from main import build_ablation_summary, build_validation_summary, compute_ere
+from main import build_validation_summary
 from brave.config import Config
 from brave.runners import _train_test_split
 from brave.scenario import DATA_CENTER_ARCHETYPES, make_archetype_scenarios
@@ -39,10 +39,6 @@ def _rows():
     return rows
 
 
-def test_compute_ere_uses_delivered_heat_reuse():
-    assert compute_ere(130.0, 100.0, 20.0) == pytest.approx(1.10)
-
-
 def test_validation_uses_properties_not_constructed_target_correlation():
     summary = build_validation_summary(_rows())
     tests = {row["test"] for row in summary}
@@ -55,10 +51,6 @@ def test_validation_uses_properties_not_constructed_target_correlation():
     }.issubset(tests)
     assert all(row["passed"] for row in summary)
     assert not any("correlation" in row["test"] for row in summary)
-
-
-def test_obsolete_market_credit_ablations_are_removed():
-    assert build_ablation_summary(_rows()) == []
 
 
 def test_train_test_split_is_seven_train_three_test():

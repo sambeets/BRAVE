@@ -19,6 +19,7 @@
 \usetikzlibrary{
     positioning,  % node distance, right=of, below=of
     shapes.misc,  % rounded corners
+    shapes.geometric,  % ellipse nodes
     arrows.meta   % arrow heads
 }
 
@@ -54,11 +55,11 @@
 
 
 \begin{abstract}
-Data centers are becoming material actors in local electricity and heat systems. They are usually reported as large electricity consumers, but the same sites can also export waste heat, provide flexible load, and use storage to reduce stress on local networks. The difficulty is that the dominant operational metric, Power Usage Effectiveness (PUE), treats all non-IT electricity as overhead. A data center that installs heat pumps, heat exchangers, controllability, or storage can therefore look less efficient under PUE even when the design creates useful external value.
+Data centers are growing electricity loads, but they can also export waste heat, provide flexible demand, and use storage to reduce local network stress. Power Usage Effectiveness (PUE) treats the electricity used for those services as overhead, so an integrated site can appear less efficient even when it creates external system value.
 
-The paper first provides a contextual synthesis of policy, market, and project evidence on how data-center energy characteristics shape local business impacts in Europe. It then defines and tests the central contribution: \emph{A PUE-compatible companion indicator that converts separately accounted local-system benefits, including heat, flexibility, peak, carbon damage, and delay, into an energy-equivalent numerator credit.} We call this metric System-Integrated PUE (siPUE). The metric is tested in a two-stage design and operation framework with scenario-perfect benchmarks and a shared normalized min--max regret design. The min--max regret model serves as a disciplined uncertainty testbed for evaluating metric behavior. The model is evaluated for four archetypes and ten shared uncertainty states using annual representative-day profiles, a stylized three-node DC-OPF electricity network, heat-recovery constraints, lifecycle delay accounting, and a lease or opportunity-cost representation of land.
+This paper defines System-Integrated PUE (siPUE), a companion indicator that adds a single delay-adjusted, energy-equivalent credit to the PUE numerator, drawn from the combined heat, flexibility, peak, and carbon-damage value of a jointly optimized design. The metric is tested with a two-stage design and operation model for four data-center archetypes and ten shared uncertainty states, using representative-day operation, a stylized three-node DC-OPF network, heat-recovery constraints, lifecycle delay accounting, and land-cost accounting.
 
-The canonical results separate the zero-investment identity case from the fair headline comparator. The identity no-services case has zero service capacity and zero efficiency investment, and verifies that siPUE reduces exactly to PUE. The headline comparison instead uses a constrained services-disabled comparator with the same locked 15\% efficiency retrofit and the same carbon-cap, network, land, delay, demand, and operational assumptions as the service-active cases. Averaged with each archetype weighted by annual IT energy, this fair comparator has PUE and siPUE of 1.167. The baseline design raises average PUE to 1.238 but lowers siPUE to 1.139, with 5.603~EUR/MWh IT of delay-adjusted system benefit. The robust design raises PUE further, to 1.343, and lowers siPUE to 1.152, with 10.825~EUR/MWh IT of delay-adjusted system benefit. Relative to the fair comparator, the baseline and robust credits are about 1.40 and 1.08 times their facility-energy burdens, respectively, showing diminishing marginal system value as integration intensity rises. At the scenario level, baseline siPUE is lower than the services-disabled comparator in 36 of 40 rows, while robust siPUE is lower in 23 of 40. Excluding carbon damage from the siPUE ledger reverses the IT-weighted average result for both service-active designs, so the conclusion is explicitly conditional on the stated social-carbon valuation. Train/test and out-of-sample diagnostics are internal verification and robustness checks; external validation would require observed project data.
+The reference case is the services-disabled comparator, which keeps the same 15\% efficiency retrofit and physical constraints as the service-active cases. Weighted by annual IT energy, PUE and siPUE are both 1.167 for this comparator. Relative to it, the baseline service-active design raises PUE to 1.238 but lowers siPUE to 1.139, with 5.603~EUR/MWh IT of delay-adjusted system benefit. The robust design raises PUE to 1.343 and lowers siPUE to 1.152, with 10.825~EUR/MWh IT of benefit. The service-active signal is therefore material but not overstated: credits are about 1.40 and 1.08 times the baseline and robust facility-energy burdens, respectively. Excluding carbon damage reverses the average siPUE improvement, so the result is conditional on the stated social-carbon valuation. Internal checks confirm metric consistency; external validation requires observed project data.
 \end{abstract}
 
 \begin{keyword}
@@ -71,155 +72,47 @@ Data centers \sep Power Usage Effectiveness \sep System-Integrated PUE \sep wast
 \section{Introduction}
 \label{sec:introduction}
 
-Electricity demand from European data centers has become a material planning variable for both transmission and distribution networks. Commission estimates put EU consumption at 76.8~TWh in 2018, with projections of 98.5~TWh by 2030 under a trend scenario and up to 160~TWh under a high-growth case \cite{1}. More recent assessments suggest consumption already reached roughly 96~TWh in 2024 and could approach 168~TWh by 2030 \cite{2}.
+Electricity demand from European data centers has become a material planning variable for transmission and distribution networks. Commission estimates put EU consumption at 76.8~TWh in 2018, with projections of 98.5~TWh by 2030 under a trend case and up to 160~TWh under a high-growth case \cite{1}; more recent assessments suggest roughly 96~TWh in 2024 and nearly 168~TWh by 2030 \cite{2}. Growth is reinforced by traffic expansion and compute-intensive AI workloads, which change not only annual demand but also operational ramps, peaks, heat rejection, cooling needs, and flexibility headroom \cite{14,19}.
 
-Growth is reinforced by traffic expansion and a shift toward compute-intensive workloads. Artificial intelligence (AI) workloads are expected to accelerate demand, with energy needs rising rapidly during 2023--2030 \cite{3, 4}. AI also changes the temporal character of demand. Training and fine-tuning runs, batch pre-processing, model serving, and inference queues can shift facilities between accelerator-intensive training modes and latency-sensitive inference modes, changing IT power, heat rejection, cooling demand, and available flexibility headroom over operational timescales \cite{14,19}. The planning problem therefore extends beyond annual energy growth to how data-center operators and network planners manage ramps, peaks, and service availability.
+At this scale, data-center build-out becomes a local infrastructure and investment problem. Connection rights, congestion, heat offtake, flexibility-market eligibility, land-use approvals, permitting timelines, and community acceptance increasingly determine which projects proceed \cite{6,21}. The EU energy transition adds a second pressure: electricity and heat systems need flexibility, digital coordination, and sector coupling \cite{7,8}, while sustainability reporting for large data centers is being formalized through Directive (EU) 2023/1791 and sector initiatives \cite{15,16}. Data centers can therefore act either as inflexible loads or as service-active assets that export waste heat, provide grid support, and manage dynamic AI-driven loads \cite{11,13}.
 
-If these trajectories persist, the data-center share of EU electricity could increase from about 3.1\% to around 5.7\% by 2035 \cite{2}, making aggregate demand comparable to national consumption in several member states \cite{5, 6}. At that scale, the build-out becomes a business and investment problem under binding local constraints: connection rights and congestion on the power side, offtake and tariff interfaces on the heat side, eligibility rules for flexibility markets, and land-use approvals, permitting timelines, and community acceptance at the site level increasingly shape which projects can proceed and how quickly capital can be deployed \cite{21}. Integration features can partially mitigate these frictions by delivering local co-benefits (e.g., heat export) or by reducing peak stress through controllability and storage, but they require additional interfaces and investment that must be evaluated on a comparable basis.
-
-In parallel, the EU energy transition is pushing electricity and heat systems toward higher renewable shares, electrification, and sector coupling \cite{7}. Policy packages emphasize digitalization and flexibility as enabling layers for this transition \cite{8}, while sustainability reporting frameworks for large data centers are being formalized through Directive (EU) 2023/1791 and industry initiatives \cite{15, 16}. This setting creates a dual role for data centers: treated as inflexible loads they can exacerbate congestion, but when designed for integration they can supply valuable services such as waste-heat export and grid support \cite{11, 13, 22, 23}.
-
-AI workload dynamics sharpen this dual role. At the grid interface, rapid load changes from clustered accelerators can appear as sub-second to minute-scale power swings, complicating voltage management, frequency regulation, and power quality. The same facility can also help manage those dynamics if batteries, controllable cooling, workload scheduling, and telemetry are organized to provide flexibility or peak relief \cite{8,13,Antal2018,Takci2025}. The value of such control is system-facing: it is created outside the conventional facility-efficiency boundary, even though the control hardware and cooling response may increase measured facility electricity.
-
-
-Data-center participation in heat and flexibility markets is governed by tariffs, market access rules, and contract structures. Yet the dominant reporting metric, PUE, evaluates only internal electricity overhead and omits externally valued services. As a result, integration investments that increase electricity use to deliver heat, flexibility, ramp management, or reliability support can worsen reported efficiency even when they improve economic and system outcomes. This creates the KPI gap studied in this paper: PUE records the facility-energy burden of integrated control, while the separately accounted local-system benefit from managing dynamic loads, reducing peak stress, exporting heat, or supporting grid operation remains outside the metric. siPUE is introduced as a PUE-compatible companion indicator for translating those local-system benefits into the same energy-normalized language as PUE while preserving PUE's internal-efficiency role.
+The reporting problem is that PUE evaluates only internal electricity overhead. Heat pumps, heat exchangers, controllability, storage, and telemetry can increase facility electricity even when they reduce local system cost. This creates the KPI gap studied here: PUE observes the facility-energy burden, while the independent system-cost benefit remains outside the metric. siPUE is introduced as a companion indicator, expressed in PUE's own energy units, that translates that benefit into the same numerator language as PUE while preserving PUE's internal-efficiency role.
 
 \subsection{Related Work}
 \label{sec:related}
 
-The literature relevant to this work spans five major areas:
-(i) data centre efficiency metrics,
-(ii) waste-heat recovery and district-heating integration,
-(iii) data centre flexibility and demand response,
-(iv) multi-energy integrated systems, and
-(v) robust decision-making under uncertainty.
-The first four streams are reviewed chronologically and highlight the metric gap that motivates System-Integrated PUE (siPUE); the fifth is reviewed separately because it grounds the Stage~2 optimization method used to test the metric definition.
+The relevant literature spans data-center metrics, heat recovery, flexibility, integrated energy systems, and robust decision-making. PUE remains the dominant facility-efficiency ratio \cite{Belady2008PUE,greengrid2014}, but critiques show that it omits flexibility, source effects, climate dependence, and wider sustainability dimensions \cite{Reddy2017,VandeVoort2017}. Parallel indicators such as CUE, WUE, ERF/ERE, and REF add specific dimensions through the ISO 30134 family and EU reporting practice, but they do not provide a market-valued PUE numerator credit.
 
-\subsubsection{Foundation of Data Centre Metrics (2008--2012)}
+Waste-heat and district-heating studies establish data-center heat as a real system service \cite{11,10}, while demand-response and flexibility studies show that IT load, cooling, and batteries can provide grid services under suitable market rules \cite{Takci2025,Crozier2025}. Integrated energy-system papers quantify these services inside optimization models and show potential cost or emissions reductions \cite{JerezMonsalves2023,Wang2024}. These studies motivate system valuation, but they leave open the standalone reporting question: how should an operator report a service-active design when PUE rises because the service itself uses electricity?
 
-The first generation of data centre metrics was established through
-The Green Grid between 2008 and 2012, culminating in the widely adopted
-Power Usage Effectiveness (PUE) metric \cite{Belady2008PUE, greengrid2014}.
-PUE provided a simple ratio of total facility energy to IT energy and
-played a crucial role in raising awareness about infrastructure
-efficiency.
-However, its design implicitly assumed that
-(i) all non-IT energy is undesirable,
-(ii) energy source differences are irrelevant, and
-(iii) time-varying system behaviour is treated as irrelevant.
-These assumptions became problematic as data centres began interacting
-with electricity markets, district heating networks, and flexibility services.
+Broader scoring approaches, including DESS and DCRE, widen the resource and context boundary \cite{Terenius2023,GreenGrid2025DCRE}, and recent heat and flexibility reviews reinforce the need for quantifiable energy-system indicators \cite{Yuan2025,Takci2025}. The gap is not that local-system value is unknown; it is that current reporting metrics do not feed the combined, delay-adjusted heat, flexibility, peak, and carbon-damage value of a jointly optimized design back into a PUE-normalized signal.
 
-\subsubsection{First Critical Analyses and Metric Extensions (2015--2017)}
-
-By 2015--2017, several works began revealing structural weaknesses in
-PUE.
-Aravanis and Voulkidis \cite{Aravanis2015} highlighted the absence of
-flexibility considerations.
-Reddy et al.\ \cite{Reddy2017} provided a comprehensive taxonomy of
-sustainability metrics and demonstrated that PUE captures only one
-dimension of data centre performance.
-Van de Voort et al.\ \cite{VandeVoort2017} showed empirically that PUE
-varies with cooling architecture and climate, undermining fair
-cross-facility comparisons.
-
-During this period, additional single-dimension metrics emerged:
-Carbon Usage Effectiveness (CUE), Water Usage Effectiveness (WUE), and
-Energy Reuse Factor / Energy Reuse Effectiveness (ERF/ERE).
-These standards (ISO 30134 series) addressed specific dimensions but
-remained fundamentally parallel indicators, without a unified or
-market-based way to aggregate them.
-
-\subsubsection{Waste-Heat Recovery and District Heating Integration (2018--2020)}
-
-Research into waste-heat utilisation expanded significantly as data
-centres grew larger and more thermally intensive.
-Early foundational work by Brunschwiler et al.\ \cite{Brunschwiler2011}
-demonstrated the technical viability of high-grade heat recovery using
-direct liquid cooling.
-Wahlroos et al.\ \cite{11} analysed the integration of data
-centre waste heat into Northern European district heating (DH) systems,
-identifying substantial potential for system-wide carbon reductions.
-Copertaro et al.\ \cite{10} positioned data centres as
-prosumers that both consume electricity and export heat.
-These works establish heat reuse as a genuine system service while leaving
-open the need for an integrated metric capable of valuing it alongside
-energy, carbon, or flexibility. The literature still lacks a reporting-compatible
-way to translate heat export into an equivalent, market-aligned
-sustainability score.
-
-\subsubsection{Data Centre Flexibility and Demand Response (2019--2021)}
-
-With increasing renewable penetration, data centres became candidates
-for providing grid flexibility.
-Liu et al.\ \cite{Liu2013} demonstrated how IT load modulation
-(e.g., CPU scaling) can deliver demand response.
-Antal et al.\ \cite{Antal2018} proposed an explicit flexibility
-management framework for data centres.
-
-However, these works analyse flexibility in isolation, without linking
-it to heat reuse, carbon intensity, or facility-wide sustainability.
-Furthermore, they often rely on engineering assumptions regarding
-flexibility prices in place of settled service-specific market values.
-This gap becomes evident in Crozier and Liska \cite{Crozier2025},
-who find that real-world data centres exhibit weak price responsiveness,
-highlighting the need for econometric estimation of flexibility value.
-
-\subsubsection{Integrated Energy Systems and Sector Coupling (2020--2024)}
-
-Research shifted toward integrated multi-energy systems around 2020.
-Zhang et al.\ \cite{Zhang2022} surveyed the integration of data centres
-with renewable energy.
-Jerez Monsalves et al.\ \cite{JerezMonsalves2023} showed that flexible cooling
-and waste-heat recovery from data centres reduce system costs and
-emissions in the Danish energy system.
-Wang et al.\ \cite{Wang2024} presented the ``Data Centre Integrated
-Energy System'' (DC-IES) concept, combining electricity, heat, cooling,
-renewables, and storage.
-
-These studies quantify system-level impacts with economic valuation embedded
-in optimisation models, leaving the standalone operator-indicator question open.
-
-\subsubsection{Holistic Sustainability Metrics (2023--2025)}
-
-Attempts to provide broader sustainability scoring emerged more recently.
-Terenius \cite{Terenius2023} introduced the Datacenter Energy
-Sustainability Score (DESS), which incorporates waste heat, energy
-sources and social context.
-DESS provides qualitative scoring and lacks market valuation or hourly
-operational usability.
-Newer reviews of waste heat \cite{Yuan2025, Hao2025} and data centre
-flexibility \cite{Takci2025} reinforce the need for quantifiable,
-energy-system-oriented indicators.
-
-\subsubsection{Robust Decision-Making Under Uncertainty}
-
-The two-stage design problem developed below is a robust-optimization exercise layered on top of the metric definition, drawing on a methodological literature outside the data-centre metrics streams above. Minimizing worst-case regret against a scenario-specific optimum is the minimax-regret criterion formalized by Savage \cite{savage1951theory} for decisions without a defensible single probability distribution over states -- the situation Knight \cite{knight2009risk} distinguishes from priced, distribution-known risk as genuine uncertainty. Lempert et al.\ \cite{MR-1626-RPC} operationalize this distinction for long-lived infrastructure planning, evaluating a shared design against a finite scenario ensemble and a worst-case robustness criterion in place of a single expected-value optimum; Stage~1 and Stage~2 in Section~\ref{sec:methodology} adopt the same structure, using scenario-perfect benchmarks and a shared worst-case-regret design while leaving the ten uncertainty states unweighted by probabilities. The secondary near-worst-case mean-cost tie-break used to resolve numerically degenerate ties at the worst-case optimum (Section~\ref{sec:methodology}) is a lexicographic scalarization, a standard device in multi-objective optimization for ranking a primary and secondary criterion without collapsing them into a single weighted objective \cite{Miettinen1999,Ehrgott2005,MarlerArora2004}. Framing Stage~2 this way clarifies the scope of the methodological claim: the paper uses an established minimax-regret criterion as a controlled testbed for observing how siPUE and PUE respond to the same design choice under uncertainty.
+The two-stage model below uses an established robust-optimization structure as the uncertainty testbed. Minimizing worst-case regret follows the minimax-regret tradition \cite{savage1951theory,MR-1626-RPC}; the secondary near-worst-case mean-cost tie-break is a lexicographic scalarization \cite{Miettinen1999,Ehrgott2005}. The methodological claim is therefore limited: the model is used to observe how PUE and siPUE respond to the same robust design choice, not to propose a new robust-optimization criterion.
 
 \subsection{Synthesis and Gap Identification}
 
-Table~\ref{tab:metric-novelty-comparison} positions the proposed metric against the closest reporting metrics and integrated-system modelling literature. The contribution lies in the accounting translation from local-system value into a PUE numerator credit.
+Table~\ref{tab:metric-novelty-comparison} positions the proposed metric against the closest reporting metrics and integrated-system modeling literature. The contribution lies in the accounting translation from local-system value into a PUE numerator credit.
 
 \begin{table}[tbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.12}
-\caption{Comparison of siPUE with adjacent data-centre metrics and modelling approaches.}
+\caption{Comparison of siPUE with adjacent data-center metrics and modeling approaches.}
 \label{tab:metric-novelty-comparison}
 \begin{tabularx}{\linewidth}{L{2.05cm} L{2.25cm} L{1.65cm} L{1.85cm} Y}
 \toprule
 Approach & Primary function & Values local-system services? & PUE numerator credit? & Gap relative to siPUE \\
 \midrule
-PUE \cite{Belady2008PUE,greengrid2014,EUDataCenterDirective2023} & Facility electricity divided by IT electricity & No & Baseline ratio & Treats heat-pump, storage, and control electricity as overhead even when they create external value. \\
+PUE \cite{Belady2008PUE,EUDataCenterDirective2023} & Facility electricity divided by IT electricity & No & Baseline ratio & Treats heat-pump, storage, and control electricity as overhead even when they create external value. \\
 ERF/ERE \cite{EUDataCenterDirective2023} & Reused-energy reporting and energy-reuse effectiveness & Heat only, in energy terms & Partial reuse adjustment & Omits flexibility, peak, network, carbon-damage, and delay effects. \\
-CUE \cite{Reddy2017} & Carbon emissions per IT energy & Carbon footprint only & No & Parallel carbon-intensity indicator outside the PUE-compatible local-system credit. \\
+CUE \cite{Reddy2017} & Carbon emissions per IT energy & Carbon footprint only & No & Parallel carbon-intensity indicator that stays outside the PUE numerator-credit boundary. \\
 WUE \cite{EUDataCenterDirective2023} & Water consumption per IT energy & No & No & Tracks water use outside the energy-system value boundary. \\
-REF \cite{EUDataCenterDirective2023} & Renewable-energy share & No & No & Tracks procurement mix; local heat, flexibility, peak, carbon-damage, and delay value remain outside its boundary. \\
-DESS \cite{Terenius2023} & Broader sustainability score & Partial, contextual & No & Qualitative and contextual metric with limited market-valued PUE compatibility. \\
+REF \cite{EUDataCenterDirective2023} & Renewable-energy share & No & No & Tracks procurement mix; local heat, flexibility, peak, and carbon-damage value, adjusted for construction delay, remain outside its boundary. \\
+DESS \cite{Terenius2023} & Broader sustainability score & Partial, contextual & No & Qualitative and contextual metric that stays outside the PUE numerator-credit boundary. \\
 DCRE \cite{GreenGrid2025DCRE} & Resource-effectiveness view of energy, water, water stress, and climate context & Indirect & No & Broader resource metric outside PUE numerator-credit reporting. \\
-Integrated energy-system optimisation papers \cite{JerezMonsalves2023,Wang2024} & System-cost or emissions optimisation & Yes, inside the model & No & Quantifies system impacts while leaving standalone reporting-compatible numerator credits undefined. \\
-siPUE (this study) & Companion indicator for service-active data centres & Yes: heat, flexibility, peak, carbon damage, and delay & Yes & Converts separately accounted local-system benefit into an energy-equivalent numerator credit and reduces to PUE in the no-services identity case. \\
+Integrated energy-system optimization papers \cite{JerezMonsalves2023,Wang2024} & System-cost or emissions optimization & Yes, inside the model & No & Quantifies system impacts while leaving standalone reporting-compatible numerator credits undefined. \\
+siPUE (this study) & Companion indicator for service-active data centers & Yes: heat, flexibility, peak, and carbon damage, adjusted for construction delay & Yes & Converts the independent system-cost benefit into an energy-equivalent numerator credit and reduces to PUE when no services are active. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -227,17 +120,17 @@ siPUE (this study) & Companion indicator for service-active data centres & Yes: 
 Across this literature, three persistent gaps remain:
 
 \begin{itemize}
-\item Fragmentation: The reporting metrics reviewed here (PUE, CUE, WUE, ERF/ERE, REF, DESS, DCRE) each measure one dimension or resource bundle, leaving local-system services without a PUE-compatible companion score
+\item Fragmentation: The reporting metrics reviewed here (PUE, CUE, WUE, ERF/ERE, REF, DESS, DCRE) each measure one dimension or resource bundle, leaving local-system services without a companion score expressed in PUE's own energy units
 \item Lack of market valuation: Heat reuse, flexibility, and carbon impacts are rarely valued using empirical electricity, heating, reserve or ETS price data; most studies rely on engineering assumptions or ad hoc pricing
-\item Absence of a PUE-compatible local-system credit: Among the approaches reviewed here, we did not identify a transparent numerator credit that converts separately accounted heat, flexibility, peak, carbon-damage, and delay effects into the same energy-normalized language as PUE
+\item Absence of a numerator credit for jointly optimized local-system value: Among the approaches reviewed here, no metric was identified that feeds the combined, delay-adjusted value of a jointly optimized design's heat, flexibility, peak, and carbon-damage effects back into the PUE numerator, expressed in PUE's own energy units
 \end{itemize}
 
 \subsection{Conceptual Framework and Research Questions}
 The paper is structured around a conceptual framework that links energy characteristics, data center design decisions, and local energy system outcomes. 
 Evidence from policy documents, market data, and industry practice provides qualitative and institutional context for the energy characteristics and business readiness layer, while the model formalizes the data center responses and quantifies system outcomes. Section~2 is therefore treated as contextual synthesis rather than a standalone structured-review result. This leads to the following model-facing research questions:
 \begin{enumerate}
-\item RQ1: Can a PUE-compatible companion indicator reveal local-system value from heat, flexibility, peak, carbon damage, and delay while preserving the no-services PUE identity
-\item RQ2: How do robust, cost-minimizing design decisions shift traditional efficiency metrics and system-integrated indicators
+\item RQ1: Can a companion indicator, expressed in PUE's own energy units, reveal the combined local-system value that a jointly optimized design creates through heat, flexibility, peak, and carbon damage, adjusted for construction delay, while reducing exactly to PUE when no services are active?
+\item RQ2: How do robust, cost-minimizing design decisions shift traditional efficiency metrics and system-integrated indicators?
 \end{enumerate}
 
 The remainder of the paper first provides the contextual synthesis, and then addresses RQ1--RQ2 through the metric definition and model-based analysis.
@@ -246,280 +139,167 @@ The remainder of the paper first provides the contextual synthesis, and then add
 This paper makes four contributions:
 \begin{enumerate}
 \item It integrates evidence on data centers and local energy systems, emphasizing how energy characteristics, AI workload dynamics, and integration options shape local business impacts and investment readiness.
-\item It defines and tests siPUE as an accounting bridge between PUE's facility-energy burden and separately accounted local-system benefits.
+\item It defines and tests siPUE as an accounting bridge between PUE's facility-energy burden and the combined local-system benefit of a jointly optimized design.
 \item It uses a two-stage optimization model with scenario-perfect benchmarks and a shared normalized min--max regret design as the uncertainty testbed for evaluating the metric, with lifecycle delay, carbon ledgers, land accounting, heat recovery, flexibility, storage, and DC-OPF network constraints.
 \item It evaluates siPUE for four archetypes and ten shared uncertainty states, reports the PUE--siPUE value-channel result, decomposes the siPUE credit by ledger component, and tests sensitivity to the reference price, heat price, flexibility price, cooling overhead, land availability, and construction delay.
 \end{enumerate}
 
 \section{Data Centers in Local Energy Systems --- Policy and Market Context}
 
-This section examines how data centers interact with local energy systems from a policy and business-investment perspective. Data-center electricity use has become a material planning variable in Europe. Commission assessments place EU consumption at 76.8~TWh in 2018, with projections of 98.5~TWh by 2030 under a trend case and up to 160~TWh under a high-growth case \cite{1}. Industry reporting suggests that demand already reached roughly 96~TWh in 2024 and could approach 168~TWh by 2030 \cite{2}. These trajectories are driven by sustained cloud growth, accelerating data traffic, and the energy intensity of AI workloads \cite{3,4,14}. At the facility level, non-IT energy remains significant; cooling and auxiliary systems typically account for roughly 30--40\% of total electricity consumption \cite{19}. The combination of scale and growth means that data-center siting and design decisions now shape local grid planning and regional investment pipelines.
+This section summarizes the policy and business context for integrated data centers, building on the demand and workload trends already established in Section~\ref{sec:introduction}. Decarbonization, electrification, and sector coupling increase the value of flexible demand, heat reuse, and digital coordination \cite{7,8}. The business question is whether those services are investable: integration can add revenue and reduce grid-access risk, but it also adds capital cost, contract risk, and exposure to local infrastructure timing.
 
-At the same time, Europe is pursuing decarbonization, electrification, and sector coupling, which require more flexible and digitally coordinated energy systems \cite{7,8,9}. Data centers are large loads and potential local system assets that can provide waste-heat recovery, flexible demand, and grid services when integration pathways exist. This duality creates a business challenge: integration can unlock new revenues and de-risk grid access, while also adding capital costs and exposing projects to policy and market uncertainty.
+The section uses a macro--meso--micro lens informed by the multi-level perspective on socio-technical transitions \cite{GEELS2020119894}. Macro policy sets reporting, carbon, funding, and market-design incentives; meso infrastructure determines grid, heat-network, land, and permitting feasibility; micro finance converts those conditions into contracts, cost of capital, and project timing. This framing motivates why a reporting-compatible metric must account for externally valued services without abandoning PUE comparability. Figure~\ref{fig:macro-meso-micro} summarizes this structure and the cross-level conditions that jointly determine investment readiness.
 
-This section therefore adopts an explicitly business-oriented lens. The macro--meso--micro structuring adopted in this study is informed by the multi-level perspective (MLP) on socio-technical transitions \cite{GEELS2020119894}. Projects must reach financial close under uncertainty about connection rights, tariff treatment, reporting requirements, and partner commitments. The multi-level governance framework is used to explain how data-centre innovations can scale into broader socio-technical transitions. Micro-level projects generate learning and proof of concept, meso-level actors (e.g., utilities and regional authorities) enable replication through rules and delivery models, and macro-level policy and funding shape long-term direction. This lens fits the data-centre context because scaling depends on technology, enabling policies, workable organisational models, and access to low-cost, standardised finance. The analysis is organized around (i) binding constraints that shape site selection and time-to-market, (ii) the service channels that enable value stacking, and (iii) the cross-level governance conditions that determine whether integration becomes bankable. This framing motivates why a reporting-compatible metric that accounts for externally valued services is needed for coherent investment and performance assessment.
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\small]
+\definecolor{macroc}{RGB}{197,213,232}
+\definecolor{mesoc}{RGB}{250,224,188}
+\definecolor{microc}{RGB}{206,227,206}
 
+% Equilateral-triangle centers with side length = radius (2.8cm): the
+% standard spacing for a readable 3-set Venn diagram, so each pairwise
+% overlap is a moderate lens rather than the near-total overlap that
+% results when centers are closer together than the radius.
+\coordinate (macroC) at (-1.4,0.808);
+\coordinate (mesoC) at (1.4,0.808);
+\coordinate (microC) at (0,-1.617);
 
-The investment case for system-integrated data centers is shaped by interlocking constraints that operate at different governance levels. Macro policy establishes regulatory certainty and carbon-price trajectories; meso infrastructure determines physical feasibility and sequencing; micro finance translates the resulting risk profile into capital costs and revenue requirements. These layers interact. Policy can create incentives that lower financing costs, but only if local infrastructure exists to deliver services and project-level contracts can lock in revenue.
+\begin{scope}[opacity=0.5]
+\fill[macroc] (macroC) circle (2.8cm);
+\fill[mesoc] (mesoC) circle (2.8cm);
+\fill[microc] (microC) circle (2.8cm);
+\end{scope}
+\draw[line width=0.9pt] (macroC) circle (2.8cm);
+\draw[line width=0.9pt] (mesoC) circle (2.8cm);
+\draw[line width=0.9pt] (microC) circle (2.8cm);
+
+\node[align=center, font=\bfseries] at (-3.1,2.0) {Macro};
+\node[align=center, font=\bfseries] at (3.1,2.0) {Meso};
+\node[align=center, font=\bfseries] at (0,-3.2) {Micro};
+
+\node[align=center, text width=2.1cm] at (-2.05,1.0) {EU/national\\rules \& reporting};
+\node[align=center, text width=2.1cm] at (2.05,1.0) {Utilities \&\\network planning};
+\node[align=center, text width=2.4cm] at (0,-2.3) {Facility\\contracts \& operations};
+
+\node[align=center, text width=1.8cm, font=\scriptsize] at (0,1.85) {Infrastructure alignment};
+\node[align=center, text width=1.9cm, font=\scriptsize] at (-1.4,-0.85) {Eligibility \& incentives};
+\node[align=center, text width=1.9cm, font=\scriptsize] at (1.4,-0.85) {Market access \& compliance};
+
+\node[draw, fill=white, rounded corners=2pt, align=center, font=\bfseries\small, inner sep=4pt] at (0,0.1) {Investment readiness};
+\end{tikzpicture}
+\caption{Conceptual macro--meso--micro governance structure. Investment readiness emerges when regulatory signals, infrastructure feasibility, and project-level execution align. This structuring is adapted from the multi-level perspective in socio-technical transitions literature \cite{GEELS2020119894} to fit the data-center energy-integration context.}
+\label{fig:macro-meso-micro}
+\end{figure}
+
+The three circles in Figure~\ref{fig:macro-meso-micro} represent the macro, meso, and micro levels introduced above. Each pairwise overlap marks a condition that requires two levels to align at once: macro rules must translate into meso infrastructure that can actually deliver them (infrastructure alignment), and meso market access must satisfy the eligibility and incentive structures set at macro level, while micro-level project execution must in turn meet meso market-access and compliance requirements. The region where all three circles overlap, investment readiness, is therefore not a property of any single level; it fails if the macro incentive exists but the meso grid or heat network cannot deliver it, or if both are in place but the micro-level contract structure cannot capture the value. The subsections below examine each level in turn, then return in Section~\ref{sec:cross-level-misalignment} to how misalignment across levels stalls otherwise-viable projects.
 
 \subsection{Macro level --- Policy and market architecture}
-The macro level refers to EU and national policy priorities, regulation, and funding frameworks that shape incentives for data-centre energy integration. Stakeholders include EU institutions, national ministries, regulators, and public funding bodies. At the macro level, EU climate policy provides the overarching regulatory frame for integration. The European Green Deal and the ``Fit for 55'' package establish binding decarbonization targets that indirectly increase the value of electricity efficiency, waste-heat reuse, and flexibility services \cite{17,7}. The Energy Efficiency Directive recast (Directive (EU) 2023/1791) introduces explicit reporting obligations for large data centers and codifies sustainability KPIs such as PUE, Renewable Energy Factor, and Energy Reuse Factor \cite{15,EUDataCenterDirective2023}. Voluntary commitments such as the Climate Neutral Data Centre Pact reinforce these objectives and translate them into sector-level targets for renewable supply and heat reuse \cite{16}. These policy instruments matter as compliance obligations and governance signals: reporting metrics become part of lender and investor due diligence, shaping reputational risk, access to capital, and eligibility for public support.
+EU and national policy shape the incentive boundary for data-center energy integration. The European Green Deal and ``Fit for 55'' package strengthen the value of efficiency, waste-heat reuse, and flexibility \cite{17,7}. The recast Energy Efficiency Directive introduces reporting obligations for large data centers and codifies KPIs such as PUE, Renewable Energy Factor, and Energy Reuse Factor \cite{15,EUDataCenterDirective2023}; voluntary initiatives such as the Climate Neutral Data Centre Pact add sector targets for renewable supply and heat reuse \cite{16}. These metrics increasingly enter due diligence, ESG scoring, and financing conditions, so a metric boundary that ignores system services can distort investment signals.
 
-Standardized KPI disclosure also functions as a capital signal. Reporting comparability affects ESG scoring, due diligence, and financing conditions. Where reporting frameworks emphasize internal efficiency without recognizing system services, integration investments may appear less performant despite improving system outcomes\cite{15,16,EUDataCenterDirective2023,greengrid2014}. This misalignment between public objectives and private performance metrics can weaken incentives for system-integrated design.
+Digitalization and market-design policy form the second macro channel. The EU action plan for digitalizing the energy system treats flexibility, interoperability, and data availability as prerequisites for renewable integration \cite{8}. Whether data centers can monetize controllable load or batteries depends on balancing-market access, telemetry rules, product design, and congestion-pricing frameworks \cite{12,13}. Policy and public--private programs can reduce financing risk when they create durable rules or bundled pipelines \cite{18,interregnorthseaBRAVEBuilding}; unstable incentives increase the option value of waiting.
 
-Digitalization policy is the second macro pillar. The EU action plan for digitalizing the energy system frames flexibility, interoperability, and data availability as prerequisites for integrating variable renewables and coordinating distributed assets \cite{8}. This positions data centers as potential ``digital-energy hubs'' whose operational telemetry, controllability, and digital interfaces are integral to system services. Macro-level policy thus creates an incentive landscape in which data centers that can provide measurable services are more likely to qualify for preferential treatment or supportive tariffs, while those that remain inflexible loads face higher regulatory risk or stricter connection conditions.
-
-Policy-induced investment incentives sit alongside these reporting obligations. Regional initiatives and public--private programs aim to accelerate investment readiness by providing blueprints, de-risking mechanisms, or bundled project pipelines \cite{18,interregnorthseaBRAVEBuilding}. The business impact of such programs depends on their stability and on whether they can shorten the time to contract and commissioning. Where incentives are credible and durable, they reduce financing risk; where they are uncertain, they can amplify the option value of waiting.
-
-Carbon pricing adds a third macro channel. The EU ETS has measurable impacts on electricity-system dispatch and price formation, with carbon price trajectories shaping the relative value of demand reduction, heat reuse, and electrified heat pumps \cite{Xu2023}. For data centers, carbon exposure becomes a regulatory risk that influences the expected marginal cost of electricity and the value of low-carbon energy supply. This policy risk also has a financial channel: it affects the discount rates applied to future cash flows and the choice between integration investments and conventional efficiency upgrades. A stable carbon-price trajectory can support long-term contracts for heat and flexibility; a volatile trajectory increases revenue uncertainty and can delay investment.
-
-Regulatory certainty compounds across these macro channels: because data centers are long-lived assets, durable policy signals reduce financing risk while volatile signals raise it\cite{7,15,16}, a dynamic developed in financial detail at the micro level below.
-
-Finally, electricity market design determines whether flexibility can be monetized and whether congestion relief is rewarded. Studies on data-center flexibility show that market access and product design are decisive for realizing value from demand response and ancillary services \cite{12,13,Takci2025,Crozier2025}. Where balancing markets are open and telemetry requirements are feasible, data centers can monetize battery and load flexibility. Where participation rules are opaque or markets are illiquid, flexibility has limited bankability. Macro policy sets the boundary conditions for value stacking; investable outcomes still depend on local access rules and contracts.
+Carbon pricing adds a third channel: by raising the marginal cost of fossil generation, EU ETS prices increase the relative value of demand reduction, heat reuse, and electrified heat pumps \cite{7}. Stable carbon-price expectations can support long-term heat and flexibility contracts; volatile trajectories raise revenue uncertainty and financing risk \cite{15,16}.
 
 \subsection{Meso level --- Regional infrastructure and spatial constraint}
-The meso level covers regional and local governance and market arrangements that turn policy into planning, tariffs, and investable projects. Stakeholders include regional/metropolitan authorities, DSOs/TSOs, district-heating operators, aggregators, and local permitting bodies. Meso level conditions determine whether macro incentives can be converted into projects. The binding constraint is often grid capacity more than annual energy. Large, near-constant loads can trigger network reinforcements, and in some regions grid operators have constrained or paused new data-center connections due to local network limits \cite{21}. Congestion pricing and connection-rights frameworks influence both operating costs and the feasibility of additional load, making grid access a strategic asset. Regional transmission and distribution operators increasingly treat large data centers as sources of local stress, which means that permitting and connection rights depend on credible mitigation strategies and co-benefits \cite{6,21}. This logic directly affects capital allocation: projects with grid-relief features (flexibility, behind-the-meter storage, or verifiable heat export) are more likely to clear permitting and avoid costly grid upgrades.
+Meso conditions determine whether macro incentives become feasible projects. Grid capacity is often the binding constraint: large, steady loads can trigger reinforcement, congestion charges, import caps, or even paused connection queues \cite{6,21}. Projects that credibly reduce peak stress through flexibility, storage, or heat export are therefore better positioned in permitting and connection negotiations.
 
-Congestion is a planning, pricing, and contract issue. Where congestion charges or locational tariffs are applied, the effective electricity cost can vary materially across sites and over time, and grid import caps can become binding constraints that limit expansion options. These locational signals influence both revenue projections and risk assessments, especially for projects that rely on tight operating margins. For developers, the implication is that congestion relief and flexibility can carry real option value by protecting against future price volatility and curtailment risk \cite{6,21}.
+Land and heat-network access create parallel constraints. Integration equipment expands the footprint, competes with future IT expansion, and can lock projects into sites whose heat demand, renewable resources, and grid access are fixed for the asset life. Heat reuse is technically feasible in many contexts, but its commercial value depends on network proximity, temperature requirements, pipe capacity, tariff treatment, and standardized contracts \cite{11,23}. These constraints make local infrastructure, not only facility efficiency, central to investment readiness.
 
-Permitting and local acceptance further tie congestion and land constraints to business outcomes. Municipalities increasingly evaluate data-center projects through the lens of local co-benefits, including heat reuse, grid services, or renewable integration. Projects that can credibly demonstrate such co-benefits often face lower permitting friction and stronger stakeholder support. This turns integration into a strategic permitting asset.
-
-Land is a parallel constraint. Large facilities require substantial plots, and integration equipment---heat pumps, heat exchangers, thermal storage, battery containers, and electrical substations---expands the footprint and the need for utility corridors. Land availability is both a physical and capital constraint: siting in land-scarce zones raises acquisition costs, extends permitting timelines, and forces trade-offs between integration depth and real-estate feasibility. Because location choices are sticky, land constraints create spatial lock-in: once a site is committed, the ability to exploit local heat networks, renewable resources, or grid capacity is fixed for the project's life. This lock-in is especially relevant for projects that require proximity to district heating networks or industrial offtakers to monetize waste heat \cite{22,23}.
-
-Land constraints also shape expansion options. Integrating heat recovery, storage, or on-site substations often competes with future IT expansion or with other land-intensive infrastructure such as logistics or water-treatment systems. In urban or industrial clusters where land prices and zoning restrictions are tight, these trade-offs can shift investment decisions toward smaller integration packages or phased deployments. The business implication is that land functions as a capacity-limiting factor that affects both near-term financing and long-term optionality.
-
-District heating infrastructure is a second meso constraint. Heat reuse is technically feasible in many contexts, but commercial viability depends on network proximity, temperature requirements, and utility tariff structures \cite{10,11,22,23}. In regions with established district-heating governance, standardized interconnection rules and repeatable contract templates reduce transaction costs and improve bankability \cite{11,23}. In regions without such infrastructure, heat recovery becomes a long-lead investment requiring coordination across municipalities, utilities, and private developers. These differences fall outside a single efficiency metric and directly influence capital requirements and revenue timing.
-
-Infrastructure sequencing is central to this coordination challenge. Heat recovery projects often require parallel investments in heat-pump capacity, pipework, and network reinforcement. When the heat network expands more slowly than data-center build-out, the heat revenue stream is delayed or curtailed, which weakens the business case and can strand integration assets. Successful projects typically resolve sequencing risks through early-stage agreements on expansion schedules and tariff treatment, often involving municipal utilities as coordinating agents. This sequencing constraint mirrors grid reinforcement delays and reinforces the need to price construction delay and infrastructure timing explicitly in investment analysis.
-
-Renewable resource geography also shapes meso feasibility. Nordic contexts provide lower ambient temperatures and proximity to low-carbon generation, improving both PUE performance and the economics of heat cascading \cite{24}. Conversely, high-demand urban clusters often combine strong heat demand with constrained grid capacity and scarce land, raising the value of integration while making it harder to realize. Emerging ``energy hub'' concepts co-locate data centers with renewables, storage, and other flexible loads, using the data center as anchor demand to unlock investment in local generation \cite{25}. These spatial factors make site selection a strategic business decision shaped by technical constraints.
-
-Construction delay is the critical meso-level risk that links infrastructure constraints to financial outcomes. Grid reinforcements, zoning approvals, and interconnection negotiations can delay energization even when a facility is otherwise ready, creating a timing asymmetry between developers and network operators. Because data centers are capital intensive, delays destroy value by shifting revenue streams without reducing fixed costs. The risk is amplified when integration assets are built ahead of guaranteed market access or offtake contracts, which can strand capital for multiple years. This makes infrastructure sequencing and partner coordination central to investment readiness.
-
-Timing asymmetry is particularly acute when grid reinforcement timelines exceed data-center construction timelines. In many jurisdictions, data centers can be built in 18--24 months, while network upgrades or district-heating expansions require multi-year planning cycles. This mismatch creates a coordination risk: capital can be deployed faster than enabling infrastructure, and the resulting idle capacity erodes IRR and reduces appetite for integration. The report highlights that successful projects often rely on early-stage alignment between developers, utilities, and municipalities to synchronize these timelines and to lock in connection rights before major capital is committed.
+Timing is the main meso risk. Data centers can often be built faster than grid reinforcements or district-heating extensions, so service revenues may be delayed or curtailed after capital is committed. Early alignment with utilities, municipalities, and offtakers is therefore needed to synchronize connection rights, heat-network expansion, and market access. Renewable-resource geography reinforces this logic: Nordic and energy-hub settings can improve PUE and heat-cascading economics, while dense urban clusters may offer strong heat demand but tighter grid and land constraints \cite{24,25}.
 
 \subsection{Micro level --- Project finance and capital allocation}
-The micro level refers to site-level technologies and contracts implemented by individual data centres and their partners. Stakeholders include data-centre operators, technology providers, heat off-takers, flexibility/market participants, and on-site energy service companies. At the micro level, investors evaluate data centers through cash-flow logic: Net Present Value (NPV), Internal Rate of Return (IRR) thresholds, and the ability to service debt under downside scenarios. Integration investments increase upfront CAPEX (heat pumps, exchangers, storage, telemetry), but can diversify revenue by adding heat-offtake and flexibility payments to the core IT business. The report highlights that diversified business models are central to investment readiness, particularly when heat and flexibility revenues are structured as contracted cash flows with limited speculative market exposure. Evidence from European heat-reuse projects shows that commercial structures range from utility-paid offtake contracts to co-investment models, with long-term price agreements often required to reach bankability \cite{23}. On the flexibility side, value capture depends on market access and the ability to meet telemetry and performance requirements \cite{12,13}.
+At project level, investors evaluate integration through NPV, IRR, debt service, and downside risk. Heat exchangers, heat pumps, storage, controllability, and telemetry raise CAPEX but can diversify revenue through heat offtake and flexibility payments. European heat-reuse projects show commercial structures ranging from utility-paid offtake to co-investment and third-party ownership, usually with long-term price agreements \cite{23}; flexibility value depends on market access, telemetry, and performance rules \cite{12,13}.
 
-Uncertainty increases the cost of capital. If energy prices, carbon prices, or market-access rules are unstable, investors apply higher discount rates or require stronger contractual guarantees. This raises the hurdle for integration assets relative to conventional efficiency upgrades. Delay risk exacerbates this effect: construction delays lengthen the period before revenue accrues and can breach debt-service covenants. The option value of waiting can therefore dominate near-term integration decisions, especially when the regulatory trajectory or grid-reinforcement timetable is uncertain. These dynamics make financing conditions as important as technical feasibility.
+Uncertainty in energy prices, carbon prices, market access, or connection timing raises the cost of capital. Projects with contracted heat or flexibility revenue can support cheaper debt and higher leverage; speculative service revenues push financing toward higher-return equity. These dynamics encourage staged integration: developers may secure connection rights or heat offtake first, and defer additional storage or controllability until market rules are clearer.
 
-Debt structure and covenant design translate these uncertainties into capital allocation decisions. Projects that can demonstrate long-term contracted heat offtake or stable flexibility revenues are more likely to access lower-cost debt and higher leverage, while projects with speculative service revenues face equity-heavy structures and higher required returns. Integration therefore creates a trade-off: it raises CAPEX but can reduce long-run risk if service contracts are credible. This trade-off is central to investment appraisal and underpins the need for metrics that translate system-service value into signals that financiers can use.
-
-Performance metrics influence financing costs. Reporting obligations under the Energy Efficiency Directive and voluntary sector commitments institutionalize PUE and related KPIs as governance tools \cite{15,16}. Because lenders and investors increasingly rely on standardized metrics in ESG scoring and due diligence, KPI performance can affect the cost and availability of capital. The challenge is that conventional PUE treats all non-IT electricity consumption as overhead, which can penalize projects that add integration assets to generate external system value \cite{greengrid2014,Belady2008PUE,VandeVoort2017}. This creates a micro-level financing risk: projects that improve system outcomes may appear worse on standard metrics, potentially raising financing costs despite stronger long-term value.
-
-These financing dynamics incentivize staged integration strategies. Developers may prioritize assets that secure connection rights or heat offtake first, while deferring optional assets (e.g., additional storage or advanced controllability) until market access or tariff structures are clearer. Integration becomes bankable when uncertainty is reduced through contracts, regulatory clarity, or pilot-scale validation. The model developed below reflects this reality by separating regimes with active services from those where integration remains latent.
-
-These characteristics imply that data centers simultaneously represent infrastructure pressure and integration opportunity. The following section conceptualizes the primary service channels through which integration occurs.
+Standard metrics influence this financing logic. Because PUE and related KPIs enter reporting, ESG scoring, and due diligence \cite{15,16}, projects that add integration electricity can look weaker even when they create system value \cite{Belady2008PUE,VandeVoort2017}. The model below reflects this tension by comparing service-disabled and service-active regimes.
 
 \subsection{Service Channels and Revenue Stacking}
 
-Data centers contribute to local energy systems through three principal channels: heat recovery, electrical flexibility, and coordinated renewable anchoring. These channels correspond to potential value streams that can be stacked to improve project economics, but each requires distinct infrastructure interfaces, market access conditions, and contractual arrangements. The business relevance is direct: contractible and measurable service revenues can offset integration CAPEX and reduce dependence on volatile electricity prices; weak revenue recognition can push integration toward compliance-cost treatment.
+Data centers contribute to local energy systems through three service channels: heat recovery, electrical flexibility, and renewable anchoring. Each can improve project economics only if the service is contractible, measurable, and compatible with local infrastructure. Heat export requires calibrated metering and accounting for temperature lift and losses; flexibility requires telemetry and compliance with market performance rules \cite{8,13}.
 
-Financing structures tend to mirror these revenue profiles. Where long-term offtake or flexibility contracts are in place, projects can access cheaper debt and higher leverage; where revenues are uncertain, equity shares increase and hurdle rates rise. The business consequence is that integration decisions depend on contract design and counterparty risk. Bankable integration often requires early-stage negotiation with utilities and municipalities so service revenues enter the financial model as contracted cash flows.
+Waste heat can be recovered from cooling circuits and upgraded through heat exchangers and heat pumps, often from a 25--40$^\circ$C source stream to district-heating or process-heat levels. Figure~\ref{fig:heat-recovery-flow} summarizes this process, from recovered heat through upgrading to the commercial interface that determines whether it is investable. Urban waste heat is a material decarbonization resource \cite{22}, and the Energy Efficiency Directive adds reporting and feasibility obligations for large facilities \cite{15}. Commercial viability still depends on heat demand, network access, tariffs, curtailment rules, and allocation of temperature-lift responsibility. European project evidence shows utility-paid offtake, co-investment, and third-party ownership models, with long-term contracts central to bankability \cite{11,23}. Heat prices also interact with carbon prices, since low-carbon heat becomes more valuable as fossil heat is penalized under the same ETS mechanism \cite{7}.
 
-Measurement and verification are an additional, often underestimated, business requirement. Heat export requires calibrated metering and agreed accounting for temperature lift and losses; flexibility participation requires real-time telemetry and compliance with market performance metrics \cite{8,13}. These systems impose capital and operational costs that need to be internalized in the financial model. The EU digitalization action plan explicitly positions interoperable data standards and monitoring infrastructure as enabling conditions for flexibility and sector coupling \cite{8}. For data centers, this implies that integration is partly a data-governance investment: robust measurement and reporting systems make service revenues settleable and verifiable, reducing financial risk.
-
-Data centers reject low-grade heat that can be recovered from cooling circuits and upgraded for productive use. In a common configuration, a secondary water loop extracts heat via an exchanger and provides a low-temperature source stream (typically in the 25--40$^\circ$C range) that is lifted by a heat pump to district-heating supply levels or used by nearby process-heat offtakers.
-
-Figure  \ref{fig:heat-mechanism} illustrates the physical and contractual structure of this service channel. The upper layer represents the thermodynamic pathway from IT load to heat delivery. The lower layer highlights the institutional interface required for monetization: connection to district heating infrastructure and contractual alignment with utilities or local offtakers.
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
-\footnotesize
 \begin{tikzpicture}[
-box/.style={rectangle, draw, align=center, minimum width=3.2cm, minimum height=1.0cm},
-arrow/.style={->, thick}
+box/.style={draw, rectangle, align=center, minimum width=3.0cm, minimum height=1.05cm, font=\small, line width=0.9pt},
+flowarrow/.style={-{Stealth[length=2.4mm]}, thick}
 ]
+\node[box, fill=blue!8] (dc) at (0,0) {Data center\\IT load + cooling};
+\node[box, fill=green!8, right=1.1cm of dc] (hx) {Heat exchanger\\(25--40$^\circ$C)};
+\node[box, fill=green!8, right=1.1cm of hx] (hp) {Heat pump\\Temperature lift};
+\node[box, fill=orange!10] (dh) at (5.35,-2.0) {District heating\\/ industrial off-take};
+\node[box, fill=orange!10] (contract) at (0,-2.0) {Contractual and tariff interface\\(utility agreement, eligibility, pricing)};
 
-% Top row
-\node[box] (dc)
-{Data center\\
-IT load + cooling};
-
-\node[box, right=1cm of dc] (hx)
-{Heat exchanger\\
-(25--40$^\circ$C)};
-
-\node[box, right=1cm of hx] (hp)
-{Heat pump\\
-Temperature lift};
-
-% Bottom row (shifted left)
-\node[box, below=1cm of hx, xshift=1cm] (dh)
-{District heating\\
-/ industrial off-take};
-
-\node[box, left=1cm of dh] (contract)
-{Contractual and tariff interface\\
-(utility agreement, eligibility, pricing)};
-
-% Arrows
-\draw[arrow] (dc) -- (hx);
-\draw[arrow] (hx) -- (hp);
-\draw[arrow] (hp) |- (dh);
-\draw[arrow] (dh) -- (contract);
-
+\draw[flowarrow] (dc) -- (hx);
+\draw[flowarrow] (hx) -- (hp);
+\draw[flowarrow] (hp.south) -- ++(0,-0.8) -| (dh.north);
+\draw[flowarrow] (dh) -- (contract);
 \end{tikzpicture}
-\caption{Process flow for recovery and upgrading of data centre waste heat for district heating or industrial off-take, including the contractual and tariff interface.}
-\label{fig:heat-mechanism}
+\caption{Process flow for recovery and upgrading of data-center waste heat for district heating or industrial off-take, including the contractual and tariff interface that determines commercial viability.}
+\label{fig:heat-recovery-flow}
 \end{figure}
 
+Figure~\ref{fig:heat-recovery-flow} separates the technical steps from the commercial one. The heat exchanger and heat pump only determine whether the recovered stream can be lifted to a usable temperature; they do not determine whether anyone will buy it. That depends on the last box, the contractual and tariff interface, where the utility agreement, network eligibility, and pricing terms are negotiated. A design can clear every technical step in this chain and still fail commercially if the off-take contract is missing, which is why the discussion above treats network proximity, tariff treatment, and contract structure as separate constraints from the heat-recovery hardware itself.
 
-Urban waste heat has been identified as a material resource for decarbonizing building heating when effectively integrated \cite{22}. The recast Energy Efficiency Directive introduces reporting and feasibility assessment obligations for large facilities \cite{15}. However, economic viability depends on tariff structures, network access, regulatory certainty, and technical feasibility together.
+Electrical flexibility comes from controllable IT or cooling loads and battery systems originally installed for reliability. These assets can provide balancing, reserve, or demand-response services when market rules allow participation \cite{13,Takci2025}. The value is both direct, through service revenue, and indirect, through grid-access and congestion-risk mitigation. Product definitions, telemetry, settlement intervals, and opportunity costs determine whether this value is investable \cite{Crozier2025}.
 
-A large share of data-center waste heat is technically recoverable under suitable configurations, but monetization pathways are uneven across regions. Even where heat demand exists, mismatch between seasonal demand, temperature requirements, and network access can reduce achievable utilization factors. From a business perspective, the decisive variables are heat availability, long-term offtake commitments, and the allocation of temperature-lift responsibilities across stakeholders (operator, utility, or third-party owner).
-
-Financing structures reinforce this point. Heat-recovery assets often sit outside the data-center ``fence line'' and require co-investment with utilities or municipalities. In practice, bankable projects rely on long-term contracts that define pricing, curtailment rules, and performance obligations, which transforms heat export from an uncertain byproduct into a predictable revenue stream \cite{23}. Where such contracts are absent, heat recovery is treated as discretionary, even if it improves system outcomes.
-
-Project evidence indicates that heat recovery can be commercialized through multiple arrangements: utility-paid offtake into district heating, co-investment in heat pumps and network interfaces, or third-party ownership of the recovery assets with long-term heat purchase agreements. Best-practice surveys document operational and late-stage projects across diverse European contexts, suggesting that remaining barriers often concern institutions, interconnection terms, tariff treatment, and responsibility allocation \cite{23}. In regions with mature district-heating governance, standardized interconnection rules and repeatable contract templates reduce transaction costs and improve investment readiness \cite{11,23}.
-
-Successful heat projects typically emerge where municipal utilities, developers, and offtakers coordinate early on tariffs and network expansion. Examples from Nordic and Central European cities show that heat reuse becomes commercially viable when district-heating operators can monetize lower-temperature supply and when data centers can internalize a share of the avoided heat costs. These cases place heat recovery at the intersection of policy, infrastructure, finance, and multi-actor contracting \cite{23}.
-
-Heat pricing is often indexed to local fuel prices or to regulated district-heating tariffs, which means that the business value of heat export depends on broader energy-market conditions and carbon pricing. As carbon prices rise, the relative value of low-carbon heat increases, improving the economics of heat recovery even when electricity costs rise \cite{Xu2023}. For data centers, this introduces a second price exposure beyond electricity: the heat price trajectory. This reinforces the importance of long-term offtake agreements that define price indexation and risk sharing between operators and utilities \cite{22,23}.
-
-Beyond thermal integration, data centers possess latent flexibility through controllable loads and battery systems originally installed for reliability. Under appropriate market rules, these assets can provide balancing and ancillary services \cite{13}. Estimates suggest that European data centers could offer substantial demand response capacity if enabled by market design \cite{12}. Demonstrated deployments illustrate that portions of battery capacity can participate in balancing markets without compromising uptime \cite{14}.
-
-Flexibility participation depends on both technical capability and regulatory access. On the technical side, controllable cooling and workload shifting allow short-term reductions in demand without service disruption, while battery energy storage provides fast response for frequency regulation or reserve products \cite{13,Antal2018,Takci2025}. On the regulatory side, eligibility criteria, telemetry requirements, and settlement intervals determine whether data centers can participate at scale \cite{Crozier2025}. Where these conditions align, flexibility can become a stable revenue stream that also reduces congestion and improves permitting prospects.
-
-The business logic is therefore twofold: flexibility can generate direct market revenue, but it can also serve as a strategic asset for grid access and risk mitigation. This dual role strengthens the case for system-integrated operation in congested regions, yet it remains invisible to traditional efficiency metrics.
-
-From a revenue perspective, flexibility can be decomposed into distinct products with different risk profiles: short-duration frequency regulation, reserve capacity, and longer-duration demand response or arbitrage. Each product entails specific telemetry and performance obligations, which affects participation costs and contractual design \cite{13,Takci2025,Crozier2025}. The operational implication is that a data center may need to dedicate specific assets to market participation, which introduces opportunity costs that must be reflected in investment analysis.
-
-
-Renewable integration occurs through both procurement and physical coupling. Many operators rely on corporate power purchase agreements or other instruments to match annual electricity use with renewable generation, while siting decisions increasingly favor regions with low-carbon supply and available network capacity. At the meso level, emerging ``energy hub'' concepts co-locate data centers with renewables, storage, and other flexible loads, using the data center as an anchor demand and a controllable participant in local balancing \cite{25}. Demonstration projects in Nordic contexts also illustrate how clean generation and cold climates can support both lower overhead and novel energy-cascading uses of waste heat \cite{24}.
-
-Smart local energy system concepts emphasize the value of coordinated, place-based integration that aligns generation, storage, and demand \cite{9}. Data centers are well positioned to act as anchor loads within such systems because they provide stable demand and can deploy digital control for flexibility. Local energy communities and regional innovation ecosystems are increasingly exploring these configurations, but their success depends on governance arrangements that allocate benefits across utilities, municipalities, and operators. As a result, renewable coordination is as much an institutional and contractual challenge as a technical one.
-
-From a business perspective, renewable coordination can reduce exposure to wholesale price volatility and strengthen ESG positioning, but it also binds projects to specific geographies and infrastructure timelines. In practice, the ability to co-locate with renewables is constrained by land availability and by the need for grid connection rights. This reinforces the meso-level spatial lock-in described above and underscores why renewable integration must be evaluated alongside land and grid constraints as part of siting and procurement decisions.
+Renewable anchoring combines procurement with physical siting. Corporate power purchase agreements can reduce exposure to wholesale-price volatility, while energy-hub concepts co-locate data centers with renewables, storage, and flexible loads \cite{25}. Nordic demonstrations show how clean generation and cold climates can support lower overhead and heat cascading \cite{24}. These benefits remain place-specific because land, grid access, and heat-network proximity constrain where they can be realized \cite{9}.
 
 \subsection{Cross-Level Misalignment and the KPI Gap}
+\label{sec:cross-level-misalignment}
 
-Integration is often slowed by cross-level misalignment. Macro policy encourages decarbonization and reporting; meso constraints demand grid relief and spatial coordination; micro finance depends on predictable cash flows. Conventional performance metrics, however, are largely internal-efficiency indicators that omit the system value of integration. PUE remains the dominant metric in reporting and industry practice, and standards such as ISO/IEC 30134 institutionalize it as a key benchmark \cite{ISO30134,greengrid2014,Belady2008PUE}. Yet PUE classifies all non-IT electricity consumption as overhead, which means that integration assets---heat pumps, storage, controllable cooling---can worsen the metric even when they create external value. Empirical critiques show that PUE can misrepresent efficiency improvements and system contributions, particularly in settings where heat reuse or flexibility is material \cite{VandeVoort2017,Reddy2017,Shao2022Review,Safari2025}.
+Integration is often slowed by cross-level misalignment: policy encourages decarbonization and reporting, local infrastructure requires grid relief and spatial coordination, and project finance depends on predictable cash flows. PUE remains the dominant reporting metric \cite{ISO30134,Belady2008PUE}, but it classifies all non-IT electricity as overhead. Heat pumps, storage, and controllable cooling can therefore worsen PUE even when they create external value, a limitation also noted in empirical and review work \cite{VandeVoort2017,Reddy2017}.
 
-This misalignment is amplified by policy-driven reporting. Directive (EU) 2023/1791 requires standardized energy performance reporting, including PUE and related indicators, and is complemented by the Commission's reporting requirements for data centers \cite{15,EUDataCenterDirective2023}. These metrics have become governance instruments: they inform regulatory oversight, ESG reporting, and investment screening. When integration improves system outcomes but worsens PUE, the reporting framework can penalize projects that are otherwise beneficial, creating a mismatch between public objectives and private incentives.
+Because PUE and related indicators are now used in regulation, ESG screening, and financing \cite{15,EUDataCenterDirective2023}, this boundary matters for investment. A service-active project can improve system outcomes yet appear weaker under conventional reporting. The siPUE metric introduced below is designed as a translation layer: it preserves the PUE denominator and numerator logic, but credits monetized local-system benefits separately from private revenues and costs.
 
-For investors, this KPI gap affects financing. Financing terms often embed performance expectations derived from standardized metrics, which means that projects can face higher discount rates or tighter covenants if they appear less efficient, even when they deliver system benefits. The result is a structural mispricing of system integration: the private cost of capital only partly reflects public value creation. This tension is particularly acute in service-active regimes, where integration assets materially increase electricity consumption while reducing overall system costs. A metric that internalizes these external services is therefore a prerequisite for aligning governance signals with investment incentives \cite{15,16,greengrid2014}.
-
-An effective KPI for this context must satisfy two constraints simultaneously: backward compatibility with existing reporting frameworks and forward compatibility with system-value creation. Backward compatibility is required because regulatory reporting and industry benchmarks are built around PUE; forward compatibility is required because integration assets only become bankable when their system value is recognized in performance assessment. The siPUE metric introduced below is designed as such a translation layer: it preserves the familiar PUE structure while crediting monetized system services. This allows the same indicator to speak to regulators, utilities, and financiers without erasing the business value of integration.
-
-Figure~\ref{fig:governance-venn} conceptualizes the macro--meso--micro decision domains that shape investment readiness. The circles represent domains of policy design, infrastructure coordination, and project execution. Overlapping areas denote joint decision requirements across actors.
-
-\begin{figure}[t]
-\centering
-\footnotesize
-\begin{tikzpicture}
-
-\def\r{2.5}
-
-\definecolor{macrocol}{RGB}{52,120,180}
-\definecolor{mesocol}{RGB}{230,140,40}
-\definecolor{microcol}{RGB}{60,160,90}
-
-\coordinate (A) at (0,0);
-\coordinate (B) at (3.6,0);
-\coordinate (C) at (1.8,-2.8);
-
-% Lighter fills + softer outlines (print-friendly)
-\draw[line width=0.6pt, draw=black!70, fill=macrocol, fill opacity=0.13] (A) circle (\r);
-\draw[line width=0.6pt, draw=black!70, fill=mesocol,  fill opacity=0.13] (B) circle (\r);
-\draw[line width=0.6pt, draw=black!70, fill=microcol, fill opacity=0.13] (C) circle (\r);
-
-% --- Level labels (UNCHANGED size) ---
-\node at (0,1.9) {\textbf{Macro}};
-\node at (5.0,-1) {\textbf{Meso}};
-\node at (1.8,-4.6) {\textbf{Micro}};
-
-% --- Reduced internal texts ---
-\node[align=center, font=\scriptsize] at (-1.2,0.5)
-{EU/national\\rules \& reporting};
-
-\node[align=center, font=\scriptsize] at (4.3,0.4)
-{Utilities \&\\network planning};
-
-\node[align=center, font=\scriptsize] at (1.8,-3.3)
-{Facility\\contracts \& operations};
-
-\node[align=center, font=\scriptsize] at (1.8,1.1)
-{Infrastructure\\alignment};
-
-\node[align=center, font=\scriptsize] at (0.8,-1.6)
-{Eligibility\\\& incentives};
-
-\node[align=center, font=\scriptsize] at (2.8,-1.4)
-{Market access\\\& compliance};
-
-% --- Central concept (keep prominent) ---
-\node[draw=black!70, rounded corners, fill=white, inner sep=3pt]
-at (1.8,-0.2)
-{\textbf{Investment readiness}};
-
-\end{tikzpicture}
-\caption{Conceptual macro--meso--micro governance structure. Investment readiness emerges when regulatory signals, infrastructure feasibility, and project-level execution align. This structuring is adapted from the multi-level perspective in socio-technical transitions literature \cite{GEELS2020119894} to fit the data-center energy-integration context}
-\label{fig:governance-venn}
-\end{figure}
-
-
-The macro--meso--micro framing used in Figure~\ref{fig:governance-venn} aligns with broader smart local energy systems perspectives that emphasize actor coordination and local context \cite{9}. Table~\ref{tab:governance-functions} summarizes typical governance functions that frequently appear in investment due diligence for integrated data-center projects. These functions are the operational bridge between policy intent and project execution: they determine whether integration assets can be financed, permitted, and operated with reliable revenue streams.
-
-\begin{table}[t]
-\centering
-\footnotesize
-\caption{Governance functions shaping investment readiness for system-integrated data centers.}
-\label{tab:governance-functions}
-\begin{tabularx}{\linewidth}{l X}
-\toprule
-Level & Typical functions relevant to investment readiness \\
-\midrule
-Macro (EU/national) & Climate targets, reporting requirements, carbon-price exposure, and market-design rules for flexibility that shape expected cash flows and eligibility for services \cite{7,8,15,16,Xu2023}. \\
-Meso (regional/local) & Network planning and connection rights, congestion management, district-heating access and tariff design, land availability, zoning and permitting, and infrastructure sequencing that determine feasibility and timing \cite{21,22,23}. \\
-Micro (project) & Heat-offtake and flexibility contracts, metering and telemetry, operational control, and risk allocation between operator, utility, and third parties \cite{23,12,13}. \\
-\bottomrule
-\end{tabularx}
-\end{table}
-
-The business implications of this cross-level misalignment are direct. A project that invests in integration assets can improve system outcomes and create long-term revenues, but still appear less efficient under conventional PUE reporting. This reduces coherence between profitability-driven investment decisions and KPI-centered reporting, particularly in service-active regimes where additional electricity use enables valuable system services. The analysis therefore motivates the need for a system-integrated performance indicator that preserves PUE comparability while internalizing external value.
-
-The constraint set carried into the model reflects this business context. Demand is bounded by the IT workload profile, revenue timing risk is represented through lifecycle construction-delay accounting, and electricity-side constraints are captured through the hourly energy balance and the three-node DC-OPF network model. Heat-side constraints combine heat-exchanger capacity, heat-pump capacity, recoverable heat, pipe limits, and district-heating acceptance. Market-access and technical limits on flexibility are represented by installed controllable capacity, while storage is constrained by power, energy, and state-of-charge dynamics. Land constraints are represented by capacity-linked site requirements and annualized lease or opportunity costs. Together, these constraints translate macro policy, meso infrastructure, and micro finance into the optimization problem used to define and evaluate siPUE.
-
-The following section introduces siPUE within this techno-economic framework.
+The model reflects the same context. Demand follows IT workload profiles; delay enters through lifecycle availability; electricity-side constraints use hourly balance and a three-node DC-OPF; heat, flexibility, storage, carbon, land, and lease costs enter through explicit physical and accounting ledgers.
 
 \section{Methodological Contribution}
 \label{sec:methodology}
 
-This section formalizes the business logic described above and operationalizes it in a quantitative framework. The objective is to evaluate whether integration decisions that create system value are reflected coherently in the performance indicators used for reporting and investment screening. Standard practice relies on PUE, which remains the dominant benchmark in industry and in emerging reporting regimes \cite{Belady2008PUE,greengrid2014,ISO30134}. PUE is valuable as a simple internal-efficiency proxy, but it puts electricity used purely for cooling and electricity used to deliver externally valued services, such as heat export or flexibility provision, into the same overhead numerator. This creates the KPI gap described above: investments that improve system outcomes can appear worse on the headline metric even when the underlying economics improve.
+This section defines siPUE and the optimization framework used to test it. siPUE keeps the PUE structure but translates the independent system-cost benefit into an energy-equivalent numerator credit. The benefit includes avoided resource, transmission, peak, and carbon-damage cost; private heat and flexibility revenue remain in the market-cost objective.
 
-The methodological contribution is a system-integrated companion indicator, siPUE, and a two-stage optimization framework that evaluates integration choices under uncertainty. siPUE extends the PUE structure by translating a separately accounted system-cost benefit into an energy-equivalent credit. This benefit covers avoided resource, transmission, peak, and carbon-damage cost, with private heat and flexibility revenue kept in the market objective. The metric is designed to be backward compatible with existing reporting (siPUE reduces to PUE when the system-cost credit is zero), while enabling forward compatibility with system-value creation.
+The model evaluates capital decisions (heat exchangers, heat pumps, flexibility capacity, batteries, land, and the locked 15\% efficiency retrofit) together with hourly operation. Lifecycle market cost includes electricity, carbon-market payments, capex, land, congestion, service revenues, nodal import constraints, and construction-delay effects.
 
-The framework is explicitly business-oriented. It evaluates design decisions that require capital commitment (heat exchangers, heat pumps, flexibility capacity, batteries, and land use) together with operational decisions that respond to hourly market conditions (heat dispatch, reserve availability, storage operation). In the canonical configuration, the service-active cases also carry a fixed 15\% efficiency retrofit; the reported results treat this as a locked assumption outside the endogenous design variables. The objective function is a lifecycle market cost that explicitly prices electricity, carbon, capital, land, congestion, and service revenues, while also accounting for nodal import constraints and construction-delay effects. This structure mirrors the finance constraints described above: integration becomes bankable only when service revenues are credible and when policy or infrastructure constraints can be translated into predictable cash flows.
-
-The evaluation protocol separates a metric-identity test from the fair headline comparison. The \emph{identity no-services} case fixes zero service capacities and zero efficiency investment, and is used only to verify that siPUE reduces to PUE when the system-benefit credit is zero. The \emph{fair services-disabled} comparator disables heat export, flexibility provision, and storage services, but keeps the same locked 15\% efficiency retrofit and the same carbon-cap, network, land, delay, demand, and operational assumptions as the service-active designs. The \emph{baseline} case is a fixed service-active design with incumbent levels of heat recovery, flexibility, battery, and the fixed efficiency retrofit. The \emph{robust} case is one shared design selected per archetype, over that archetype's own ten-scenario uncertainty set, via a min--max regret criterion, using scenario-specific perfect-foresight designs as upper-bound benchmarks. Baseline, robust, and scenario-perfect designs are evaluated against the same physical carbon cap as the fair services-disabled comparator. Because the original 5\% attributable-emissions cap is slightly below what the services-disabled efficient design can physically reach in most rows, the cap includes a services-disabled feasibility floor; this floor is applied in 39 of the 40 canonical rows and is reported in the output tables. PUE and siPUE are computed for all cases to test whether a system-integrated indicator provides a more coherent signal once integration assets are active.
+The main counterfactual is the \emph{services-disabled} comparator: services are disabled, but the 15\% efficiency retrofit and physical constraints are kept the same as in the service-active cases. An identity check with no active services is retained only to verify metric behavior. The \emph{baseline} case is a service-active design; the \emph{robust} case is one min--max-regret design per archetype. Baseline, robust, and scenario-perfect cases share the same carbon cap as the services-disabled comparator, applied per scenario as
+\begin{equation}
+\text{Cap}^{\text{applied}}_s = \max\left(\text{Cap}^{\text{policy}}_s,\ E^{\text{services-disabled}}_{s,\min}\right),
+\label{eq:carbon-cap-floor}
+\end{equation}
+where $\text{Cap}^{\text{policy}}_s$ targets a 5\% reduction in attributable emissions relative to the services-disabled comparator's own unconstrained, cost-minimizing emissions in scenario $s$ (not a zero-efficiency design), and $E^{\text{services-disabled}}_{s,\min}$ is that same comparator's true minimum achievable emissions, found by minimizing emissions directly rather than cost. The $\max$ only guards against scenarios where the 5\% target is physically unreachable for that design; in the canonical rows the applied cap exceeds the policy target by at most 0.10\% (mean 0.05\%), so the enforced cap is within a tenth of a percentage point of the stated 5\% reduction in every row, and the floor is never the dominant constraint.
 
 \begin{figure}[H]
 \centering
-\footnotesize
 \begin{tikzpicture}[
-box/.style={rectangle, draw, align=center, minimum width=3.3cm, minimum height=1.05cm, rounded corners=1pt},
-sum/.style={rectangle, draw, align=center, minimum width=4.6cm, minimum height=1.05cm, rounded corners=1pt, font=\bfseries},
-arrow/.style={->, thick}
+box/.style={rectangle, draw, align=center, minimum width=3.3cm, minimum height=1.1cm, rounded corners=2pt, line width=0.9pt, font=\small},
+sum/.style={rectangle, draw, align=center, minimum width=4.6cm, minimum height=1.2cm, rounded corners=2pt, line width=1.1pt, font=\bfseries\small},
+arrow/.style={-{Stealth[length=2.4mm]}, thick},
+lbl/.style={font=\scriptsize\itshape}
 ]
 
-\node[box, fill=blue!8] (efac) {$E_{\text{FAC}}$\\Facility electricity};
-\node[box, fill=blue!8, right=1.6cm of efac] (eit) {$E_{\text{IT}}$\\IT electricity};
-\node[sum, below=0.9cm of efac, xshift=2.15cm] (pue) {$\text{PUE}=E_{\text{FAC}}/E_{\text{IT}}$};
+\node[lbl] at (0.85,6.2) {Facility-energy ratio};
+\node[box, fill=blue!8] (efac) at (0,5.4) {$E_{\text{FAC}}$\\Facility electricity};
+\node[box, fill=blue!8] (eit) at (4.3,5.4) {$E_{\text{IT}}$\\IT electricity};
+\node[sum] (pue) at (2.15,3.4) {$\text{PUE}=E_{\text{FAC}}/E_{\text{IT}}$};
 \draw[arrow] (efac) -- (pue);
 \draw[arrow] (eit) -- (pue);
 
-\node[box, fill=green!8, below=2.3cm of efac] (bsys) {$B_{\text{sys}}$\\Independent system-cost benefit};
-\node[box, fill=green!8, right=2.6cm of bsys] (credit) {$E_{\text{credit}}=a_s B_{\text{sys}}/p_{\text{ref}}$\\Delay-adjusted energy credit};
+\node[lbl] at (9.9,6.2) {Independent system-cost ledger};
+\node[box, fill=green!8] (bsys) at (9.9,5.4) {$B_{\text{sys}}$\\Independent system-cost benefit};
+\node[box, fill=green!8] (credit) at (9.9,3.4) {$E_{\text{credit}}=a_s B_{\text{sys}}/p_{\text{ref}}$\\Delay-adjusted energy credit};
 \draw[arrow] (bsys) -- (credit);
 
-\node[sum, fill=orange!10, below=2.1cm of pue] (sipue) {$\text{siPUE}=\left[E_{\text{FAC}}-E_{\text{credit}}\right]^{+}\!/E_{\text{IT}}$};
-\draw[arrow] (pue.south) to[out=250,in=90] (sipue.north west);
-\draw[arrow] (credit.south) to[out=290,in=90] (sipue.north east);
+\node[sum, fill=orange!10] (sipue) at (6.0,1.0) {$\text{siPUE}=\left[E_{\text{FAC}}-E_{\text{credit}}\right]^{+}\!/E_{\text{IT}}$};
+\draw[arrow] (pue) -- (sipue);
+\draw[arrow] (credit) -- (sipue);
 
-\node[below=0.55cm of sipue, align=center, font=\itshape] {No active services $\Rightarrow B_{\text{sys}}=0 \Rightarrow E_{\text{credit}}=0 \Rightarrow \text{siPUE}=\text{PUE}$};
+\node[below=0.5cm of sipue, align=center, font=\itshape\small] {No active services $\Rightarrow B_{\text{sys}}=0 \Rightarrow E_{\text{credit}}=0 \Rightarrow \text{siPUE}=\text{PUE}$};
 
 \end{tikzpicture}
-\caption{Metric logic for siPUE. PUE remains the internal energy ratio. siPUE subtracts a delay-adjusted, energy-equivalent credit for separately accounted system benefits. When no services are active, the credit is zero and siPUE equals PUE.}
+\caption{Metric logic for siPUE. PUE (left branch) is the internal facility-energy ratio, computed only from measured electricity. siPUE (bottom) subtracts a delay-adjusted, energy-equivalent credit for the independent system-cost benefit (right branch) from the PUE numerator. When no services are active, the credit is zero and siPUE equals PUE.}
 \label{fig:sipue-metric-story}
 \end{figure}
 
@@ -560,7 +340,7 @@ pipearrow/.style={-{Stealth[length=2.2mm]}, line width=1.2pt, color=black!70}
 
 \node[stagelabel] (t7) at (13.8, 1.6) {Outputs};
 \node[stagecircle, fill=pink!20] (c7) at (13.8, 0.9) {7};
-\node[stagedetail] (d7) at (13.8, -0.1) {PUE, siPUE, CUE, ERF-style heat, value};
+\node[stagedetail] (d7) at (13.8, -0.1) {PUE, siPUE, CUE, system benefit, regret};
 
 \draw[pipearrow] (c1) -- (c2);
 \draw[pipearrow] (c2) -- (c3);
@@ -573,7 +353,7 @@ pipearrow/.style={-{Stealth[length=2.2mm]}, line width=1.2pt, color=black!70}
 
 \end{tikzpicture}
 }
-\caption{Model pipeline from inputs and scenarios to robust design, KPI outputs, and internal diagnostics.}
+\caption{Model pipeline from inputs and scenarios to robust design and KPI outputs.}
 \label{fig:model-pipeline}
 \end{figure}
 
@@ -583,7 +363,7 @@ PUE is defined as
 \begin{equation}
 \text{PUE} = \frac{E_{\text{FAC}}}{E_{\text{IT}}},
 \end{equation}
-where $E_{\text{FAC}}$ is modeled facility electricity and $E_{\text{IT}}$ is delivered IT electricity. The proposed siPUE keeps this denominator and adjusts only the numerator. It is a PUE-compatible companion indicator that converts separately accounted local-system benefits, including heat, flexibility, peak, carbon damage, and delay, into an energy-equivalent numerator credit. Let superscript $0$ denote the fair services-disabled comparator and $d$ denote a service-active design. The independent system-accounting ledger is
+where $E_{\text{FAC}}$ is modeled facility electricity and $E_{\text{IT}}$ is delivered IT electricity. siPUE keeps this denominator and adjusts the numerator by a system-benefit credit. Let superscript $0$ denote the services-disabled comparator and $d$ a service-active design. The independent system-cost ledger is
 \begin{equation}
 C_{\text{ind}}^d =
 C_{\text{el}}^d
@@ -594,13 +374,13 @@ C_{\text{el}}^d
 - V_{\text{flex}}^d ,
 \label{eq:independent-cost-ledger}
 \end{equation}
-where $C_{\text{el}}$ is electricity resource cost, $C_{\text{trans}}$ is transmission or network cost, $C_{\text{peak}}$ is the independent peak-capacity cost, $C_{\text{CO2,dam}}$ is the carbon-damage ledger, and $V_{\text{heat}}$ and $V_{\text{flex}}$ are separately accounted avoided heat and flexibility costs. The net system benefit credited by siPUE is the counterfactual reduction in this independent accounting ledger:
+where $C_{\text{el}}$, $C_{\text{trans}}$, $C_{\text{peak}}$, and $C_{\text{CO2,dam}}$ are electricity-resource, network, peak-capacity, and carbon-damage costs, and $V_{\text{heat}}$ and $V_{\text{flex}}$ are avoided heat and flexibility costs. $V_{\text{heat}}$ is avoided boiler fuel cost plus avoided variable O\&M only; it excludes any carbon or emissions term. $V_{\text{flex}}$ is a fixed avoided reserve-capacity value, independent of carbon pricing. The carbon-damage value of the emissions avoided by displacing boiler heat or thermal generation is credited separately and additively through $C_{\text{CO2,dam}}$, which is computed from the same physical emissions ledger used for $V_{\text{heat}}$'s displaced fuel but from a distinct, non-overlapping cost component (social carbon cost times avoided tCO2, not fuel price), so no term is counted in both places. The credited system benefit is
 \begin{equation}
 B_{\text{sys}}^d =
 C_{\text{ind}}^0 - C_{\text{ind}}^d .
 \label{eq:system-benefit}
 \end{equation}
-Equivalently, positive terms in $B_{\text{sys}}$ are avoided independent system costs, while negative terms are additional system burdens from the service-active design. No component is truncated before aggregation. A design with net negative $B_{\text{sys}}$ therefore receives a negative energy credit and its siPUE increases relative to PUE; the outer $[\cdot]^+$ operator in Eq.~\ref{eq:sipue} only prevents the adjusted numerator from becoming negative when net benefits are very large.
+Positive terms in $B_{\text{sys}}$ are avoided independent system costs; negative terms are additional system burdens. Components are aggregated before any clipping, so a design with negative net system benefit receives a negative credit and siPUE rises relative to PUE.
 
 \begin{table}[H]
 \centering
@@ -616,7 +396,7 @@ Electricity resource-cost changes, transmission or network-cost changes, indepen
 \end{tabularx}
 \end{table}
 
-This boundary keeps private settlement and public system value separate. Private heat and flexibility revenues appear in the market-cost objective, while siPUE credits only independent system benefit. Conversely, carbon-market payments are kept in the private market ledger, while carbon damage enters only the independent system ledger. This separation avoids counting a private payment as a public system benefit or counting the same carbon effect twice.
+This boundary keeps private settlement and public system value separate: heat and flexibility revenues enter the market objective, ETS payments stay in the market ledger, and carbon damage enters only the independent system ledger.
 
 \begin{table}[H]
 \centering
@@ -629,7 +409,7 @@ Term & Unit & Temporal basis & Discounted? \\
 \midrule
 $E_{\text{FAC}}$ & MWh/year & Representative modeled operating year. & No \\
 $E_{\text{IT}}$ & MWh/year & Same representative modeled operating year. & No \\
-$B_{\text{sys}}$ & EUR/year & Annual system-benefit difference between the fair services-disabled comparator and design $d$. & No \\
+$B_{\text{sys}}$ & EUR/year & Annual system-benefit difference between the services-disabled comparator and design $d$. & No \\
 $p_{\text{ref}}$ & EUR/MWh & Frozen base-case reference price used only for unit conversion. & No \\
 $a_s$ & dimensionless & Lifecycle availability factor applied once to represent delayed useful benefit. & No \\
 \bottomrule
@@ -642,7 +422,7 @@ E_{\text{credit}} =
 a_s \frac{B_{\text{sys}}}{p_{\text{ref}}},
 \label{eq:sipue-credit}
 \end{equation}
-where $p_{\text{ref}}$ is the calibrated electricity reference price in EUR/MWh and $a_s \in [0,1]$ is the lifecycle availability factor after construction delay. The reference price functions only as a unit converter. In the canonical run it is fixed before optimization at 56.63~EUR/MWh, based on the no-services electricity-resource marginal cost at the data-center node. ETS payments and carbon damage are excluded from $p_{\text{ref}}$ because those terms are already handled in separate ledgers. Freezing $p_{\text{ref}}$ across all designs and uncertainty states prevents the metric from improving simply because the conversion factor changes.
+where $p_{\text{ref}}$ is a fixed unit-conversion price and $a_s \in [0,1]$ is the lifecycle availability factor after construction delay. In the canonical run, $p_{\text{ref}}=56.63$~EUR/MWh, based on the electricity-resource marginal cost at the data-center node in the \emph{identity no-services} case, not the services-disabled comparator used as the reference case elsewhere. The identity case is used here because it has zero efficiency investment and zero service capacity, so its marginal price cannot itself be shifted by the design choices siPUE evaluates; anchoring $p_{\text{ref}}$ to the services-disabled comparator instead would let its locked efficiency retrofit and carbon-cap treatment influence the unit-conversion factor common to every case. ETS payments and carbon damage are excluded because they are handled in separate ledgers. Freezing $p_{\text{ref}}$ at this design-independent value prevents the metric from improving through the conversion factor itself.
 
 siPUE is
 \begin{equation}
@@ -650,19 +430,19 @@ siPUE is
 \frac{\left[E_{\text{FAC}} - E_{\text{credit}}\right]^+}{E_{\text{IT}}},
 \label{eq:sipue}
 \end{equation}
-with $[z]^+=\max(0,z)$. Internal property checks are run before interpretation: nonnegativity (checked separately for the identity no-services, fair services-disabled, baseline, and robust cases), the no-services identity, delay monotonicity, carbon-ledger separation, canonical scenario count, scale normalization, benefit monotonicity, delay behavior, and reference-price monotonicity. These are verification checks of the metric construction, not external validation against observed projects. The property table (Figure~\ref{fig:property-checks}) satisfies all checks.
+with $[z]^+=\max(0,z)$. Internal property checks verify nonnegativity, reduction to PUE when no services are active, delay behavior, carbon-ledger separation, scenario count, scale normalization, benefit monotonicity, and reference-price monotonicity.
 
 \subsection{Reference-price sensitivity and anti-gaming rule}
 \label{sec:pref-sensitivity}
 
-The reference price is the main conversion choice in siPUE, so it is treated as a first-order sensitivity. Holding design and operation fixed, a multiplier $k$ gives
+The reference price is the main conversion choice in siPUE. Holding design and operation fixed, a multiplier $k$ gives
 \begin{equation}
 \text{siPUE}(k) =
 \frac{\left[E_{\text{FAC}} - a_s B_{\text{sys}} /(k p_{\text{ref}})\right]^+}{E_{\text{IT}}}.
 \label{eq:sipue-pref-sensitivity}
 \end{equation}
 
-The anti-gaming rule is that $p_{\text{ref}}$ must be selected before the service-active design is evaluated. In this study it is the frozen no-services electricity-resource marginal cost at the data-center node. It is fixed ex ante by the analyst, before observing service-active outcomes, and remains constant across designs and uncertainty states. ETS payments and carbon damage are excluded from $p_{\text{ref}}$ because those effects already enter separate ledgers. The sensitivity in Table~\ref{tab:pref-sensitivity} recomputes only Eq.~\ref{eq:sipue-pref-sensitivity}; dispatch, heat delivery, emissions, PUE, and the sign of $B_{\text{sys}}$ are unchanged.
+The anti-gaming rule is to set $p_{\text{ref}}$ ex ante and hold it constant across designs and uncertainty states. Table~\ref{tab:pref-sensitivity} changes only Eq.~\ref{eq:sipue-pref-sensitivity}; dispatch, heat delivery, emissions, PUE, and $B_{\text{sys}}$ are unchanged.
 
 \begin{table}[tbp]
 \centering
@@ -680,9 +460,7 @@ $1.5p_{\text{ref}}$ & High conversion price; weaker energy credit & 1.216 \\
 \end{tabularx}
 \end{table}
 
-This sensitivity is intentionally large enough to report: the reference price affects the magnitude of the siPUE credit, even though the underlying physical and monetary ledgers remain unchanged. For that reason, siPUE should always be reported with the reference-price rule and a sensitivity band.
-
-siPUE is a system-adjusted performance indicator with a different interpretation from thermodynamic efficiency. It is designed as a companion KPI beside PUE. For operators and investors, it gives a KPI view of external value that can be read next to PUE. For policy users, it gives a way to discuss heat recovery and flexibility without treating every MWh of additional facility electricity as waste.
+The sensitivity shows that $p_{\text{ref}}$ affects the magnitude of the credit, even when all physical and monetary ledgers are unchanged. siPUE should therefore be reported with the reference-price rule and a sensitivity band. It is a companion KPI, not a thermodynamic-efficiency measure.
 
 \subsection{Two-stage design model}
 
@@ -691,15 +469,15 @@ Let $s \in \mathcal{S}$ index the shared uncertainty states, $x$ denote design v
 C_s^{\star} = \min_{x,y_s} C_s(x,y_s),
 \label{eq:stage-one}
 \end{equation}
-where $C_s$ is lifecycle market cost for scenario $s$. Stage~2 chooses one shared design $\hat{x}$ per archetype, applying the minimax-regret criterion discussed in Section~\ref{sec:related} \cite{savage1951theory,MR-1626-RPC}. The ten shared states are left unweighted by probabilities; each archetype is solved independently over its own ten-scenario group. The resulting canonical analysis contains four shared designs, one per archetype, with no single design shared across all 40 rows. Regret is computed against the scenario-perfect benchmark and normalized by each scenario's present-value-discounted lifetime IT energy $E_{\text{IT},s}^{\text{PV}}$, so it is reported in EUR/MWh IT:
+where $C_s$ is lifecycle market cost. Stage~2 chooses one shared design $\hat{x}$ per archetype using minimax regret \cite{savage1951theory,MR-1626-RPC}. The ten states are unweighted, and each archetype is solved independently. Regret is normalized by each scenario's present-value-discounted lifetime IT energy $E_{\text{IT},s}^{\text{PV}}$:
 \begin{equation}
 R_s(\hat{x}) =
 \frac{C_s(\hat{x},y_s)-C_s^{\star}}{\max(\epsilon, E_{\text{IT},s}^{\text{PV}})}.
 \label{eq:normalised-regret}
 \end{equation}
-The robust design is selected in two passes: the first minimizes the worst normalized regret across scenarios, giving $Z^{\star}$ from Eq.~\ref{eq:normalised-regret}; the second fixes $Z \le Z^{\star}(1+\tau)$ and, within that near-worst-case band, minimizes mean lifecycle cost across scenarios. This is a lexicographic tie-break \cite{Miettinen1999,Ehrgott2005,MarlerArora2004}. In the canonical run $\tau = 10^{-7}$, so this tie-break resolves numerically degenerate ties at the worst-case-regret optimum while preserving worst-case regret to material precision. The canonical results report the identity no-services case, the fair services-disabled comparator, the fixed baseline design, and the robust shared design. Scenario-perfect solutions serve as planning benchmarks and validation references.
+The robust design is selected in two passes: minimize worst normalized regret, then fix $Z \le Z^{\star}(1+\tau)$ and minimize mean lifecycle cost within that band. This lexicographic tie-break \cite{Miettinen1999,Ehrgott2005} uses $\tau = 10^{-7}$ in the canonical run. The publication-facing cases are the services-disabled comparator, baseline service-active design, robust shared design, and scenario-perfect benchmark; the no-active-services case is used only to verify metric identity.
 
-The implementation can enumerate discrete efficiency-reduction levels, but the canonical run fixes the efficiency reduction at 0.15 in the fair services-disabled, baseline, robust, and scenario-perfect cases. The optimized capacity choices reported below are therefore heat-exchanger capacity, heat-pump capacity, flexibility capacity, battery energy and power capacity, and associated land use. The identity no-services case keeps both service capacity and efficiency reduction at zero.
+The canonical run sets the efficiency reduction to 0.15 in the services-disabled comparator, baseline, robust, and scenario-perfect cases. Optimized capacities are heat exchanger, heat pump, flexibility, battery energy and power, and associated land use. The identity check keeps service capacity and efficiency reduction at zero. This locked retrofit is not an assumption that favors the service-active designs: re-solving the services-disabled design in every one of the 40 canonical rows with efficiency chosen freely from the same discrete candidate set (0\% or 15\%) selects 0.15 in all 40 rows, so the services-disabled comparator's own unconstrained economics already favor the retrofit independently of any service.
 
 \begin{figure}[H]
 \centering
@@ -710,17 +488,59 @@ The implementation can enumerate discrete efficiency-reduction levels, but the c
 
 \subsection{Operational constraints and ledgers}
 
-Hourly operation is represented as a linear program. The facility energy balance links grid import, battery charging and discharging, IT load, cooling overhead, and heat-pump electricity. Heat export is bounded by heat-exchanger capacity, heat-pump capacity, recoverable heat, pipe limits, and district-heating acceptance. Flexibility is modeled as an availability or reserve-capacity service, consistent with reserve products whose settlement depends on capacity availability and telemetry, with routine energy delivery outside the settlement basis \cite{13,Takci2025,Crozier2025}. The reserve variables for controllable load and battery headroom earn private flexibility revenue and, for controllable load, an avoided system-cost credit; the nodal power balance includes actual facility load and parasitic service overhead. Deliverability is represented through headroom constraints on IT load, installed controllable capacity, unused battery inverter capacity, stored energy above the UPS reserve, and parasitic service overhead. Scarcity-event activation is outside the current validation scope. Battery operation follows state-of-charge dynamics with charge and discharge limits.
+Hourly operation is a linear program. The facility balance links grid import, battery operation, IT load, cooling, and heat-pump electricity. Heat export is bounded by heat-exchanger and heat-pump capacity, recoverable heat, pipe limits, and district-heating acceptance. Flexibility is modeled as reserve availability, with routine activation outside the settlement basis \cite{Takci2025,Crozier2025}. Deliverability is enforced through IT-load headroom, controllable capacity, unused battery inverter capacity, stored energy above the UPS reserve, and parasitic overhead.
 
-The electricity system is represented by a stylized three-node DC-OPF. Thermal generation, renewable availability, line capacities, and nodal settlement prices determine the cost of supplying the data center and the wider network.
+The electricity system is a stylized three-node DC-OPF with thermal generation, renewable availability, line capacities, and nodal settlement prices. Carbon costs follow the market/independent ledger split in Table~\ref{tab:sipue-boundary}. Land is represented as lease or opportunity cost tied to core facility, cooling, heat, flexibility, and battery footprints.
 
-Carbon is kept in separate ledgers: market carbon cost enters the private market ledger, and carbon damage enters the independent system-cost ledger. They are reported together while remaining separate from private-credit claims. Land is modeled as lease or opportunity-cost accounting tied to core facility, cooling, heat, flexibility, and battery footprints. This stylized constraint supports design comparison; physical siting analysis remains outside the model scope.
+Network structure is illustrated in Fig.~\ref{fig:nodal-power} and Fig.~\ref{fig:nodal-heat}. These schematics correspond to the nodal representations used in the optimization model: a 3-node DC-OPF for the electricity system and a simplified heat-recovery network with storage.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+node/.style={draw, ellipse, minimum width=2.9cm, minimum height=1.3cm, align=center, font=\small, line width=0.9pt},
+flowarrow/.style={-{Stealth[length=2.6mm]}, thick}
+]
+\node[node, fill=blue!8] (n1) at (0,0) {N1 (NO)\\Data-center node};
+\node[node, fill=orange!10] (n2) at (3.4,2.7) {N2 (DE)\\Thermal + Renewables};
+\node[node, fill=orange!10] (n3) at (6.4,0) {N3 (GB)\\Thermal + Renewables};
+
+\draw[flowarrow] (n1) -- node[above, sloped, font=\scriptsize] {$F_{12}$} (n2);
+\draw[flowarrow] (n2) -- node[right, font=\scriptsize] {$F_{23}$} (n3);
+\draw[flowarrow] (n3) -- node[below, sloped, font=\scriptsize] {$F_{13}$} (n1);
+
+\node[below=0.35cm of n1, font=\scriptsize\itshape, align=center] {IT load + grid import};
+\end{tikzpicture}
+\caption{Stylized three-node DC-OPF electricity network. Each node represents one modeled country group: N1 (Nordics -- Norway, Sweden, Denmark, Finland, Iceland), N2 (Central Europe -- Germany, Belgium, Netherlands, France), and N3 (United Kingdom); one representative country is shown per node. $F_{12}$, $F_{23}$, and $F_{13}$ are the linearized DC power flows between node pairs; arrow direction is illustrative, since flows are signed variables that can reverse hour to hour. The data-center node shown here (N1) is illustrative -- each archetype's own scenario location determines which node it actually attaches to.}
+\label{fig:nodal-power}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+box/.style={draw, rectangle, rounded corners=1pt, align=center, minimum width=2.7cm, minimum height=1.05cm, font=\small, line width=0.9pt},
+flowarrow/.style={-{Stealth[length=2.6mm]}, thick}
+]
+\node[box, fill=blue!8] (src) at (0,0) {IT + cooling\\recovered heat};
+\node[box, fill=green!8, right=1.3cm of src] (hx) {Heat exchanger\\$K_{\text{HX}}$};
+\node[box, fill=green!8, right=1.3cm of hx] (hp) {Heat pump\\$K_{\text{HP}}$};
+\node[box, fill=orange!10, right=1.3cm of hp] (dh) {District heating\\$K$ price segments};
+\node[box, fill=yellow!15, below=1.0cm of hp] (store) {Thermal store\\charge / discharge};
+
+\draw[flowarrow] (src) -- (hx);
+\draw[flowarrow] (hx) -- (hp);
+\draw[flowarrow] (hp) -- (dh);
+\draw[flowarrow] (hp.south) -- (store.north);
+\draw[flowarrow] (store.east) to[out=0,in=270] (dh.south);
+\end{tikzpicture}
+\caption{Simplified heat-recovery network with storage. Recovered heat from IT and cooling loads passes through the heat exchanger and heat pump to become delivered heat, is optionally buffered in a thermal store, and is sold into up to $K$ district-heating price segments.}
+\label{fig:nodal-heat}
+\end{figure}
 
 \subsection{Data and scenario design}
 
-The model uses a calibrated three-node hourly time series with 8,760 sequential hours. The annual run is compressed into seven representative days. Hourly weights sum to 8,760 and day weights sum to 365, so operating quantities are annualized once. Fixed annual terms, such as capex, demand charges, and land lease cost, enter once outside the representative-day weighting.
+The model uses a calibrated 8,760-hour, three-node time series compressed into seven representative days. Stratified medoid clustering selects representative days from seasonal strata using standardized fuel-price, load, renewable, net-load, calendar, ambient-temperature, and district-heating features. Cluster weights preserve annual hours. Fixed annual terms enter once outside the representative-day weighting. The seven days are concatenated into one operating horizon, so battery state of charge and peak import are evaluated across the combined sample rather than reset daily.
 
-The scenario set has four archetypes and ten shared uncertainty states, giving 40 canonical rows. The archetypes are AI/HPC, hyperscale cloud, colocation, and enterprise/edge. Each uncertainty state changes service prices, heat conditions, construction delay, carbon caps, and related operating conditions using predefined scenario construction. The physical carbon cap is common to the fair services-disabled, baseline, robust, and scenario-perfect cases within each row. The archetype base recoverable-heat fractions are 0.20--0.50, informed by data-center heat-reuse literature and adjusted downward where archetype-specific evidence is weak \cite{10,11,Yuan2025,Hao2025}. State multipliers then represent local heat-network opportunity and raise some effective LP inputs above the base range; in the canonical rows the effective recoverable-heat fraction spans 0.17--0.575, with the largest values occurring for AI/HPC and hyperscale in favorable heat states. The design and KPI outputs are normalized by IT energy or IT capacity where appropriate, so capacity comparisons are interpretable across archetypes.
+The canonical scenario set has four archetypes -- AI/HPC, hyperscale cloud, colocation, and enterprise/edge -- each facing ten shared uncertainty states, giving 40 rows. States vary service prices, heat conditions, construction delay, carbon caps, and operating conditions. Archetype base recoverable-heat fractions are 0.20--0.50 \cite{11,Hao2025}; state multipliers raise effective LP inputs to 0.17--0.575 in the canonical rows. Outputs are normalized by IT energy or IT capacity where appropriate.
 
 \begin{table}[H]
 \centering
@@ -734,10 +554,60 @@ Dimension & Count & Role in the model \\
 Archetypes & 4 & AI/HPC, hyperscale cloud, colocation, enterprise/edge \\
 Shared uncertainty states & 10 & Heat, flexibility, carbon-cap, delay, and service conditions \\
 Canonical rows & 40 & One row for each archetype and uncertainty-state pair \\
-Canonical design cases & 4 & identity no-services, fair services-disabled, baseline, robust \\
+Publication-facing cases & 3 (+1 benchmark) & services-disabled comparator, baseline service-active, robust shared design; plus the scenario-perfect benchmark reported alongside them \\
 Representative days & 7 & Weighted annual operating approximation \\
 \bottomrule
 \end{tabularx}
+\end{table}
+
+Table~\ref{tab:uncertainty-state-levels} and Table~\ref{tab:uncertainty-state-multipliers} report the ten shared uncertainty states in full; the scenario generator and seed are released with the code (Code availability, below).
+
+\begin{table}[H]
+\centering
+\tiny
+\setlength{\tabcolsep}{1.5pt}
+\caption{Shared uncertainty states: absolute input levels. El. price and heat price are EUR/MWh(th); flex price is EUR/MW-h; ETS and carbon-damage prices are EUR/tCO2; delay is months.}
+\label{tab:uncertainty-state-levels}
+\begin{tabular}{l l r r r r r r r r}
+\toprule
+State & Loc. & El. price & El. vol. & Heat price & Heat dem. & Flex price & ETS & Damage & Delay \\
+\midrule
+1 Central-base & Netherlands & 65 & 18 & 58 & 50 & 18 & 65 & 120 & 6 \\
+2 Clean-cool & Norway & 48 & 13 & 48 & 62 & 16 & 45 & 80 & 0 \\
+3 High-ETS & Germany & 72 & 24 & 62 & 48 & 21 & 105 & 160 & 6 \\
+4 Heat-rich & Denmark & 58 & 20 & 78 & 78 & 20 & 75 & 140 & 0 \\
+5 Flex-rich & UK & 82 & 30 & 52 & 30 & 31 & 80 & 130 & 12 \\
+6 Cooling-stress & France & 70 & 22 & 55 & 38 & 18 & 70 & 110 & 6 \\
+7 Congestion-stress & Belgium & 76 & 27 & 60 & 44 & 24 & 85 & 180 & 6 \\
+8 Storage-limited & Sweden & 54 & 19 & 50 & 55 & 17 & 60 & 100 & 0 \\
+9 Cost-stress & Netherlands & 74 & 25 & 56 & 42 & 19 & 90 & 200 & 12 \\
+10 Service-upside & Denmark & 60 & 21 & 82 & 70 & 29 & 75 & 150 & 6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\tiny
+\setlength{\tabcolsep}{2.5pt}
+\caption{Shared uncertainty states: multipliers applied to archetype base values. Cong. = congestion, Cool. OH = cooling overhead, Free cool. = free-cooling availability, Heat rec. = heat-recovery fraction, HP COP = heat-pump coefficient of performance, Flex avail. = flexibility availability, Storage = storage availability, Capex and Land are cost multipliers.}
+\label{tab:uncertainty-state-multipliers}
+\begin{tabular}{l r r r r r r r r r}
+\toprule
+State & Cong. & Cool. OH & Free cool. & Heat rec. & HP COP & Flex avail. & Storage & Capex & Land \\
+\midrule
+1 Central-base & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 & 1.00 \\
+2 Clean-cool & 1.20 & 0.82 & 1.25 & 1.10 & 1.08 & 0.95 & 1.10 & 0.90 & 0.80 \\
+3 High-ETS & 0.90 & 1.05 & 0.95 & 0.95 & 0.95 & 0.90 & 0.90 & 1.00 & 1.10 \\
+4 Heat-rich & 0.85 & 0.92 & 1.15 & 1.15 & 1.05 & 1.00 & 1.00 & 1.05 & 0.95 \\
+5 Flex-rich & 0.75 & 1.08 & 0.90 & 0.90 & 0.90 & 1.20 & 1.00 & 1.00 & 1.05 \\
+6 Cooling-stress & 1.05 & 1.28 & 0.70 & 0.85 & 0.92 & 0.90 & 0.90 & 1.10 & 1.00 \\
+7 Congestion-stress & 0.60 & 1.12 & 0.90 & 1.00 & 0.95 & 1.05 & 0.90 & 1.05 & 1.10 \\
+8 Storage-limited & 1.10 & 0.88 & 1.20 & 1.05 & 1.05 & 0.95 & 0.35 & 1.00 & 0.90 \\
+9 Cost-stress & 0.80 & 1.15 & 0.85 & 0.90 & 0.90 & 0.90 & 0.80 & 1.35 & 1.30 \\
+10 Service-upside & 0.95 & 0.95 & 1.10 & 1.15 & 1.08 & 1.15 & 1.15 & 0.90 & 0.95 \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 \begin{figure}[H]
@@ -766,39 +636,33 @@ Representative days & 7 & Weighted annual operating approximation \\
 
 \begin{figure}[H]
 \centering
-\begin{subfigure}{0.32\linewidth}
-\centering
-\includegraphics[width=\linewidth]{fig_08a_network_topology.pdf}
-\caption{Network topology.}
-\end{subfigure}
-\hfill
-\begin{subfigure}{0.32\linewidth}
+\begin{subfigure}{0.48\linewidth}
 \centering
 \includegraphics[width=\linewidth]{fig_08b_load_and_renewables.pdf}
 \caption{Load and renewables.}
 \end{subfigure}
 \hfill
-\begin{subfigure}{0.32\linewidth}
+\begin{subfigure}{0.48\linewidth}
 \centering
 \includegraphics[width=\linewidth]{fig_08c_carbon_cap_by_archetype.pdf}
 \caption{Carbon-cap context.}
 \end{subfigure}
-\caption{Stylized electricity-network and carbon context used by the operational model.}
+\caption{Load, renewable, and carbon-cap context used by the operational model. Network topology is shown separately in Fig.~\ref{fig:nodal-power}.}
 \label{fig:network-context}
 \end{figure}
 
 \section{Results and Discussion}
 \label{sec:results}
 
-The results are organized around one claim and then the diagnostics needed to qualify it. The metric benchmark first shows how PUE and siPUE move when service assets are introduced. The credit decomposition and portfolio figures then explain why the movement occurs. The validation, sensitivity, and face-validity sections test whether that interpretation is internally consistent, robust to important assumptions, and plausible next to published benchmarks \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala}.
+The results first report the PUE--siPUE split, then qualify it through decomposition, compact robustness checks, sensitivity, and face-validity comparison \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala}.
 
 \subsection{PUE and siPUE move differently}
 
-Table~\ref{tab:kpi-summary} reports average modeled metrics from the canonical output, weighted by each archetype's annual IT energy: each archetype's ten rows are scaled by its installed IT capacity (8--60~MW across the four archetypes), so an archetype with more IT energy contributes proportionally more to the average. The identity no-services case gives the required metric identity: PUE and siPUE are both 1.196 on average. The fair services-disabled comparator, with the same locked efficiency retrofit and the same physical carbon-cap treatment as the service-active cases, has PUE and siPUE of 1.167. This is the headline reference for the service-active comparison.
+Table~\ref{tab:kpi-summary} reports canonical averages weighted by each archetype's annual IT energy. The services-disabled comparator, with the same efficiency retrofit and carbon-cap treatment as the service-active cases, gives PUE and siPUE values of 1.167 and is the reference case.
 
-Against that fair comparator, the baseline design raises average PUE to 1.238, a 0.071 increase, while lowering average siPUE to 1.139, a 0.028 decrease. Baseline earns 5.603~EUR/MWh IT of delay-adjusted system benefit, equal to an energy-equivalent credit of about 0.099~MWh/MWh IT at the frozen 56.63~EUR/MWh reference price, or about 1.40 times its facility-energy burden. The robust design raises PUE further, to 1.343, a 0.176 increase, while lowering siPUE to 1.152, a 0.015 decrease. It earns a larger absolute benefit than baseline, 10.825~EUR/MWh IT, but its credit-to-burden ratio is smaller, about 1.08. The result is therefore not that robust is ``better according to siPUE'' than baseline; baseline has the lower average siPUE. The robust design creates more absolute system value, but with a lower benefit-to-facility-burden ratio, consistent with diminishing marginal system value as integration intensity scales.
+Against that comparator, the baseline service-active design raises average PUE to 1.238 ($+0.071$) while lowering average siPUE to 1.139 ($-0.028$), earning 5.603~EUR/MWh IT of delay-adjusted system benefit -- about 1.40 times its facility-energy burden. The robust design raises PUE further, to 1.343 ($+0.176$), and lowers siPUE to 1.152 ($-0.015$), earning a larger absolute benefit, 10.825~EUR/MWh IT, but a smaller credit-to-burden ratio of about 1.08. Robust is therefore not simply ``better according to siPUE'' than baseline -- baseline has the lower average siPUE -- but it creates more absolute system value at a lower benefit-to-burden ratio, consistent with diminishing marginal system value as integration intensity scales. The resulting net siPUE movement is modest because credit and burden are close in size (ratios of 1.40 and 1.08), not because the underlying heat, flexibility, and carbon-damage prices are too small to move the metric: with the same prices, a design chosen to minimize siPUE regret directly rather than cost regret lowers siPUE by roughly seven times as much (Section~\ref{sec:robustness-checks}). Baseline and robust are reported because cost-regret robustness is the paper's stated design criterion, and their modest siPUE movement is an honest consequence of that choice, not a ceiling on what the priced services can achieve.
 
-The credit is an economic conversion, separate from physical energy savings; it is the separately priced local-system value created by service delivery. PUE therefore records the extra electricity, while siPUE records that electricity net of the explicit system-value credit, moving above or below PUE depending on whether the credit tracks the burden it is meant to offset. The carbon-exclusion diagnostic below provides the most direct stress test of this result: the average siPUE improvement is no longer present when carbon damage is removed from the accounting ledger.
+The credit is an economic conversion, not a physical energy saving. The carbon-exclusion check below shows that the average siPUE improvement disappears once carbon damage is removed from the ledger.
 
 \begin{table}[H]
 \centering
@@ -808,19 +672,18 @@ The credit is an economic conversion, separate from physical energy savings; it 
 \label{tab:kpi-summary}
 \begin{tabularx}{\linewidth}{L{3.05cm} >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X >{\raggedleft\arraybackslash}X}
 \toprule
-Design case & PUE & siPUE & Post-constr. siPUE & System benefit (EUR/MWh IT) & Benefit excl. carbon (EUR/MWh IT) \\
+Design case & PUE & Delay-adj. siPUE & Post-constr. siPUE & System benefit (EUR/MWh IT) & Benefit excl. carbon (EUR/MWh IT) \\
 \midrule
-Identity no-services & 1.196 & 1.196 & 1.196 & 0.000 & 0.000 \\
-Fair services-disabled & 1.167 & 1.167 & 1.167 & 0.000 & 0.000 \\
+Services-disabled comparator & 1.167 & 1.167 & 1.167 & 0.000 & 0.000 \\
 Baseline & 1.238 & 1.139 & 1.135 & 5.603 & 3.433 \\
 Robust & 1.343 & 1.152 & 1.145 & 10.825 & 5.161 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Baseline, the fixed service-active design with lower integration intensity, has the lowest average siPUE, but it also has much lower heat-reuse intensity than the robust design. The robust case is selected for cost-regret robustness across the uncertainty set, with minimum siPUE outside the selection criterion. The comparison therefore separates two questions: which design is robust under market and system uncertainty, and whether the resulting service-active design is evaluated fairly by PUE alone.
+Baseline has lower average siPUE, but robust has higher heat-reuse intensity and more absolute system value because it is selected for cost-regret robustness, not minimum siPUE.
 
-The scenario-level result remains heterogeneous under this fair-comparator framing. siPUE is lower than the fair services-disabled comparator in 36 of 40 baseline rows and 23 of 40 robust rows. PUE is higher than the fair comparator in all baseline and robust rows. Figure~\ref{fig:tradeoff-compass} shows the paired movement within each row. Each arrow starts from the baseline design and ends at the robust design, with both coordinates measured as changes relative to the constrained services-disabled comparator. The remaining robust rows are concentrated where the additional system-value credit is small relative to the facility-energy burden it is paying for.
+At the row level, siPUE is lower than the services-disabled comparator in 36 of 40 baseline rows and 23 of 40 robust rows; PUE is higher in all baseline and robust rows. Figure~\ref{fig:tradeoff-compass} shows the paired baseline-to-robust movement relative to the services-disabled comparator.
 
 \begin{figure}[H]
 \centering
@@ -831,7 +694,7 @@ The scenario-level result remains heterogeneous under this fair-comparator frami
 
 \subsection{Credit decomposition}
 
-Table~\ref{tab:credit-ablation} decomposes the robust siPUE credit into the independent accounting-ledger components that create or reduce local-system value. Positive entries reduce siPUE because they lower independent system cost relative to the fair services-disabled comparator. Negative entries raise siPUE because they are additional system burdens from the service-active design. The robust design creates large heat, flexibility, and carbon-damage benefits, but those benefits are partly offset by additional electricity-resource, peak-capacity, and transmission burdens. Construction delay then weakens the credit before it enters the siPUE numerator.
+Table~\ref{tab:credit-ablation} decomposes the robust siPUE credit. Heat, flexibility, and carbon-damage benefits are partly offset by electricity-resource, peak-capacity, and transmission burdens; construction delay then weakens the net credit.
 
 \begin{table}[tbp]
 \centering
@@ -857,29 +720,74 @@ Delay-adjusted system benefit & 10.825 & Benefit entering the siPUE numerator \\
 \end{tabularx}
 \end{table}
 
-The ablation explains the value channel omitted by PUE. The service-active design uses substantially more facility electricity, so PUE rises. siPUE treats that burden explicitly and subtracts only the separately accounted system-cost benefit, converted through the frozen reference price. The reported score therefore shows both sides of the trade: higher facility energy and the heat, flexibility, carbon-damage, peak, and delay value created outside the facility boundary. Carbon damage is material: excluding it raises the IT-weighted robust siPUE from 1.152 to 1.252, above the fair services-disabled comparator's 1.167, and only 4 of 40 robust rows remain below the comparator without the carbon-damage term. The metric result should therefore be read as conditional on the stated social-carbon valuation, not as carbon-valuation-independent evidence.
+The ablation shows why PUE rises while siPUE can fall: the design uses more facility electricity, but creates system value in the independent ledger. Carbon damage is material. Excluding it raises IT-weighted robust siPUE from 1.152 to 1.252, above the fair comparator's 1.167, and only 4 of 40 robust rows remain below the comparator. The result is therefore conditional on the stated social-carbon valuation.
+
+A single full-versus-zero-carbon comparison only bounds this dependence; the break-even social cost of carbon,
+\begin{equation}
+\text{SCC}^{\text{BE}} = \frac{(\text{PUE} - \text{siPUE}_{\text{fair}})\,p_{\text{ref}} - V_{\text{non-carbon}}}{E_{\text{avoided,tCO2}}},
+\label{eq:scc-breakeven}
+\end{equation}
+is more informative, where $V_{\text{non-carbon}}$ is the delay-adjusted heat-plus-flexibility credit and $E_{\text{avoided,tCO2}}$ is avoided emissions per MWh IT. At the canonical $\text{SCC}=120$~EUR/tCO2, the IT-weighted robust break-even value is $\text{SCC}^{\text{BE}}\approx102$~EUR/tCO2 -- below the canonical value, so the reported improvement holds with some margin, but well inside the 80--250~EUR/tCO2 policy-appraisal range used to calibrate the canonical assumption. By archetype, $\text{SCC}^{\text{BE}}$ is approximately 106~EUR/tCO2 for AI/HPC, 77 for Hyperscale cloud, 125 for Colocation, and 144 for Enterprise/edge. Only AI/HPC and Hyperscale cloud have a break-even value below the canonical 120~EUR/tCO2, so at the canonical valuation their archetype-average robust siPUE is already below the fair comparator; Colocation and Enterprise/edge have a break-even value above 120~EUR/tCO2, so their archetype-average robust siPUE has not yet crossed the fair comparator at the canonical valuation. The IT-weighted overall improvement therefore comes disproportionately from AI/HPC and Hyperscale cloud, not uniformly from all four archetypes.
 
 \subsection{Design portfolios and system value}
 
-The robust design changes the technology portfolio. Figure~\ref{fig:portfolio} shows the capacity intensity of heat recovery, heat pumps, flexibility, and batteries by archetype. Figure~\ref{fig:value-flow} decomposes the resulting system value. These figures keep the economic story visible: higher facility energy can be a cost of delivering heat and flexibility services, but the benefit depends on the local price, heat, land, and delay conditions.
+The baseline case is an assumed incumbent portfolio, not an independent optimization: a per-MW-IT intensity for heat-exchanger, flexibility, and battery capacity is scaled by an archetype-specific multiplier reflecting typical industry adoption (hyperscale campuses assumed to have invested most in heat recovery and flexibility; enterprise/edge assumed to have invested least), with heat-pump capacity sized to match via the COP-dependent source-to-power ratio and the same locked 15\% efficiency retrofit used elsewhere. Table~\ref{tab:baseline-capacities} reports the resulting capacities.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Baseline (incumbent) design capacities by archetype, an assumed portfolio scaled from a per-MW-IT intensity by an archetype-specific adoption multiplier (Section~\ref{sec:methodology}), not an independent optimization.}
+\label{tab:baseline-capacities}
+\begin{tabular}{l r r r r r r}
+\toprule
+Archetype & HX (MWth) & HP (MW) & Flex (MW) & Batt. E (MWh) & Batt. P (MW) & Eff. \\
+\midrule
+AI/HPC & 5.50 & 1.96 & 4.80 & 22.40 & 5.60 & 0.15 \\
+Hyperscale cloud & 15.00 & 6.00 & 4.80 & 48.00 & 12.00 & 0.15 \\
+Colocation & 2.50 & 1.19 & 1.10 & 12.00 & 3.00 & 0.15 \\
+Enterprise/edge & 0.40 & 0.22 & 0.19 & 2.24 & 0.56 & 0.15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:portfolio} shows robust technology intensities by archetype, and Figure~\ref{fig:value-flow} decomposes the resulting system value.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\linewidth]{fig_09_design_portfolio_parallel.pdf}
-\caption{Baseline and robust design portfolios by archetype, normalized per MW IT.}
+\caption{Baseline and robust design portfolios by archetype, normalized per MW IT. Each capacity axis is independently normalized to make portfolio shape comparable across archetypes; it does not preserve absolute scale. Table~\ref{tab:robust-capacities} reports the underlying absolute capacities.}
 \label{fig:portfolio}
 \end{figure}
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Robust design capacities by archetype in absolute units, underlying the per-MW-IT-normalized portfolio shapes in Figure~\ref{fig:portfolio}.}
+\label{tab:robust-capacities}
+\begin{tabular}{l r r r r r}
+\toprule
+Archetype & HX (MWth) & HP (MW) & Flex (MW) & Batt. E (MWh) & Batt. P (MW) \\
+\midrule
+AI/HPC & 14.57 & 11.54 & 6.66 & 20.0 & 8.0 \\
+Hyperscale cloud & 15.20 & 12.03 & 10.10 & 30.0 & 12.0 \\
+Colocation & 10.24 & 8.11 & 3.16 & 12.5 & 5.0 \\
+Enterprise/edge & 2.37 & 1.87 & 0.72 & 4.0 & 1.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\linewidth]{fig_10_system_value_sankey.pdf}
-\caption{System-value flow for the robust design. Heat and flexibility benefits are reported separately from electricity, carbon, capex, land, and delay adjustments.}
+\caption{Independent system-benefit ledger for the robust design (the accounting that defines the siPUE credit): avoided heat and flexibility cost and carbon damage are reported separately from the additional electricity, peak, and transmission burden. This is not a market cash-flow diagram -- private revenue, capex, and land cost are excluded (Table~\ref{tab:sipue-boundary}).}
 \label{fig:value-flow}
 \end{figure}
 
 \subsection{Carbon and delay accounting}
 
-The model reports emissions, market carbon cost, carbon damage, avoided heat emissions, and power emissions as separate ledgers. This separation is important because carbon-damage valuation can change monetized system benefit without changing physical emissions. For that reason, carbon damage is retained as a ledger item and excluded from the main physical sensitivity factors.
+Carbon-damage valuation can change monetized system benefit without changing physical emissions, so it is retained as a separate ledger item (Table~\ref{tab:carbon-mechanisms}) and excluded from the main physical sensitivity factors below.
 
 \begin{table}[H]
 \centering
@@ -892,7 +800,7 @@ Mechanism & Purpose & In optimization? & In siPUE credit? \\
 \midrule
 ETS payment & Private compliance and dispatch cost in the market ledger. & Yes & No \\
 Carbon-damage value & External damage value in the independent accounting ledger. & Ledger only & Yes \\
-Physical carbon cap & Row-level planning constraint shared by the fair services-disabled, baseline, robust, and scenario-perfect cases. & Yes & No direct monetary credit \\
+Physical carbon cap & Row-level planning constraint shared by the services-disabled comparator, baseline, robust, and scenario-perfect cases. & Yes & No direct monetary credit \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -923,104 +831,35 @@ Construction delay affects siPUE through the availability factor in Eq.~\ref{eq:
 \label{fig:delay-bridge}
 \end{figure}
 
-\subsection{Internal verification and robustness diagnostics}
+\subsection{Robustness checks}
+\label{sec:robustness-checks}
 
-The remaining results are diagnostics that qualify the headline claim: first checking the metric properties, then checking held-out and out-of-sample feasibility, and finally checking whether the cost-regret robust design would materially change if siPUE regret were optimized directly.
-
-The results below are internal verification and robustness diagnostics; external validation requires observed projects. The property checks verify metric behavior: nonnegativity, no-services identity, delay weakening of credit, positive-benefit monotonicity, and ledger separation. The train/test diagnostic trains on earlier uncertainty states and evaluates held-out states. The out-of-sample diagnostic evaluates newly sampled states against the robust design.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.92\linewidth]{fig_13_property_check_matrix.pdf}
-\caption{Internal metric property checks: no-services identity, nonnegativity, delay behavior, benefit monotonicity, and ledger separation.}
-\label{fig:property-checks}
-\end{figure}
+These checks support internal consistency, not external validation. They confirm that siPUE remains finite and nonnegative, reduces to PUE when no services are active, responds monotonically to benefit and delay inputs, and keeps the carbon ledger separate. Held-out and synthetic out-of-sample runs remain feasible. A direct siPUE-regret re-solve also shows that cost-regret robustness is not the same as siPUE minimization.
 
 \begin{table}[H]
 \centering
 \small
-\caption{Internal verification and robustness diagnostics. Regret is reported in EUR/MWh IT where comparable.}
-\label{tab:validation-diagnostics}
-\begin{tabular}{l r r r r}
+\caption{Compact internal robustness checks.}
+\label{tab:robustness-checks}
+\begin{tabularx}{\linewidth}{L{4.0cm} Y}
 \toprule
-Diagnostic & Rows & Feasible rows & Mean regret & Regret range \\
+Check & Result \\
 \midrule
-Train/test held-out & 12 & 12 & 1.065 & 0.013 to 4.170 \\
-Out-of-sample & 40 & 40 & 0.402 & 0.012 to 1.241 \\
+Metric properties & Nonnegativity, PUE identity with no active services, delay behavior, benefit monotonicity, scale normalization, and carbon-ledger separation all pass. \\
+Held-out and out-of-sample operation & 12/12 held-out rows and 40/40 synthetic out-of-sample rows remain feasible; mean cost regret is 1.065 and 0.402~EUR/MWh IT, respectively. \\
+Direct siPUE-regret alternative & Optimizing siPUE regret directly lowers weighted mean siPUE from 1.152 to 1.067 in-sample and from 1.179 to 1.088 out-of-sample; average lifecycle-cost difference remains below 0.11\%. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
-
-The higher mean and wider range for train/test regret reflects how that diagnostic is constructed: the underlying design is trained on only 7 of the 10 canonical uncertainty states and evaluated against the 3 withheld states, including the highest-value ``service-upside'' state, which the design most under-provisions for. The out-of-sample diagnostic instead evaluates the design trained on the full 10-state set against independently sampled draws that rarely combine the same extremes, giving a lower and more stable regret.
-
-\paragraph{siPUE headroom under cost-regret minimization} Stage~2 selects the robust design by minimizing worst-case normalized \emph{cost} regret (Eq.~\ref{eq:normalised-regret}); siPUE is computed after the design is selected, which raises the question of how much siPUE headroom this leaves on the table. Using the scenario-perfect benchmarks already computed for Stage~1, siPUE regret of the robust design against the scenario-specific, cost-minimizing optimum remains small relative to the headline fair-comparator shift. This comparison only bounds regret within the cost-optimal family, so we constructed the siPUE-optimizing alternative directly to test it.
-
-\paragraph{Constructing the alternative directly} We therefore solved the alternative design problem directly. Stage~2 was re-solved with worst-case \emph{siPUE} regret against a per-scenario siPUE-perfect benchmark as the primary criterion, with the same lexicographic cost tie-break so the two runs are comparable side by side and differ only in the primary worst-case criterion. This required a matching Stage~1 siPUE-perfect benchmark, solved by minimizing siPUE for each scenario in isolation, using the same system-accounting ingredients as the siPUE credit itself so the two stages remain aligned. Inside both linear programs the siPUE-regret objective is built from the unclipped numerator $E_{\text{FAC}} - E_{\text{credit}}$, since the $[\cdot]^+$ operator in Eq.~\ref{eq:sipue} creates nonlinearity; realized siPUE is still reported with the clip applied. The two forms would diverge only if a design's unclipped numerator went negative; realized siPUE stays well above zero throughout this study. This affects the mathematical exactness of the siPUE-regret diagnostic in extreme cases, while the results reported here are unchanged. Table~\ref{tab:sipue-objective-comparison} compares the resulting shared design against the canonical cost-regret robust design for the same 40 rows.
-
-\begin{table}[H]
-\centering
-\small
-\caption{Cost-regret-minimizing (canonical robust) design versus siPUE-regret-minimizing design, by archetype. Worst-case regret is the maximum, within each archetype's shared 10-scenario group, of siPUE for that design minus the scenario-perfect siPUE benchmark. Average cost is the mean lifecycle market cost (NPV, EUR) across the same 10 rows.}
-\label{tab:sipue-objective-comparison}
-\begin{tabular}{l r r r r}
-\toprule
-Archetype & Worst regret & Worst regret & Avg. cost & Design \\
- & (cost-regret) & (siPUE-regret) & difference & identical? \\
-\midrule
-AI/HPC & 0.0656 & 0.0683 & $-0.002\%$ & No \\
-Hyperscale cloud & 0.0438 & 0.0476 & $-0.002\%$ & No \\
-Colocation & 0.0418 & 0.0418 & $0.00\%$ & Yes \\
-Enterprise/edge & 0.0243 & 0.0243 & $0.00\%$ & Yes \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-For two of the four archetypes, Colocation and Enterprise/edge, minimizing worst-case siPUE regret directly selects the \emph{exact same} shared design, capacity for capacity, as minimizing worst-case cost regret. For AI/HPC and Hyperscale cloud, the objectives diverge modestly. Averaged across all 40 canonical rows and weighted by each archetype's annual IT energy, mean siPUE is 1.1519 under cost-regret minimization and 1.1532 under siPUE-regret minimization; mean PUE is 1.3431 versus 1.3483. The siPUE difference, 0.0013, is small next to the fair-comparator-to-robust shift in Table~\ref{tab:kpi-summary}. Some of this closeness likely reflects the problem structure as well as this parameterization: the market-cost objective and the independent accounting ledger behind siPUE share several underlying price and cost terms, so the two Stage~2 criteria are partly coupled.
-
-\paragraph{Out-of-sample confirmation} The comparison above trains and evaluates both Stage-2 objectives on the same ten canonical uncertainty states used throughout this paper, which leaves open whether the near-identical designs persist under fresh scenarios. We repeated the comparison end to end -- both Stage-1 benchmarks and both Stage-2 objectives, re-solved from scratch -- on 40 freshly drawn uncertainty scenarios (10 per archetype) outside the canonical design set. On this out-of-sample draw, three of four archetypes select the identical design under the two objectives; AI/HPC differs slightly. The IT-energy-weighted mean siPUE is 1.1793 under cost-regret minimization and 1.1786 under siPUE-regret minimization, and mean PUE is 1.3466 versus 1.3463. This provides a fresh-scenario diagnostic beyond the in-sample result, while still remaining internal to the same scenario-generation structure.
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}{0.48\linewidth}
-\centering
-\includegraphics[width=\linewidth]{fig_14a_train_test_feasibility.pdf}
-\caption{Train/test feasibility.}
-\end{subfigure}
-\hfill
-\begin{subfigure}{0.48\linewidth}
-\centering
-\includegraphics[width=\linewidth]{fig_15a_out_of_sample_feasibility.pdf}
-\caption{Out-of-sample feasibility.}
-\end{subfigure}
-\caption{Feasibility diagnostics for held-out and out-of-sample cases.}
-\label{fig:validation-feasibility}
-\end{figure}
-
-\begin{figure}[H]
-\centering
-\begin{subfigure}{0.48\linewidth}
-\centering
-\includegraphics[width=\linewidth]{fig_14b_train_test_regret.pdf}
-\caption{Train/test regret.}
-\end{subfigure}
-\hfill
-\begin{subfigure}{0.48\linewidth}
-\centering
-\includegraphics[width=\linewidth]{fig_15b_out_of_sample_regret.pdf}
-\caption{Out-of-sample regret.}
-\end{subfigure}
-\caption{Regret diagnostics for held-out and out-of-sample cases, complementing the feasibility panels above and the summary statistics in Table~\ref{tab:validation-diagnostics}.}
-\label{fig:validation-regret}
-\end{figure}
 
 \subsection{Sensitivity analysis}
 
-The manuscript sensitivity varies five factors: heat price, flexibility price, cooling overhead, land availability, and construction delay. Carbon damage is excluded from this sensitivity set because it is a valuation ledger, while the sensitivity set is reserved for physical design and delivery levers. Congestion, battery-ceiling, and regret-surface diagnostics are also excluded from the final manuscript sensitivity set.
+The manuscript sensitivity varies five physical or delivery factors: heat price, flexibility price, cooling overhead, land availability, and construction delay. Carbon damage remains a separate valuation ledger.
 
 \begin{table}[H]
 \centering
 \small
-\caption{All-archetype sensitivity results for the robust design across the 40-row scenario set for each sensitivity case, weighted by each archetype's annual IT energy.}
+\caption{All-archetype sensitivity results for the robust design across the 40-row scenario set for each sensitivity case, weighted by each archetype's annual IT energy. The land availability ``unconstrained'' row uses the same design as ``high'' (PUE, siPUE, and benefit are unchanged) but divides the same absolute land use by an arbitrarily large nominal reference limit rather than a physical constraint, so its land-use percentage is not a meaningful utilization ratio and is reported only for table-format consistency.}
 \label{tab:sensitivity-summary}
 \begin{tabularx}{\linewidth}{L{2.5cm} L{2.25cm} r r r r}
 \toprule
@@ -1043,12 +882,12 @@ Construction delay & 12 months & 1.343 & 1.161 & 10.279 & 74.9 \\
 \end{tabularx}
 \end{table}
 
-The sensitivities should be read through the same two-part logic: a physical facility-energy channel and a monetary value-credit channel. Cooling overhead acts mainly through facility energy and therefore moves both PUE and siPUE. Flexibility price acts mainly through system benefit and changes siPUE more than PUE. Heat price can affect both channels because each sensitivity is re-optimized with its own dispatch; a higher heat price can induce a more energy-intensive service portfolio, so siPUE can move irregularly with heat value. Construction delay weakens the value credit. Low land availability binds in three all-scenario robust cases and reduces system benefit, but the land model remains stylized.
+Each sensitivity level re-optimizes the shared design and its dispatch under the perturbed factor; it is not a one-factor accounting perturbation with the canonical design and dispatch held fixed. This is why the low heat-price row shows both a lower system benefit (6.895 versus 10.825 EUR/MWh IT) and a lower siPUE (1.117 versus 1.152) than the canonical case: a low heat price makes heat recovery less attractive, so the re-optimized design shifts toward a smaller, less electricity-intensive portfolio, lowering PUE (1.239 versus 1.343) enough to lower siPUE too even though the credit itself shrinks. The sensitivity therefore combines design adaptation and metric response, and should not be read as showing that lower heat prices improve siPUE holding the design fixed. The sensitivity analysis separates the facility-energy burden from the value credit. Cooling overhead changes both PUE and siPUE. Flexibility-price shifts mostly affect siPUE. Delay weakens the credit. Low land availability binds in three robust rows and reduces system benefit.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.88\linewidth]{fig_17_sensitivity_tornado.pdf}
-\caption{Five-factor sensitivity tornado for robust siPUE. Carbon damage is excluded from the sensitivity factors.}
+\caption{Five-factor sensitivity tornado for robust siPUE. Each factor's low and high input levels are shown as separate bars relative to the canonical value (0), not as a single low-to-high range, so the direction of each level's effect is explicit. Each level re-optimizes design and dispatch rather than perturbing the canonical design's operation alone (Section~\ref{sec:results}). Carbon damage is excluded from the sensitivity factors.}
 \label{fig:sensitivity-tornado}
 \end{figure}
 
@@ -1062,13 +901,13 @@ The sensitivities should be read through the same two-part logic: a physical fac
 \subsection{Face validity against published benchmarks}
 \label{sec:face-validity}
 
-The diagnostics above are internal. This subsection adds a narrower, external check: whether the model's modeled PUE and heat-reuse levels are in a plausible range next to published, real-project figures \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala}. The comparison is used for face validity, and no model parameter is fit to the figures below.
+This subsection checks whether modeled PUE and heat-reuse levels are plausible next to published real-project figures, with no model parameter fit to them \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala}.
 
-For PUE, the Uptime Institute's 2024 global survey reports an industry-average PUE of 1.56--1.58, with hyperscale operators (Google, Amazon Web Services, Microsoft) claiming 1.2 or lower at some sites, and new-build large colocation campuses commonly targeting around 1.4 \cite{UptimeInstitute2024Survey}. The no-services (pure facility-overhead, zero efficiency investment) PUE in the canonical archetypes is 1.12 for AI/HPC and 1.18 for Hyperscale cloud, both inside the published hyperscale range. Colocation (1.30) and Enterprise/edge (1.42) sit below the published industry-wide average of 1.56--1.58, closer to what only modern, newly built facilities achieve. This reflects the intended scope: the archetypes represent facilities capable of considering integration investment, which skews toward the newer, more efficient end of the real fleet.
+The Uptime Institute's 2024 survey reports an industry-average PUE of 1.56--1.58, leading hyperscale sites at 1.2 or lower, and new-build large colocation campuses around 1.4 \cite{UptimeInstitute2024Survey}. The services-disabled comparator gives PUE values of 1.10 for AI/HPC, 1.15 for Hyperscale cloud, 1.26 for Colocation, and 1.36 for Enterprise/edge. These are plausible for newer integration-ready facilities, but should not be generalized to the full installed fleet.
 
-For heat reuse, the Mäntsälä data center in Finland operates a dedicated 4.0~MW heat pump and reuses 75\% of its energy as district heat, a real, purpose-built, single-service case \cite{EUSmartCities2024Mantsala}. In this study, delivered useful heat divided by modeled facility electricity reaches 0.30--0.33 for AI/HPC and Colocation and 0.22--0.26 for Hyperscale cloud and Enterprise/edge, well below the Mäntsälä figure. This ratio is used as a face-validity output and remains outside official Energy Reuse Factor accounting. The modeled archetypes are general-purpose facilities that size heat recovery as one constrained service among several. Heat, flexibility, storage, land, and construction-delay exposure all compete for the same capital. This scope explains the gap to a single-purpose heat-export site. The effective recoverable-heat-fraction inputs span 0.17--0.575 after state multipliers, but capacity sizing, district-heating demand, pipe limits, and cost trade-offs still bind delivered heat below the dedicated project benchmark.
+For heat reuse, the M\"ants\"al\"a data center in Finland reuses 75\% of its energy as district heat through a dedicated 4.0~MW heat pump \cite{EUSmartCities2024Mantsala}. Here, delivered useful heat divided by modeled facility electricity is 0.30--0.33 for AI/HPC and Colocation and 0.22--0.26 for Hyperscale cloud and Enterprise/edge. The published 75\% figure is not confirmed to share the same numerator (delivered versus recovered heat), denominator (facility versus heat-pump electricity), or accounting boundary and period as the modeled ratio, so this is a qualitative plausibility comparison rather than a direct like-for-like benchmark. The lower modeled values are also consistent with general-purpose facilities that size heat recovery alongside flexibility, storage, land, and delay constraints, rather than a single-purpose heat-export site.
 
-Table~\ref{tab:face-validity} summarizes both comparisons. Both directions of mismatch (PUE running better than the published average; heat-delivery intensity running below a dedicated best-practice site) are consistent with the archetypes' intended scope and bound how far the numerical results in this paper should be extrapolated to a specific real facility.
+Table~\ref{tab:face-validity} summarizes the comparison and bounds how far the results should be extrapolated to specific sites.
 
 \begin{table}[H]
 \centering
@@ -1079,32 +918,70 @@ Table~\ref{tab:face-validity} summarizes both comparisons. Both directions of mi
 \toprule
 Quantity & Published reference & Modeled range (this study) \\
 \midrule
-Hyperscale/AI PUE & 1.1--1.2 at leading sites \cite{UptimeInstitute2024Survey} & 1.12--1.18 (no-services) \\
-Colocation/enterprise PUE & 1.4 (new-build) to 1.56--1.58 (industry average) \cite{UptimeInstitute2024Survey} & 1.30--1.42 (no-services) \\
+Hyperscale/AI PUE & 1.1--1.2 at leading sites \cite{UptimeInstitute2024Survey} & 1.10--1.15 \\
+Colocation/enterprise PUE & 1.4 (new-build) to 1.56--1.58 (industry average) \cite{UptimeInstitute2024Survey} & 1.26--1.36 \\
 Delivered useful heat / facility electricity & 0.75 at a dedicated site (M\"ants\"al\"a) \cite{EUSmartCities2024Mantsala} & 0.22--0.33 (robust design output) \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{Limitations and future work}
+\label{sec:limitations}
 
-Several limitations define the scope of the results. The model is a controlled testbed for metric behavior; site forecasting would require project-specific input data and calibration. The absolute NPV values, capacity choices, and KPI levels should therefore be read as outputs of a stylized comparison. Project-specific prediction would require a local investment model. The three-node network is useful for consistent DC-OPF accounting, while local grid assessment would require an interconnection study. Representative days reduce the annual operating problem to a tractable form and omit some operational extremes. The land constraint is a lease or opportunity-cost representation used for comparative modeling. The independent system-cost values used in siPUE should also be replaced with local values before applying the metric to a real investment case.
+The model is a controlled testbed for metric behavior, not a site-specific forecasting tool. Absolute NPV values, capacity choices, and KPI levels require project-specific data and calibration before practical use. The three-node network supports consistent DC-OPF accounting but not local interconnection assessment; representative days omit some operational extremes; and the land constraint is a comparative lease or opportunity-cost representation. Local siPUE applications should replace the independent system-cost values with local values.
 
-These limits restrict the interpretation of the numerical results while leaving the central metric claim intact. The evidence supports the accounting argument that PUE can penalize service-active designs because it observes facility electricity without observing separately accounted local-system benefits. Site-level claims about siPUE, heat reuse, or lifecycle cost require observed project data. Some archetype-specific conclusions remain evidence gaps, especially hyperscale flexibility, enterprise/edge flexibility, and enterprise/edge heat recovery.
+These limits leave the central metric claim intact: PUE can penalize service-active designs because it observes facility electricity without observing the independent system-cost benefit those designs create. Archetype-specific evidence remains weakest for hyperscale flexibility, enterprise/edge flexibility, and enterprise/edge heat recovery.
 
-The current model excludes water use, embodied carbon, formal Renewable Energy Factor, and official ISO Energy Reuse Factor accounting \cite{ISO30134,EUDataCenterDirective2023}. It also treats flexibility as reserve availability, with activated scarcity events left for future validation. Section~\ref{sec:face-validity} adds a plausibility check against aggregate published PUE and heat-reuse figures \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala}. Future work should add observed project data at the transaction level, richer network models, water and embodied-carbon ledgers, contracting structures between data centers and utilities, activation-event validation for reserve delivery, and external validation against measured heat and flexibility transactions.
+The model excludes water use, embodied carbon, formal Renewable Energy Factor, and official ISO Energy Reuse Factor accounting \cite{ISO30134,EUDataCenterDirective2023}. It also treats flexibility as reserve availability; activated scarcity events remain outside the validation scope. Future work should add observed transaction data, richer networks, water and embodied-carbon ledgers, contracting structures, reserve-activation validation, and external validation against measured heat and flexibility transactions.
 
 \section{Conclusion}
 
-This paper connects a contextual policy and market synthesis of data centers in local energy systems with a structured method for evaluating system-integrated designs. The proposed siPUE indicator is a PUE-compatible companion indicator that converts separately accounted local-system benefits, including heat, flexibility, peak, carbon damage, and delay, into an energy-equivalent numerator credit. The metric reduces to PUE when no services are active, which preserves backward compatibility with existing reporting.
+Data centers are no longer just electricity loads to be minimized. Many now export waste heat, offer flexible demand, and use storage to ease pressure on local grids \cite{11,13}, and policy increasingly expects this of them \cite{15}. Power Usage Effectiveness cannot see any of that \cite{Belady2008PUE}. It treats the electricity spent on heat pumps, controllable load, and battery management as pure overhead, so a data center that invests in these services can look less efficient even as it creates real value for the surrounding energy system. This paper asked two questions that follow from that gap. First, can a companion metric reveal the local-system value of these services without abandoning PUE and without inventing credit where none exists? Second, do the design choices that make a data center robust to price and demand uncertainty pull PUE and this companion metric apart, or move them together?
 
-The 40-row canonical analysis supports a value-channel interpretation, but with narrower claims than a no-services-only counterfactual would support. Reported averages weight each archetype by its annual IT energy. The identity no-services case verifies that PUE and siPUE are both 1.196 when service capacity and efficiency investment are zero. The fair services-disabled comparator has PUE and siPUE of 1.167 under the same locked efficiency retrofit and carbon-cap treatment used for the service-active cases. Relative to that comparator, the baseline design raises average PUE to 1.238 and lowers siPUE to 1.139; the robust design raises PUE to 1.343 and lowers siPUE to 1.152. Baseline creates 5.603~EUR/MWh IT of delay-adjusted system benefit and robust creates 10.825~EUR/MWh IT. The credit-to-burden ratio falls from about 1.40 for baseline to 1.08 for robust, consistent with diminishing marginal system value. At the row level, siPUE falls below the fair services-disabled comparator in 36 of 40 baseline rows and 23 of 40 robust rows.
+The first question is answered by defining System-Integrated PUE, siPUE, a companion indicator that keeps PUE's numerator-over-IT-energy structure but adds a single delay-adjusted, energy-equivalent credit to the facility-electricity numerator. That credit is drawn from one independent system-cost ledger that combines the heat, flexibility, peak-capacity, and carbon-damage value of a design, net of the extra electricity, network, and peak costs the same design adds. Private revenue, capital cost, and land cost stay out of it entirely, and when no services are active the credit is zero and siPUE reduces exactly to PUE. The second question is answered with a two-stage design-and-operation model that optimizes heat-exchanger, heat-pump, flexibility, and battery capacity jointly with hourly dispatch, for four data-center archetypes under ten shared uncertainty states, using representative-day operation, a three-node DC-OPF network, lifecycle delay accounting, and land-cost accounting. Heat, flexibility, peak, and carbon-damage value are never optimized in isolation; they are broken into separate lines only afterward, to show where a jointly chosen design's combined credit comes from. The model compares a services-disabled comparator, a service-active baseline, and a robust min--max-regret design against a scenario-perfect benchmark.
 
-The compact metric benchmark supports paired reporting of PUE and siPUE. PUE measures internal facility overhead \cite{Belady2008PUE,greengrid2014,ISO30134}. Carbon, heat, and emissions remain separate ledgers. siPUE translates separately accounted system benefit into the same energy-normalized language as PUE, making the burden-and-value trade visible while preserving the distinction from thermodynamic efficiency. The carbon-damage ledger is important: excluding carbon damage raises robust siPUE above the fair services-disabled comparator on average, so the empirical result is conditional on the stated social-carbon valuation.
+The results show both mechanisms at work. Weighted by annual IT energy, the services-disabled comparator, which carries the same efficiency retrofit and physical constraints as the service-active designs, gives a PUE and siPUE of 1.167. The baseline service-active design raises average PUE to 1.238 but lowers siPUE to 1.139, earning 5.603~EUR/MWh IT of delay-adjusted system benefit. The robust design pushes PUE further, to 1.343, while lowering siPUE to 1.152 and earning a larger benefit of 10.825~EUR/MWh IT. The credit is about 1.40 times the baseline facility-energy burden and about 1.08 times the robust facility-energy burden. System value keeps growing as integration intensifies, but more slowly than the electricity it costs to deliver it. At the level of individual scenarios, siPUE falls below the services-disabled comparator in 36 of 40 baseline rows and 23 of 40 robust rows, even though PUE rises in every row.
 
-Internal verification and robustness diagnostics support numerical consistency, not external validation. The no-services identity, nonnegativity, delay behavior, benefit monotonicity, and ledger separation checks are satisfied. Train/test and out-of-sample diagnostics remain feasible and show nonnegative comparable regret. Re-solving Stage~2 with worst-case siPUE regret instead of cost regret changes the IT-energy-weighted in-sample average siPUE by 0.0013 and the out-of-sample average by -0.0007. A face-validity comparison against published PUE and heat-reuse figures \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala} places the modeled ranges inside or near the published range for hyperscale facilities, on the more efficient side of the published range for colocation and enterprise sites, and below a dedicated best-practice heat-reuse site, consistent with the archetypes' intended scope. The flexibility credit should be read as reserve-availability accounting, with activated reserve delivery under scarcity events left outside the current validation scope.
+These results come with limits that matter for how they should be read. The siPUE improvement depends on how carbon damage is valued. Remove carbon damage from the ledger, and the average siPUE gain disappears; robust siPUE then rises above the services-disabled comparator rather than falling below it. The robust design was also chosen to minimize worst-case cost regret rather than worst-case siPUE regret, and that choice has a cost. Re-solving for siPUE regret directly lowers mean siPUE by much more, for a lifecycle-cost penalty under 0.11\%, so the robust design reported here should be read as cost-regret robust rather than siPUE-optimal. The property, held-out, and out-of-sample checks confirm that the metric behaves consistently and that all 12 held-out rows and all 40 synthetic out-of-sample rows remain feasible, but these are internal checks. They confirm the metric's arithmetic and the model's behavior, not its match to real installations; that still needs observed project data. Published PUE and heat-reuse figures place the modeled ranges within a plausible span for the intended archetypes \cite{UptimeInstitute2024Survey,EUSmartCities2024Mantsala}, which is a plausibility check rather than independent validation.
 
-The practical implication is simple: a data center can look worse under PUE when it becomes more useful to the local energy system. PUE remains useful for internal facility overhead, while paired siPUE reporting adds the local-system value channel. siPUE should therefore be reported next to PUE, using explicit limits, explicit inputs, and a clear services-disabled comparator to show whether separately accounted local-system benefits are large enough to account for the extra facility energy.
+Taken together, these results answer both research questions, with a qualification attached to each. siPUE reveals local-system value where a jointly optimized design creates it and collapses back to PUE where none exists, which answers the first question by construction rather than by assumption. Robust design choices do widen the gap between PUE and siPUE, raising facility electricity while still lowering the system-integrated indicator, at least under the social-carbon valuation used here, which answers the second. The practical takeaway is conditional rather than universal. Some service-active data-center designs will look worse on PUE while doing real, measurable good for the local energy system, but whether that good is large enough to justify the extra electricity depends on local heat and flexibility prices and on how carbon damage is priced. PUE should keep doing what it already does well, tracking internal facility overhead \cite{Belady2008PUE,ISO30134}. siPUE's role is to sit alongside it, with its reference price, delay treatment, and services-disabled comparator stated explicitly, so a reader can judge whether a facility's extra electricity is buying real local-system value.
+
+\appendix
+\section{Full operational model formulation}
+\label{app:model}
+
+Sections~\ref{sec:methodology} and~\ref{sec:results} describe the operational model in prose; this appendix gives the complete hourly linear program each design (identity no-services, services-disabled, baseline, robust, scenario-perfect) is evaluated against, at the level needed to reproduce it. All sums over $t$ run over the representative-day horizon $t=1,\dots,T$ with hourly weight $w_t$ (Section~\ref{sec:methodology}); $\Delta t=1$~h. The reference implementation, including exact parameter values, is the canonical source (Code availability, below).
+
+\subsection*{A.1 Facility electricity balance and cooling}
+IT service power $\text{IT}_t$ is bounded by the exogenous workload profile $\text{it}^{\text{base}}_t$ and, when flexibility is active, a symmetric headroom of $\pm\phi\, \text{it}^{\text{base}}_t$ around it, where $\phi$ is the archetype's flexible-load fraction. Cooling overhead is $\text{COOL}_t=\alpha_t\,\text{IT}_t$, with $\alpha_t$ the (efficiency-adjusted) overhead ratio profile. Facility load is
+\begin{equation}
+E_{\text{FAC},t} = \text{IT}_t + \text{COOL}_t + P^{\text{HP}}_t + P^{\text{serv}}_t + \text{CH}_t - \text{DIS}_t,
+\end{equation}
+where $P^{\text{HP}}_t$ is heat-pump electricity, $\text{CH}_t,\text{DIS}_t$ are battery charge/discharge power, and $P^{\text{serv}}_t$ is parasitic service overhead (metering, controls) proportional to delivered heat, delivered reserve, and installed heat-exchanger and flexibility capacity. $E_{\text{FAC}}=\sum_t E_{\text{FAC},t}\,\Delta t\, w_t$ and $E_{\text{IT}}=\sum_t \text{IT}_t\,\Delta t\, w_t$ define PUE $=E_{\text{FAC}}/E_{\text{IT}}$.
+
+\subsection*{A.2 Heat recovery and heat-pump operation}
+When heat recovery is active, recovered heat $H^{\text{rec}}_t$ splits into an IT-sourced and cooling-sourced share in proportion to $\alpha_t$, is capped by both the recoverable-heat fraction of IT-plus-cooling load and by installed exchanger capacity $K_{\text{HX}}$, and flows to the heat pump subject to a pipe-capacity cap. Delivered heat $H^{\text{in}}_t=\rho^{\text{del}}_t H^{\text{flow}}_t$ and heat-pump electricity $P^{\text{HP}}_t=\rho^{\text{pow}}_t H^{\text{flow}}_t \le K_{\text{HP}}$, where $\rho^{\text{del}}_t,\rho^{\text{pow}}_t$ are COP- and pipe-loss-dependent source-to-delivered and source-to-power ratios. Delivered heat can be buffered in a thermal store before sale: $H^{\text{in}}_t + \text{DIS}^{\text{th}}_t = H^{\text{sold}}_t + \text{CH}^{\text{th}}_t$, where $\text{CH}^{\text{th}}_t,\text{DIS}^{\text{th}}_t\ge0$ are store charge and discharge power. Stored heat follows $S^{\text{th}}_{t+1}=(1-\lambda^{\text{th}})S^{\text{th}}_t+\eta^{\text{th}}_{\text{ch}}\text{CH}^{\text{th}}_t\Delta t-\text{DIS}^{\text{th}}_t\Delta t/\eta^{\text{th}}_{\text{dis}}$, bounded by store capacity $K^{\text{th}}$, with charge and discharge power each capped independently and the store cycled shut over the representative-day horizon ($S^{\text{th}}_0=S^{\text{th}}_T=0$). Delivered heat, net of the store, is sold into up to $K$ district-heating price segments, each capped by a share of district-heating acceptance capacity, giving $H^{\text{sold}}_t=\sum_k Q_{k,t}$. When heat is disabled, all heat and thermal-store variables are fixed to zero.
+
+\subsection*{A.3 Flexibility headroom}
+Load-based reserve $\text{RF}^{\text{load}}_t$ is bounded by installed flexibility capacity $K_{\text{FLEX}}$ and by a fraction of the reference IT demand, and must leave enough IT headroom that $\text{IT}_t+\text{RF}^{\text{load}}_t$ does not exceed that reference demand. Battery-based reserve $\text{RF}^{\text{bat}}_t$ is bounded by unused inverter capacity, $K_{\text{BAT,P}}-\text{DIS}_t$, and by energy above the UPS reserve floor divided by a minimum reserve-delivery duration (A.4). Total reserve is $\text{RF}_t=\text{RF}^{\text{load}}_t+\text{RF}^{\text{bat}}_t$; when flexibility is disabled, both are fixed to zero.
+
+\subsection*{A.4 Battery storage and UPS reserve}
+State of charge follows $\text{SOC}_{t+1}=\text{SOC}_t+\eta^{\text{ch}}\text{CH}_t\Delta t-\text{DIS}_t\Delta t/\eta^{\text{dis}}$, bounded by installed energy capacity $K_{\text{BAT,E}}$, with charge/discharge power bounded by installed power capacity $K_{\text{BAT,P}}$. $\text{SOC}_0=0.5\,K_{\text{BAT,E}}$ and $\text{SOC}_T=\text{SOC}_0$ close the cycle over the full representative-day horizon, not per individual day (Section~\ref{sec:methodology}). A UPS reserve floor $\text{SOC}_t \ge \gamma^{\text{ups}} K_{\text{BAT,E}}$ holds at every hour; only energy above this floor is available for flexibility reserve.
+
+\subsection*{A.5 Three-node DC-OPF network}
+Nodes $\{N_1,N_2,N_3\}$ (with the data center attached to one designated node) balance renewable generation $G^{\text{ren}}_{n,t}\le\bar{G}^{\text{ren}}_{n,t}$, thermal generation $G^{\text{th}}_{n,t}$ (capped by node-specific thermal capacity), and DC power flows $F_{12,t},F_{23,t},F_{13,t}$ against exogenous background load and, at the data-center node, $E_{\text{FAC},t}$. Flows follow a linearized (DC) power-flow relation through nodal phase angles $\theta_{n,t}$ (with $\theta_{N_1,t}=0$ as reference) and susceptances, and are bounded by scenario-specific line capacities. A congestion-utilization variable $U_{\text{grid},t}\in[0,1]$ tracks the maximum fractional line utilization across all three lines and enters the objective with a small coefficient so that, absent any other reason to keep it slack, the true worst-case utilization is reported rather than an arbitrary feasible upper bound.
+
+\subsection*{A.6 Carbon accounting and cap}
+Physical emissions are $E^{\text{co2}}_t=$ (thermal-generation emissions) $+$ (baseline-boiler heat emissions on undelivered district-heating demand) $-$ (avoided boiler emissions on delivered heat $H^{\text{sold}}_t$), aggregated to $E^{\text{co2}}=\sum_t E^{\text{co2}}_t\,\Delta t\, w_t$. A scenario-specific physical cap enforces $E^{\text{co2}}\le \text{Cap}^{\text{applied}}_s$ (Eq.~\ref{eq:carbon-cap-floor}) in every design case except the identity no-services and unconstrained diagnostic solves. Market carbon cost enters the private lifecycle objective at the scenario's ETS price; carbon damage enters only the independent system-cost ledger at the social cost of carbon (Table~\ref{tab:sipue-boundary}).
+
+\subsection*{A.7 Land constraints}
+Land use is $\ell = \ell^{\text{core}} + \ell^{\text{cool}}(\alpha) + a_{\text{HX}}K_{\text{HX}} + a_{\text{HP}}K_{\text{HP}} + a_{\text{FLEX}}K_{\text{FLEX}} + a_{\text{BAT,E}}K_{\text{BAT,E}} + a_{\text{BAT,P}}K_{\text{BAT,P}}$, where $\ell^{\text{core}}$ is the existing facility footprint, $\ell^{\text{cool}}(\alpha)$ scales with existing cooling capacity, and each $a_{(\cdot)}$ is a per-unit-capacity land coefficient. When a scenario land limit is set, $\ell$ is constrained not to exceed it; land cost enters the objective as an annualized lease or opportunity cost on $\ell$.
+
+\subsection*{A.8 Peak-capacity cost and construction delay}
+Peak import $P^{\text{peak}}\ge E_{\text{FAC},t}\ \forall t$ is the maximum facility load over the representative-day horizon (Section~\ref{sec:methodology}); it enters the private objective as a demand charge and the independent ledger as a peak-capacity value, both linear in $P^{\text{peak}}$. Construction delay does not appear as an operational constraint: it is a lifecycle scalar $a_s\in[0,1]$ (Eq.~\ref{eq:sipue-credit}) applied to the siPUE credit after the operational problem is solved, and separately to the lifecycle NPV split between pre- and post-commissioning periods.
+
+\subsection*{A.9 Objective}
+Every design/operations solve minimizes lifecycle market cost -- the present-value sum of annual resource, network, carbon-market, demand-charge, and SLA costs, net of heat and flexibility revenue and efficiency opex credit, plus capex and annualized land cost -- except the diagnostic siPUE-regret and emissions-minimizing solves in Sections~\ref{sec:results} and~\ref{sec:methodology}, which substitute siPUE or physical emissions as the primary objective with lifecycle cost as a lexicographic tie-break where stated.
 
 \section*{Declaration of competing interest}
 
@@ -1120,7 +997,7 @@ The computational implementation supporting this study is available in the BRAVE
 \url{https://github.com/sambeets/BRAVE/tree/main/sipue_modelling}. 
  
 
-\section*{Acknowledgement}
+\section*{Acknowledgements}
 This research has received financial support from Interreg project BRAVE, and FME RenewHydro (Grant 350468, Research Council of Norway).
 \IfFileExists{brave.pdf}{
 \begin{figure}[H]

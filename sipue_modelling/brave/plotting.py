@@ -18,8 +18,6 @@ from matplotlib.path import Path
 
 from brave.config import Config
 from brave.network import load_network_timeseries
-from brave.optimization import solve_ops_given_design
-from brave.scenario import Scenario
 from brave.timeseries import build_representative_days
 
 
@@ -69,6 +67,8 @@ LEDGER_COLORS = {
     "land": "#8E5C7A",
     "delay": "#D7A84B",
     "policy": "#8E5C7A",
+    "peak": "#946C4D",
+    "transmission": "#5B7A99",
 }
 
 DESIGN_LABELS = {
@@ -415,10 +415,10 @@ def _fig_05_optimization_formulation_map(out_dir: str, cfg: Config) -> None:
     boxes = {
         "benchmark": (0.18, 0.72, "Stage 1 benchmark\nC*_s\nscenario-perfect cost", "#FEF3C7"),
         "objective": (0.50, 0.72, "Stage 2 objective\nminimize max normalized regret\nthen planning cost", "#DCFCE7"),
-        "decision": (0.82, 0.72, "Shared design variables\nHX, HP, FLEX, battery,\nefficiency", "#DBEAFE"),
+        "decision": (0.82, 0.72, "Shared design variables\nHX, HP, FLEX, battery\n(efficiency retrofit fixed\nat 0.15 in canonical rows)", "#DBEAFE"),
         "constraints": (0.28, 0.38, "Constraints\ncarbon cap, land, heat,\nflex, battery, DC-OPF", "#F3E8FF"),
         "ops": (0.62, 0.38, "Operational evaluation\nhourly weighted energy,\ncost, emissions", "#E0F2FE"),
-        "metrics": (0.50, 0.12, "Reported KPIs\nPUE, siPUE, CUE,\nModeled ERF, value, regret", "#FFE4E6"),
+        "metrics": (0.50, 0.12, "Reported KPIs\nPUE, siPUE, CUE,\nsystem benefit, regret", "#FFE4E6"),
     }
     arrows = [
         ("benchmark", "objective"),
@@ -689,7 +689,7 @@ def _fig_04_kpi_benchmark_scoreboard(rows: Sequence[Dict], out_dir: str, cfg: Co
         # archetype's IT energy is constant across its own rows), so the
         # per-archetype lines are unaffected. For "all", which pools all
         # four archetypes, average_value_it_weighted matches the paper's
-        # headline numbers; average_value (equal-weighted by archetype) does
+        # reported numbers; average_value (equal-weighted by archetype) does
         # not, so it is used only as a fallback for older CSVs that predate
         # the IT-weighted column.
         value_key = "average_value_it_weighted" if archetype == "all" else "average_value"
@@ -840,26 +840,31 @@ def _ribbon(ax, p0: Tuple[float, float], w0: float, p1: Tuple[float, float], w1:
 
 
 def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg: Config) -> None:
+    """Decomposes the independent system-cost ledger that defines the siPUE
+    credit (Eq. independent-cost-ledger / Table credit-ablation), not the
+    private market cash flow. Avoided heat/flexibility cost, carbon damage,
+    peak capacity, resource electricity, and transmission are the same six
+    components reported in the credit-ablation table; construction delay is
+    a separate scalar applied to their sum (Eq. sipue-credit) and is not part
+    of this ledger, so it is excluded here to avoid double-counting."""
     components = [
-        ("heating revenue", "heat"),
-        ("flexibility revenue", "flex"),
+        ("heat system value", "heat"),
+        ("flexibility system value", "flex"),
+        ("carbon damage", "carbon"),
+        ("peak capacity", "peak"),
         ("resource electricity", "electricity"),
-        ("cooling electricity", "electricity"),
-        ("CO2 market", "carbon"),
-        ("capex", "capex"),
-        ("land", "land"),
-        ("construction delay", "delay"),
+        ("transmission", "transmission"),
     ]
     # Pooled across all four archetypes: weight each row by its own IT energy
     # rather than averaging all 40 rows equally, which would implicitly give
     # every archetype the same one-quarter weight regardless of its IT energy
-    # scale (matches the IT-weighting used for the paper's headline numbers).
+    # scale (matches the IT-weighting used for the paper's reported numbers).
     values: Dict[str, float] = {}
     for component, _ in components:
         found = [
             (_num(row, "value_eur") / 1e6, _num(row, "e_it_mwh", 1.0))
             for row in decomposition
-            if _value(row, "Design") == "robust" and _value(row, "Ledger") == "market" and _value(row, "Component") == component
+            if _value(row, "Design") == "robust" and _value(row, "Ledger") == "independent" and _value(row, "Component") == component
         ]
         total_weight = sum(w for _, w in found)
         values[component] = (sum(v * w for v, w in found) / total_weight) if total_weight > 0 else 0.0
@@ -867,7 +872,7 @@ def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg
     inflows = [(c, k, values[c]) for c, k in components if values[c] > 0]
     outflows = [(c, k, values[c]) for c, k in components if values[c] < 0]
     if not inflows:
-        _placeholder_figure(out_dir, "fig_10_system_value_sankey", cfg, "System value flow", "No positive value components found in the decomposition ledger.")
+        _placeholder_figure(out_dir, "fig_10_system_value_sankey", cfg, "System benefit flow", "No positive value components found in the independent decomposition ledger.")
         return
     total_in = sum(value for _, _, value in inflows)
     total_out = -sum(value for _, _, value in outflows)
@@ -877,7 +882,7 @@ def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg
     ax.axis("off")
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(0.0, 1.0)
-    ax.set_title("System value: gross revenue nets out to system value after costs and adjustments", fontsize=_fs(14.5), weight="bold", pad=14)
+    ax.set_title("Independent system benefit: avoided cost nets out to the undelayed siPUE credit", fontsize=_fs(14.5), weight="bold", pad=14)
 
     max_w = 0.16
     gross_xy = (0.40, 0.62)
@@ -896,13 +901,13 @@ def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg
 
     _ribbon(ax, gross_xy, _width(net_value), net_xy, _width(net_value), CASE_COLORS["robust"], zorder=2)
     if outflows:
-        _ribbon(ax, gross_xy, _width(total_out), costs_xy, _width(total_out), LEDGER_COLORS["capex"], zorder=2)
+        _ribbon(ax, gross_xy, _width(total_out), costs_xy, _width(total_out), LEDGER_COLORS["peak"], zorder=2)
 
-    _text_box(ax, gross_xy, f"Gross value\n{total_in:+.1f} M EUR", "#DCFCE7", CASE_COLORS["robust"], 9.5, zorder=4)
-    _text_box(ax, net_xy, f"Net system\nvalue\n{net_value:+.1f} M EUR", "#DBEAFE", CASE_COLORS["baseline"], 9.5, zorder=4)
+    _text_box(ax, gross_xy, f"Avoided\nindependent cost\n{total_in:+.1f} M EUR", "#DCFCE7", CASE_COLORS["robust"], 9.5, zorder=4)
+    _text_box(ax, net_xy, f"Undelayed\nsystem benefit\n{net_value:+.1f} M EUR", "#DBEAFE", CASE_COLORS["baseline"], 9.5, zorder=4)
 
     if outflows:
-        _text_box(ax, costs_xy, f"Costs &\nadjustments\n{-total_out:+.1f} M EUR", "#FEE2E2", LEDGER_COLORS["capex"], 9.0, zorder=4)
+        _text_box(ax, costs_xy, f"Additional\nindependent burden\n{-total_out:+.1f} M EUR", "#FEE2E2", LEDGER_COLORS["peak"], 9.0, zorder=4)
         n_out = len(outflows)
         out_ys = np.linspace(0.30, 0.02, n_out) if n_out > 1 else [0.12]
         for (component, key, value), y in zip(outflows, out_ys):
@@ -910,7 +915,7 @@ def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg
             _ribbon(ax, costs_xy, _width(value), (0.92, y), _width(value), color, zorder=1)
             _text_box(ax, (0.92, y), f"{_wrap(component.title(), 16)}\n{value:+.1f} M EUR", "#FFF7ED", color, 8.0, zorder=3)
 
-    _add_takeaway(fig, "Business value and policy costs are separated: heat/flex value can be offset by electricity, carbon, capex, land, and delay before net system value is realized.")
+    _add_takeaway(fig, "This is the independent accounting ledger behind the siPUE credit (Table credit-ablation), not private market cash flow: heat and flexibility avoided cost and carbon damage are offset by additional electricity, peak, and transmission burden before construction delay is applied.")
     _save_figure(fig, out_dir, "fig_10_system_value_sankey", cfg)
 
 
@@ -972,7 +977,7 @@ def _fig_12_delay_credit_bridge(rows: Sequence[Dict], out_dir: str, cfg: Config)
     # all four archetypes as equally sized (matches the paper's IT-weighting).
     total_loss_weight = sum(loss_weights)
     mean_loss = (sum(v * w for v, w in zip(loss, loss_weights)) / total_loss_weight) if total_loss_weight > 0 else 0.0
-    _add_takeaway(fig, f"Construction delay reduces the useful siPUE credit by about {mean_loss:.1f}% for every archetype -- the effect is uniform because delay is applied as a single planning assumption, not a per-archetype outcome.")
+    _add_takeaway(fig, f"Construction delay reduces the useful siPUE credit by about {mean_loss:.1f}% for every archetype—the effect is uniform because delay is applied as a single planning assumption, not a per-archetype outcome.")
     fig.subplots_adjust(bottom=0.14)
     _save_figure(fig, out_dir, "fig_12_delay_credit_bridge", cfg)
 
@@ -1126,7 +1131,7 @@ def _fig_17_sensitivity_tornado(rows: Sequence[Dict], out_dir: str, cfg: Config)
     if not base:
         return
     # "all" pools all four archetypes, so use the IT-energy-weighted column to
-    # match the paper's headline numbers (equal-weighting by archetype would
+    # match the paper's reported numbers (equal-weighting by archetype would
     # give a small archetype the same weight as a much larger one); fall back
     # to the equal-weighted column for older CSVs that predate it.
     sipue_key = "average_sipue_it_weighted" if "average_sipue_it_weighted" in base[0] else "average_sipue"
@@ -1135,25 +1140,54 @@ def _fig_17_sensitivity_tornado(rows: Sequence[Dict], out_dir: str, cfg: Config)
     for factor in sorted({str(_value(row, "Factor")) for row in rows if _value(row, "Factor") not in ("canonical", None, "")}):
         if factor not in ALLOWED_SENSITIVITY_FACTORS:
             continue
-        subset = [row for row in rows if _value(row, "Factor") == factor and _value(row, "Archetype") == "all"]
-        if not subset:
-            continue
-        low = min(_num(row, sipue_key) for row in subset) - base_sipue
-        high = max(_num(row, sipue_key) for row in subset) - base_sipue
-        entries.append((str(factor), low, high))
+        subset = {
+            str(_value(row, "Level")).strip().lower(): _num(row, sipue_key) - base_sipue
+            for row in rows
+            if _value(row, "Factor") == factor and _value(row, "Archetype") == "all"
+        }
+        # Explicit low/high input levels, not the numerically smaller/larger
+        # outcome -- a factor whose "low" input level raises siPUE and whose
+        # "high" input level lowers it should still label the bars by input
+        # level, not silently relabel them by which one happened to be
+        # numerically smaller (a conventional tornado shows both named
+        # endpoints, not just the range between them).
+        low_delta = subset.get("low")
+        high_delta = subset.get("high")
+        if low_delta is None or high_delta is None:
+            # Construction delay uses "0 months"/"12 months" instead of low/high.
+            level_values = sorted(
+                (
+                    (str(_value(row, "Level")), _num(row, sipue_key) - base_sipue)
+                    for row in rows
+                    if _value(row, "Factor") == factor and _value(row, "Archetype") == "all"
+                ),
+                key=lambda item: item[0],
+            )
+            if len(level_values) < 2:
+                continue
+            low_delta, high_delta = level_values[0][1], level_values[-1][1]
+        entries.append((str(factor), low_delta, high_delta))
     if not entries:
         return
     entries.sort(key=lambda item: abs(item[2] - item[1]), reverse=True)
-    fig, ax = plt.subplots(figsize=(9.5, 5.2))
+    fig, ax = plt.subplots(figsize=(9.8, 5.4))
     y = np.arange(len(entries))
-    for yi, (factor, low, high) in zip(y, entries):
-        ax.barh(yi, high - low, left=low, color=CASE_COLORS["robust"], alpha=0.72)
-        ax.text(max(low, high), yi, f" {high - low:+.3g}", va="center", fontsize=_fs(8))
-    ax.axvline(0.0, color="#111827", lw=1.0)
+    low_color, high_color = "#2F6B8A", "#C17C2C"
+    for yi, (factor, low_delta, high_delta) in zip(y, entries):
+        ax.barh(yi, low_delta, color=low_color, alpha=0.85, height=0.55)
+        ax.barh(yi, high_delta, color=high_color, alpha=0.85, height=0.55)
+        ax.text(low_delta, yi + 0.32, f"low {low_delta:+.3g}", va="center", ha="left" if low_delta >= 0 else "right", fontsize=_fs(7.5), color=low_color)
+        ax.text(high_delta, yi - 0.32, f"high {high_delta:+.3g}", va="center", ha="left" if high_delta >= 0 else "right", fontsize=_fs(7.5), color=high_color)
+    ax.axvline(0.0, color="#111827", lw=1.2, label="canonical value")
     ax.set_yticks(y, [label.title() for label, _, _ in entries])
     ax.invert_yaxis()
     ax.set_xlabel("robust siPUE change vs canonical sensitivity case")
-    ax.set_title("Five-factor sensitivity tornado", fontsize=_fs(15), weight="bold")
+    ax.set_title("Five-factor sensitivity tornado: low and high input levels shown separately", fontsize=_fs(14.5), weight="bold")
+    handles = [
+        patches.Patch(facecolor=low_color, label="low input level"),
+        patches.Patch(facecolor=high_color, label="high input level"),
+    ]
+    ax.legend(handles=handles, frameon=False, loc="lower right", fontsize=_fs(9))
     _style_axis(ax, "x")
     _save_figure(fig, out_dir, "fig_17_sensitivity_tornado", cfg)
 
@@ -1238,65 +1272,6 @@ def export_creative_figure_package_from_csv(cfg: Config) -> None:
             os.path.join(cfg.canonical_output_dir, "results_4_archetypes_10_states.csv")
         )
     export_creative_figure_package(rows, comparison, decomposition, cfg)
-
-
-def export_plots(rows: List[Dict], cfg: Config) -> None:
-    """Export descriptive plots only; no constructed-target correlations."""
-    if not cfg.export_plots or not rows:
-        return
-    out_dir = _ensure_plot_dir(cfg)
-    labels = _labels(rows)
-    x = np.arange(len(rows))
-    case = "robust"
-
-    fig, axes = plt.subplots(1, 2, figsize=(11.0, 4.2))
-    pue_delta = [_num(row, f"pue_{case}") - _num(row, "pue_fair_services_disabled") for row in rows]
-    sipue_delta = [_num(row, f"sipue_{case}") - _num(row, "sipue_fair_services_disabled") for row in rows]
-    axes[0].bar(x, pue_delta, color="#4C78A8")
-    axes[1].bar(x, sipue_delta, color="#59A14F")
-    for ax, ylabel in zip(axes, ("PUE change", "delay-aware siPUE change")):
-        ax.axhline(0.0, color="black", linewidth=0.8)
-        ax.set_xticks(x, labels, rotation=45, ha="right")
-        ax.set_ylabel(ylabel)
-        ax.grid(axis="y", alpha=0.2)
-    fig.tight_layout()
-    _save_figure(fig, out_dir, "pue_sipue_system_direction", cfg)
-
-    fig, ax = plt.subplots(figsize=(9.0, 4.2))
-    credit_loss = [_num(row, f"sipue_credit_loss_mwh_{case}") for row in rows]
-    ax.bar(x, credit_loss, color="#E15759")
-    ax.set_xticks(x, labels, rotation=45, ha="right")
-    ax.set_ylabel("siPUE credit loss (MWh)")
-    ax.grid(axis="y", alpha=0.2)
-    fig.tight_layout()
-    _save_figure(fig, out_dir, "delay_credit_loss", cfg)
-
-    fig, ax = plt.subplots(figsize=(9.5, 4.3))
-    width = 0.36
-    market = [_num(row, f"carbon_market_cost_eur_{case}") / 1e6 for row in rows]
-    damage = [_num(row, f"carbon_damage_eur_{case}") / 1e6 for row in rows]
-    ax.bar(x - width / 2, market, width, label="CO2 market cost", color="#F28E2B")
-    ax.bar(x + width / 2, damage, width, label="carbon damage", color="#B07AA1")
-    ax.set_xticks(x, labels, rotation=45, ha="right")
-    ax.set_ylabel("Separate carbon ledgers (million EUR)")
-    ax.legend()
-    ax.grid(axis="y", alpha=0.2)
-    fig.tight_layout()
-    _save_figure(fig, out_dir, "carbon_ledgers", cfg)
-
-    fig, ax = plt.subplots(figsize=(9.5, 4.3))
-    cooling = [_num(row, f"cooling_mwh_{case}") for row in rows]
-    heat_it = [_num(row, f"recovered_heat_it_mwhth_{case}") for row in rows]
-    heat_cooling = [_num(row, f"recovered_heat_cooling_mwhth_{case}") for row in rows]
-    ax.bar(x, cooling, label="cooling electricity", color="#4C78A8")
-    ax.bar(x, heat_it, bottom=cooling, label="IT-source recovered heat", color="#59A14F")
-    ax.bar(x, heat_cooling, bottom=np.array(cooling) + np.array(heat_it), label="cooling-source recovered heat", color="#9C755F")
-    ax.set_xticks(x, labels, rotation=45, ha="right")
-    ax.set_ylabel("Energy (MWh)")
-    ax.legend(ncol=2)
-    ax.grid(axis="y", alpha=0.2)
-    fig.tight_layout()
-    _save_figure(fig, out_dir, "cooling_heat_sources", cfg)
 
 
 def export_study_plots(
@@ -1438,43 +1413,3 @@ def export_study_plots(
     _save_figure(fig, out_dir, "market_value_decomposition", cfg)
 
     export_creative_figure_package(rows, comparison, decomposition, cfg)
-
-def export_regret_landscapes(
-    scenarios: List[Scenario],
-    profiles: Dict[int, Dict[str, List[float]]],
-    c_star: Dict[int, float],
-    robust: Dict[str, float],
-    cfg: Config,
-) -> None:
-    if not cfg.export_regret_landscape:
-        return
-    out_dir = _ensure_plot_dir(cfg)
-    n = max(3, int(cfg.landscape_grid_nx))
-    hx_values = np.linspace(0.0, cfg.K_HX_max, n)
-    flex_values = np.linspace(0.0, cfg.K_FLEX_max, n)
-    regret = np.zeros((n, n))
-    for i, k_hx in enumerate(hx_values):
-        for j, k_flex in enumerate(flex_values):
-            regret[i, j] = max(
-                solve_ops_given_design(
-                    sc,
-                    profiles[sc.sid],
-                    cfg,
-                    k_hx,
-                    k_flex,
-                    robust["K_BAT_E"],
-                    robust["K_BAT_P"],
-                    robust["eff_reduction"],
-                    K_HP=robust.get("K_HP", 0.0),
-                )["market_planning_cost_npv_eur"]
-                - c_star[sc.sid]
-                for sc in scenarios
-            )
-    fig, ax = plt.subplots(figsize=(6.5, 4.8))
-    contour = ax.contourf(hx_values, flex_values, regret.T, levels=12, cmap="viridis")
-    fig.colorbar(contour, ax=ax, label="worst-case lifecycle regret (EUR)")
-    ax.scatter([robust["K_HX"]], [robust["K_FLEX"]], marker="*", color="white", edgecolor="black", s=90)
-    ax.set_xlabel("heat-exchanger capacity (MWth)")
-    ax.set_ylabel("flexibility capacity (MW)")
-    fig.tight_layout()
-    _save_figure(fig, out_dir, "regret_surface_hx_flex_contour", cfg)

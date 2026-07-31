@@ -217,7 +217,6 @@ def main() -> None:
         enforce_locked_calibration=False,
         export_csv=False,
         export_plots=False,
-        export_regret_landscape=False,
     )
     detailed = []
     summary = []

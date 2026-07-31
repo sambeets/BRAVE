@@ -1,21 +1,21 @@
 archetype,design,scenario_count,average_lifecycle_value_npv_eur,comparable_scenario_count,average_regret_eur,worst_regret_eur,average_regret_per_mwh_it,average_regret_share_of_attainable_pct,average_regret_share_of_lifecycle,worst_regret_share_of_lifecycle,run_id
-AI/HPC,baseline,10,-30054279183.799236,0,,,,,,,congested3-9180d3f3a854c008
-AI/HPC,fair_services_disabled,10,-30061625057.68686,0,,,,,,,congested3-9180d3f3a854c008
-AI/HPC,no_services,10,-30050815290.656334,0,,,,,,,congested3-9180d3f3a854c008
-AI/HPC,robust,10,-30034178249.490715,10,0.38353614807128905,3.8353614807128906,1.0000000580903443e-07,,1.0431378678563923e-09,1.0431378678563923e-08,congested3-9180d3f3a854c008
-Colocation,baseline,10,-29917353307.694836,0,,,,,,,congested3-9180d3f3a854c008
-Colocation,fair_services_disabled,10,-29922730942.092613,0,,,,,,,congested3-9180d3f3a854c008
-Colocation,no_services,10,-29914646165.61192,0,,,,,,,congested3-9180d3f3a854c008
-Colocation,robust,10,-29902021931.074615,10,0.0,0.0,0.0,,0.0,0.0,congested3-9180d3f3a854c008
-Enterprise/edge,baseline,10,-29759434606.87074,0,,,,,,,congested3-9180d3f3a854c008
-Enterprise/edge,fair_services_disabled,10,-29760288369.385315,0,,,,,,,congested3-9180d3f3a854c008
-Enterprise/edge,no_services,10,-29747049039.50121,0,,,,,,,congested3-9180d3f3a854c008
-Enterprise/edge,robust,10,-29754622430.44851,10,0.0,0.0,0.0,,0.0,0.0,congested3-9180d3f3a854c008
-Hyperscale cloud,baseline,10,-30265423096.68158,0,,,,,,,congested3-9180d3f3a854c008
-Hyperscale cloud,fair_services_disabled,10,-30280685141.0768,0,,,,,,,congested3-9180d3f3a854c008
-Hyperscale cloud,no_services,10,-30277964056.02935,0,,,,,,,congested3-9180d3f3a854c008
-Hyperscale cloud,robust,10,-30251342849.427307,10,0.5726261138916016,5.726261138916016,1.0000000408932486e-07,,1.5446210855295686e-09,1.5446210855295686e-08,congested3-9180d3f3a854c008
-all,baseline,40,-29999122548.761604,0,,,,,,,congested3-9180d3f3a854c008
-all,fair_services_disabled,40,-30006332377.560394,0,,,,,,,congested3-9180d3f3a854c008
-all,no_services,40,-29997618637.949696,0,,,,,,,congested3-9180d3f3a854c008
-all,robust,40,-29985541365.110283,40,0.23904056549072267,5.726261138916016,5.0000002474589826e-08,,6.469397383464902e-10,1.5446210855295686e-08,congested3-9180d3f3a854c008
+AI/HPC,baseline,10,-30054279183.799244,0,,,,,,,congested3-f39a7768fc47b50f
+AI/HPC,fair_services_disabled,10,-30061625057.68701,0,,,,,,,congested3-f39a7768fc47b50f
+AI/HPC,no_services,10,-30050815290.656334,0,,,,,,,congested3-f39a7768fc47b50f
+AI/HPC,robust,10,-30034178249.49073,10,0.38353614807128905,3.8353614807128906,1.0000000580903443e-07,,1.0431378678563923e-09,1.0431378678563923e-08,congested3-f39a7768fc47b50f
+Colocation,baseline,10,-29917353307.694843,0,,,,,,,congested3-f39a7768fc47b50f
+Colocation,fair_services_disabled,10,-29922730942.09268,0,,,,,,,congested3-f39a7768fc47b50f
+Colocation,no_services,10,-29914646165.61192,0,,,,,,,congested3-f39a7768fc47b50f
+Colocation,robust,10,-29902021931.074623,10,0.0,0.0,0.0,,0.0,0.0,congested3-f39a7768fc47b50f
+Enterprise/edge,baseline,10,-29759434606.87074,0,,,,,,,congested3-f39a7768fc47b50f
+Enterprise/edge,fair_services_disabled,10,-29760288369.385338,0,,,,,,,congested3-f39a7768fc47b50f
+Enterprise/edge,no_services,10,-29747049039.50121,0,,,,,,,congested3-f39a7768fc47b50f
+Enterprise/edge,robust,10,-29754622430.44851,10,0.0,0.0,0.0,,0.0,0.0,congested3-f39a7768fc47b50f
+Hyperscale cloud,baseline,10,-30265423096.68158,0,,,,,,,congested3-f39a7768fc47b50f
+Hyperscale cloud,fair_services_disabled,10,-30280685141.076893,0,,,,,,,congested3-f39a7768fc47b50f
+Hyperscale cloud,no_services,10,-30277964056.02935,0,,,,,,,congested3-f39a7768fc47b50f
+Hyperscale cloud,robust,10,-30251342849.427307,10,0.5726261138916016,5.726261138916016,1.0000000408932486e-07,,1.5446210855295686e-09,1.5446210855295686e-08,congested3-f39a7768fc47b50f
+all,baseline,40,-29999122548.761604,0,,,,,,,congested3-f39a7768fc47b50f
+all,fair_services_disabled,40,-30006332377.56048,0,,,,,,,congested3-f39a7768fc47b50f
+all,no_services,40,-29997618637.949696,0,,,,,,,congested3-f39a7768fc47b50f
+all,robust,40,-29985541365.110283,40,0.23904056549072267,5.726261138916016,5.0000002474589826e-08,,6.469397383464902e-10,1.5446210855295686e-08,congested3-f39a7768fc47b50f

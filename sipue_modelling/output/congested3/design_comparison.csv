@@ -1,161 +1,161 @@
 archetype,uncertainty_state,scenario,design,market_cost_npv_eur,lifecycle_value_npv_eur,regret_comparable,regret_eur,regret_per_mwh_it,regret_share_of_lifecycle,regret_share_of_attainable_pct,scenario_perfect_attainable_improvement_eur,emissions_tco2,carbon_cap_satisfied,run_id
-AI/HPC,1,ai_hpc-central-base,no_services,28539993164.937584,-28539993164.937584,False,,,,,,6275006.405830949,False,congested3-9180d3f3a854c008
-AI/HPC,1,ai_hpc-central-base,fair_services_disabled,28550725339.484085,-28550725339.484085,False,,,,,,6273764.413030947,True,congested3-9180d3f3a854c008
-AI/HPC,1,ai_hpc-central-base,baseline,28545809680.623737,-28545809680.623737,False,,,,,,6269108.9996689325,True,congested3-9180d3f3a854c008
-AI/HPC,1,ai_hpc-central-base,robust,28538047007.569294,-28538047007.569294,True,0.0,0.0,0.0,,,6256826.680378397,True,congested3-9180d3f3a854c008
-AI/HPC,2,ai_hpc-clean-cool,no_services,20825460997.721348,-20825460997.721348,False,,,,,,6294536.05575565,False,congested3-9180d3f3a854c008
-AI/HPC,2,ai_hpc-clean-cool,fair_services_disabled,20837323598.72823,-20837323598.72823,False,,,,,,6293583.041935328,True,congested3-9180d3f3a854c008
-AI/HPC,2,ai_hpc-clean-cool,baseline,20830979921.722412,-20830979921.722412,False,,,,,,6289769.474672299,True,congested3-9180d3f3a854c008
-AI/HPC,2,ai_hpc-clean-cool,robust,20802144643.317055,-20802144643.317055,True,0.0,0.0,0.0,,,6268323.259463626,True,congested3-9180d3f3a854c008
-AI/HPC,3,ai_hpc-high-ets,no_services,34480686111.87475,-34480686111.87475,False,,,,,,6274190.033147042,False,congested3-9180d3f3a854c008
-AI/HPC,3,ai_hpc-high-ets,fair_services_disabled,34489821708.30634,-34489821708.30634,False,,,,,,6272885.940707042,True,congested3-9180d3f3a854c008
-AI/HPC,3,ai_hpc-high-ets,baseline,34480905618.73233,-34480905618.73233,False,,,,,,6267903.229718033,True,congested3-9180d3f3a854c008
-AI/HPC,3,ai_hpc-high-ets,robust,34468781035.16458,-34468781035.16458,True,0.0,0.0,0.0,,,6256357.859377941,True,congested3-9180d3f3a854c008
-AI/HPC,4,ai_hpc-heat-rich,no_services,27197340809.9667,-27197340809.9667,False,,,,,,6308934.241055297,False,congested3-9180d3f3a854c008
-AI/HPC,4,ai_hpc-heat-rich,fair_services_disabled,27210260388.749786,-27210260388.749786,False,,,,,,6307857.5013103355,True,congested3-9180d3f3a854c008
-AI/HPC,4,ai_hpc-heat-rich,baseline,27196272497.983562,-27196272497.983562,False,,,,,,6304586.621341019,True,congested3-9180d3f3a854c008
-AI/HPC,4,ai_hpc-heat-rich,robust,27134465369.309902,-27134465369.309902,True,0.0,0.0,0.0,,,6286097.766110806,True,congested3-9180d3f3a854c008
-AI/HPC,5,ai_hpc-flex-rich,no_services,36762215740.67101,-36762215740.67101,False,,,,,,6264261.739724226,False,congested3-9180d3f3a854c008
-AI/HPC,5,ai_hpc-flex-rich,fair_services_disabled,36769383388.40735,-36769383388.40735,False,,,,,,6262920.387500233,True,congested3-9180d3f3a854c008
-AI/HPC,5,ai_hpc-flex-rich,baseline,36764919543.6243,-36764919543.6243,False,,,,,,6261007.3152210945,True,congested3-9180d3f3a854c008
-AI/HPC,5,ai_hpc-flex-rich,robust,36767541462.13107,-36767541462.13107,True,3.8353614807128906,1.0000000580903443e-06,1.0431378678563923e-08,,,6256529.919420181,True,congested3-9180d3f3a854c008
-AI/HPC,6,ai_hpc-cooling-stress,no_services,30901469784.033436,-30901469784.033436,False,,,,,,6267582.444671574,False,congested3-9180d3f3a854c008
-AI/HPC,6,ai_hpc-cooling-stress,fair_services_disabled,30911635411.455822,-30911635411.455822,False,,,,,,6265992.693887572,True,congested3-9180d3f3a854c008
-AI/HPC,6,ai_hpc-cooling-stress,baseline,30908822187.82146,-30908822187.82146,False,,,,,,6261307.6741646975,True,congested3-9180d3f3a854c008
-AI/HPC,6,ai_hpc-cooling-stress,robust,30908892158.860447,-30908892158.860447,True,0.0,0.0,0.0,,,6254739.180687973,True,congested3-9180d3f3a854c008
-AI/HPC,7,ai_hpc-congestion-stress,no_services,35227597497.05011,-35227597497.05011,False,,,,,,6272210.608818793,False,congested3-9180d3f3a854c008
-AI/HPC,7,ai_hpc-congestion-stress,fair_services_disabled,35236718626.83932,-35236718626.83932,False,,,,,,6270819.576882799,True,congested3-9180d3f3a854c008
-AI/HPC,7,ai_hpc-congestion-stress,baseline,35230822833.33725,-35230822833.33725,False,,,,,,6266309.96238547,True,congested3-9180d3f3a854c008
-AI/HPC,7,ai_hpc-congestion-stress,robust,35226363407.52726,-35226363407.52726,True,0.0,0.0,0.0,,,6257448.807614204,True,congested3-9180d3f3a854c008
-AI/HPC,8,ai_hpc-storage-limited,no_services,24463193037.011383,-24463193037.011383,False,,,,,,6284682.9947869,False,congested3-9180d3f3a854c008
-AI/HPC,8,ai_hpc-storage-limited,fair_services_disabled,24475908215.883076,-24475908215.883076,False,,,,,,6283656.659030736,True,congested3-9180d3f3a854c008
-AI/HPC,8,ai_hpc-storage-limited,baseline,24469402031.678303,-24469402031.678303,False,,,,,,6279767.992104187,True,congested3-9180d3f3a854c008
-AI/HPC,8,ai_hpc-storage-limited,robust,24451588257.03742,-24451588257.03742,True,0.0,0.0,0.0,,,6264720.204131407,True,congested3-9180d3f3a854c008
-AI/HPC,9,ai_hpc-cost-stress,no_services,34224323830.14872,-34224323830.14872,False,,,,,,6271114.5939271115,False,congested3-9180d3f3a854c008
-AI/HPC,9,ai_hpc-cost-stress,fair_services_disabled,34238500213.58309,-34238500213.58309,False,,,,,,6269686.302207109,True,congested3-9180d3f3a854c008
-AI/HPC,9,ai_hpc-cost-stress,baseline,34237272824.862923,-34237272824.862923,False,,,,,,6264724.939252788,True,congested3-9180d3f3a854c008
-AI/HPC,9,ai_hpc-cost-stress,robust,34236953947.57644,-34236953947.57644,True,0.0,0.0,0.0,,,6256837.27701209,True,congested3-9180d3f3a854c008
-AI/HPC,10,ai_hpc-service-upside,no_services,27885871933.1483,-27885871933.1483,False,,,,,,6302270.038741308,False,congested3-9180d3f3a854c008
-AI/HPC,10,ai_hpc-service-upside,fair_services_disabled,27895973685.431515,-27895973685.431515,False,,,,,,6301154.3131945105,True,congested3-9180d3f3a854c008
-AI/HPC,10,ai_hpc-service-upside,baseline,27877584697.606102,-27877584697.606102,False,,,,,,6297602.481748363,True,congested3-9180d3f3a854c008
-AI/HPC,10,ai_hpc-service-upside,robust,27807005206.413708,-27807005206.413708,True,0.0,0.0,0.0,,,6277260.0549643785,True,congested3-9180d3f3a854c008
-Hyperscale cloud,1,hyperscale-central-base,no_services,28754255067.34789,-28754255067.34789,False,,,,,,6319287.621830951,False,congested3-9180d3f3a854c008
-Hyperscale cloud,1,hyperscale-central-base,fair_services_disabled,28757515343.05067,-28757515343.05067,False,,,,,,6316506.146630952,True,congested3-9180d3f3a854c008
-Hyperscale cloud,1,hyperscale-central-base,baseline,28751282668.581295,-28751282668.581295,False,,,,,,6303183.068761395,True,congested3-9180d3f3a854c008
-Hyperscale cloud,1,hyperscale-central-base,robust,28747160086.77394,-28747160086.77394,True,0.0,0.0,0.0,,,6299651.980997491,True,congested3-9180d3f3a854c008
-Hyperscale cloud,2,hyperscale-clean-cool,no_services,20963461054.01081,-20963461054.01081,False,,,,,,6336382.621616061,False,congested3-9180d3f3a854c008
-Hyperscale cloud,2,hyperscale-clean-cool,fair_services_disabled,20971391953.131344,-20971391953.131344,False,,,,,,6334255.322916678,True,congested3-9180d3f3a854c008
-Hyperscale cloud,2,hyperscale-clean-cool,baseline,20959675398.116776,-20959675398.116776,False,,,,,,6324315.7156054415,True,congested3-9180d3f3a854c008
-Hyperscale cloud,2,hyperscale-clean-cool,robust,20943216425.174747,-20943216425.174747,True,0.0,0.0,0.0,,,6312535.169899743,True,congested3-9180d3f3a854c008
-Hyperscale cloud,3,hyperscale-high-ets,no_services,34741679614.171555,-34741679614.171555,False,,,,,,6318984.409947041,False,congested3-9180d3f3a854c008
-Hyperscale cloud,3,hyperscale-high-ets,fair_services_disabled,34741294751.006386,-34741294751.006386,False,,,,,,6316063.860987045,True,congested3-9180d3f3a854c008
-Hyperscale cloud,3,hyperscale-high-ets,baseline,34726102682.47238,-34726102682.47238,False,,,,,,6302352.477255209,True,congested3-9180d3f3a854c008
-Hyperscale cloud,3,hyperscale-high-ets,robust,34721251828.33195,-34721251828.33195,True,0.0,0.0,0.0,,,6299663.023809142,True,congested3-9180d3f3a854c008
-Hyperscale cloud,4,hyperscale-heat-rich,no_services,27379211884.744034,-27379211884.744034,False,,,,,,6351800.683306106,False,congested3-9180d3f3a854c008
-Hyperscale cloud,4,hyperscale-heat-rich,fair_services_disabled,27386414254.57217,-27386414254.57217,False,,,,,,6349396.677223525,True,congested3-9180d3f3a854c008
-Hyperscale cloud,4,hyperscale-heat-rich,baseline,27344343659.80683,-27344343659.80683,False,,,,,,6337499.037679444,True,congested3-9180d3f3a854c008
-Hyperscale cloud,4,hyperscale-heat-rich,robust,27304207615.65181,-27304207615.65181,True,0.0,0.0,0.0,,,6325361.875737351,True,congested3-9180d3f3a854c008
-Hyperscale cloud,5,hyperscale-flex-rich,no_services,37082235403.33026,-37082235403.33026,False,,,,,,6309364.013004232,False,congested3-9180d3f3a854c008
-Hyperscale cloud,5,hyperscale-flex-rich,fair_services_disabled,37077467595.16066,-37077467595.16066,False,,,,,,6306360.0197882345,True,congested3-9180d3f3a854c008
-Hyperscale cloud,5,hyperscale-flex-rich,baseline,37073171563.86513,-37073171563.86513,False,,,,,,6301567.66045821,True,congested3-9180d3f3a854c008
-Hyperscale cloud,5,hyperscale-flex-rich,robust,37072270944.383644,-37072270944.383644,True,5.726261138916016,1.0000000408932486e-06,1.5446210855295686e-08,,,6300404.871406922,True,congested3-9180d3f3a854c008
-Hyperscale cloud,6,hyperscale-cooling-stress,no_services,31152911082.466312,-31152911082.466312,False,,,,,,6317228.110694628,False,congested3-9180d3f3a854c008
-Hyperscale cloud,6,hyperscale-cooling-stress,fair_services_disabled,31152788044.41707,-31152788044.41707,False,,,,,,6313667.822438627,True,congested3-9180d3f3a854c008
-Hyperscale cloud,6,hyperscale-cooling-stress,baseline,31152209197.467762,-31152209197.467762,False,,,,,,6302100.962216002,True,congested3-9180d3f3a854c008
-Hyperscale cloud,6,hyperscale-cooling-stress,robust,31150198404.823177,-31150198404.823177,True,0.0,0.0,0.0,,,6301106.513261391,True,congested3-9180d3f3a854c008
-Hyperscale cloud,7,hyperscale-congestion-stress,no_services,35503381882.561714,-35503381882.561714,False,,,,,,6317723.410738796,False,congested3-9180d3f3a854c008
-Hyperscale cloud,7,hyperscale-congestion-stress,fair_services_disabled,35502003374.09202,-35502003374.09202,False,,,,,,6314608.158514794,True,congested3-9180d3f3a854c008
-Hyperscale cloud,7,hyperscale-congestion-stress,baseline,35493701061.53532,-35493701061.53532,False,,,,,,6303420.503105532,True,congested3-9180d3f3a854c008
-Hyperscale cloud,7,hyperscale-congestion-stress,robust,35490347435.881775,-35490347435.881775,True,0.0,0.0,0.0,,,6301057.520235962,True,congested3-9180d3f3a854c008
-Hyperscale cloud,8,hyperscale-storage-limited,no_services,24634146618.573925,-24634146618.573925,False,,,,,,6331616.764071755,False,congested3-9180d3f3a854c008
-Hyperscale cloud,8,hyperscale-storage-limited,fair_services_disabled,24641923087.681458,-24641923087.681458,False,,,,,,6329325.54468137,True,congested3-9180d3f3a854c008
-Hyperscale cloud,8,hyperscale-storage-limited,baseline,24625360292.666153,-24625360292.666153,False,,,,,,6316823.241689213,True,congested3-9180d3f3a854c008
-Hyperscale cloud,8,hyperscale-storage-limited,robust,24607788010.571278,-24607788010.571278,True,0.0,0.0,0.0,,,6304936.878105353,True,congested3-9180d3f3a854c008
-Hyperscale cloud,9,hyperscale-cost-stress,no_services,34494337468.876335,-34494337468.876335,False,,,,,,6316935.292327114,False,congested3-9180d3f3a854c008
-Hyperscale cloud,9,hyperscale-cost-stress,fair_services_disabled,34498011288.15042,-34498011288.15042,False,,,,,,6313736.595847103,True,congested3-9180d3f3a854c008
-Hyperscale cloud,9,hyperscale-cost-stress,baseline,34501179387.92953,-34501179387.92953,False,,,,,,6302759.571917128,True,congested3-9180d3f3a854c008
-Hyperscale cloud,9,hyperscale-cost-stress,robust,34498889028.15367,-34498889028.15367,True,0.0,0.0,0.0,,,6301285.411102817,True,congested3-9180d3f3a854c008
-Hyperscale cloud,10,hyperscale-service-upside,no_services,28074020484.210693,-28074020484.210693,False,,,,,,6345458.666377938,False,congested3-9180d3f3a854c008
-Hyperscale cloud,10,hyperscale-service-upside,fair_services_disabled,28078041719.50579,-28078041719.50579,False,,,,,,6342967.346685645,True,congested3-9180d3f3a854c008
-Hyperscale cloud,10,hyperscale-service-upside,baseline,28027205054.374626,-28027205054.374626,False,,,,,,6330641.695018995,True,congested3-9180d3f3a854c008
-Hyperscale cloud,10,hyperscale-service-upside,robust,27978098714.52703,-27978098714.52703,True,0.0,0.0,0.0,,,6316288.98050152,True,congested3-9180d3f3a854c008
-Colocation,1,colocation-central-base,no_services,28401219880.19648,-28401219880.19648,False,,,,,,6243769.930102695,False,congested3-9180d3f3a854c008
-Colocation,1,colocation-central-base,fair_services_disabled,28409485919.92709,-28409485919.92709,False,,,,,,6242064.437302693,True,congested3-9180d3f3a854c008
-Colocation,1,colocation-central-base,baseline,28405619104.151245,-28405619104.151245,False,,,,,,6239314.651965239,True,congested3-9180d3f3a854c008
-Colocation,1,colocation-central-base,robust,28399712866.745445,-28399712866.745445,True,0.0,0.0,0.0,,,6230650.4487247765,True,congested3-9180d3f3a854c008
-Colocation,2,colocation-clean-cool,no_services,20735668969.991245,-20735668969.991245,False,,,,,,6265970.490892938,False,congested3-9180d3f3a854c008
-Colocation,2,colocation-clean-cool,fair_services_disabled,20746095074.61587,-20746095074.61587,False,,,,,,6264637.347802018,True,congested3-9180d3f3a854c008
-Colocation,2,colocation-clean-cool,baseline,20741466642.02692,-20741466642.02692,False,,,,,,6262321.405526446,True,congested3-9180d3f3a854c008
-Colocation,2,colocation-clean-cool,robust,20721530795.308155,-20721530795.308155,True,0.0,0.0,0.0,,,6248655.116445569,True,congested3-9180d3f3a854c008
-Colocation,3,colocation-high-ets,no_services,34324309693.65129,-34324309693.65129,False,,,,,,6246334.773147038,False,congested3-9180d3f3a854c008
-Colocation,3,colocation-high-ets,fair_services_disabled,34330337766.077038,-34330337766.077038,False,,,,,,6244544.00570704,True,congested3-9180d3f3a854c008
-Colocation,3,colocation-high-ets,baseline,34324138613.930645,-34324138613.930645,False,,,,,,6241529.472517074,True,congested3-9180d3f3a854c008
-Colocation,3,colocation-high-ets,robust,34314284653.42506,-34314284653.42506,True,0.0,0.0,0.0,,,6231735.5134424195,True,congested3-9180d3f3a854c008
-Colocation,4,colocation-heat-rich,no_services,27082704901.00147,-27082704901.00147,False,,,,,,6280684.0702001555,False,congested3-9180d3f3a854c008
-Colocation,4,colocation-heat-rich,fair_services_disabled,27093572278.33129,-27093572278.33129,False,,,,,,6279179.892083467,True,congested3-9180d3f3a854c008
-Colocation,4,colocation-heat-rich,baseline,27084518677.57178,-27084518677.57178,False,,,,,,6277163.219336245,True,congested3-9180d3f3a854c008
-Colocation,4,colocation-heat-rich,robust,27042601080.03053,-27042601080.03053,True,0.0,0.0,0.0,,,6265186.860746076,True,congested3-9180d3f3a854c008
-Colocation,5,colocation-flex-rich,no_services,36573025483.483536,-36573025483.483536,False,,,,,,6236499.179724229,False,congested3-9180d3f3a854c008
-Colocation,5,colocation-flex-rich,fair_services_disabled,36576271136.3722,-36576271136.3722,False,,,,,,6234657.247500231,True,congested3-9180d3f3a854c008
-Colocation,5,colocation-flex-rich,baseline,36572800219.11572,-36572800219.11572,False,,,,,,6233299.907798269,True,congested3-9180d3f3a854c008
-Colocation,5,colocation-flex-rich,robust,36573078896.76614,-36573078896.76614,True,0.0,0.0,0.0,,,6230714.214246967,True,congested3-9180d3f3a854c008
-Colocation,6,colocation-cooling-stress,no_services,30768185746.29167,-30768185746.29167,False,,,,,,6240653.208671448,False,congested3-9180d3f3a854c008
-Colocation,6,colocation-cooling-stress,fair_services_disabled,30774953539.465263,-30774953539.465263,False,,,,,,6238470.177887451,True,congested3-9180d3f3a854c008
-Colocation,6,colocation-cooling-stress,baseline,30771896642.080196,-30771896642.080196,False,,,,,,6235679.063960506,True,congested3-9180d3f3a854c008
-Colocation,6,colocation-cooling-stress,robust,30771620455.043327,-30771620455.043327,True,0.0,0.0,0.0,,,6230857.831667459,True,congested3-9180d3f3a854c008
-Colocation,7,colocation-congestion-stress,no_services,35056770095.4532,-35056770095.4532,False,,,,,,6241714.985278671,False,congested3-9180d3f3a854c008
-Colocation,7,colocation-congestion-stress,fair_services_disabled,35062428507.91579,-35062428507.91579,False,,,,,,6239804.833342676,True,congested3-9180d3f3a854c008
-Colocation,7,colocation-congestion-stress,baseline,35057914334.4496,-35057914334.4496,False,,,,,,6237292.829696448,True,congested3-9180d3f3a854c008
-Colocation,7,colocation-congestion-stress,robust,35053857268.42189,-35053857268.42189,True,0.0,0.0,0.0,,,6231033.325408709,True,congested3-9180d3f3a854c008
-Colocation,8,colocation-storage-limited,no_services,24367325758.034687,-24367325758.034687,False,,,,,,6260789.105517478,False,congested3-9180d3f3a854c008
-Colocation,8,colocation-storage-limited,fair_services_disabled,24378249071.158787,-24378249071.158787,False,,,,,,6259354.3709102385,True,congested3-9180d3f3a854c008
-Colocation,8,colocation-storage-limited,baseline,24373358436.45159,-24373358436.45159,False,,,,,,6256938.456301515,True,congested3-9180d3f3a854c008
-Colocation,8,colocation-storage-limited,robust,24354930537.72215,-24354930537.72215,True,0.0,0.0,0.0,,,6243833.167374535,True,congested3-9180d3f3a854c008
-Colocation,9,colocation-cost-stress,no_services,34068674843.94925,-34068674843.94925,False,,,,,,6243568.333927106,False,congested3-9180d3f3a854c008
-Colocation,9,colocation-cost-stress,fair_services_disabled,34079414171.76637,-34079414171.76637,False,,,,,,6241607.017207115,True,congested3-9180d3f3a854c008
-Colocation,9,colocation-cost-stress,baseline,34077278247.18028,-34077278247.18028,False,,,,,,6238698.938645112,True,congested3-9180d3f3a854c008
-Colocation,9,colocation-cost-stress,robust,34077338896.462803,-34077338896.462803,True,0.0,0.0,0.0,,,6232531.1840124065,True,congested3-9180d3f3a854c008
-Colocation,10,colocation-service-upside,no_services,27768576284.066334,-27768576284.066334,False,,,,,,6274116.065645831,False,congested3-9180d3f3a854c008
-Colocation,10,colocation-service-upside,fair_services_disabled,27776501955.296474,-27776501955.296474,False,,,,,,6272558.472063356,True,congested3-9180d3f3a854c008
-Colocation,10,colocation-service-upside,baseline,27764542159.990364,-27764542159.990364,False,,,,,,6270188.686215031,True,congested3-9180d3f3a854c008
-Colocation,10,colocation-service-upside,robust,27711263860.820656,-27711263860.820656,True,0.0,0.0,0.0,,,6255608.335669184,True,congested3-9180d3f3a854c008
-Enterprise/edge,1,enterprise_edge-central-base,no_services,28249008399.215614,-28249008399.215614,False,,,,,,6215191.490630947,False,congested3-9180d3f3a854c008
-Enterprise/edge,1,enterprise_edge-central-base,fair_services_disabled,28261985888.82925,-28261985888.82925,False,,,,,,6214416.65111095,True,congested3-9180d3f3a854c008
-Enterprise/edge,1,enterprise_edge-central-base,baseline,28261418297.879845,-28261418297.879845,False,,,,,,6213877.805491179,True,congested3-9180d3f3a854c008
-Enterprise/edge,1,enterprise_edge-central-base,robust,28258473836.98133,-28258473836.98133,True,0.0,0.0,0.0,,,6211047.827208899,True,congested3-9180d3f3a854c008
-Enterprise/edge,2,enterprise_edge-clean-cool,no_services,20629495938.756584,-20629495938.756584,False,,,,,,6235485.192941572,False,congested3-9180d3f3a854c008
-Enterprise/edge,2,enterprise_edge-clean-cool,fair_services_disabled,20642540962.899006,-20642540962.899006,False,,,,,,6234884.724543365,True,congested3-9180d3f3a854c008
-Enterprise/edge,2,enterprise_edge-clean-cool,baseline,20641835028.382774,-20641835028.382774,False,,,,,,6234452.118919913,True,congested3-9180d3f3a854c008
-Enterprise/edge,2,enterprise_edge-clean-cool,robust,20636605739.175293,-20636605739.175293,True,0.0,0.0,0.0,,,6231327.71549396,True,congested3-9180d3f3a854c008
-Enterprise/edge,3,enterprise_edge-high-ets,no_services,34130127669.191948,-34130127669.191948,False,,,,,,6214219.400187043,False,congested3-9180d3f3a854c008
-Enterprise/edge,3,enterprise_edge-high-ets,fair_services_disabled,34142112066.16453,-34142112066.16453,False,,,,,,6213405.818691043,True,congested3-9180d3f3a854c008
-Enterprise/edge,3,enterprise_edge-high-ets,baseline,34141253497.5883,-34141253497.5883,False,,,,,,6212898.408062703,True,congested3-9180d3f3a854c008
-Enterprise/edge,3,enterprise_edge-high-ets,robust,34138128682.18401,-34138128682.18401,True,0.0,0.0,0.0,,,6210601.2459879,True,congested3-9180d3f3a854c008
-Enterprise/edge,4,enterprise_edge-heat-rich,no_services,26944016264.48555,-26944016264.48555,False,,,,,,6249574.886501695,False,congested3-9180d3f3a854c008
-Enterprise/edge,4,enterprise_edge-heat-rich,fair_services_disabled,26958648551.893986,-26958648551.893986,False,,,,,,6248896.965939777,True,congested3-9180d3f3a854c008
-Enterprise/edge,4,enterprise_edge-heat-rich,baseline,26956806497.011925,-26956806497.011925,False,,,,,,6248437.182471159,True,congested3-9180d3f3a854c008
-Enterprise/edge,4,enterprise_edge-heat-rich,robust,26943598650.785076,-26943598650.785076,True,0.0,0.0,0.0,,,6245016.445894361,True,congested3-9180d3f3a854c008
-Enterprise/edge,5,enterprise_edge-flex-rich,no_services,36334340056.20295,-36334340056.20295,False,,,,,,6204197.676108236,False,congested3-9180d3f3a854c008
-Enterprise/edge,5,enterprise_edge-flex-rich,fair_services_disabled,36345074399.29139,-36345074399.29139,False,,,,,,6203360.849426625,True,congested3-9180d3f3a854c008
-Enterprise/edge,5,enterprise_edge-flex-rich,baseline,36344547977.00624,-36344547977.00624,False,,,,,,6203146.351531823,True,congested3-9180d3f3a854c008
-Enterprise/edge,5,enterprise_edge-flex-rich,robust,36343914526.726524,-36343914526.726524,True,0.0,0.0,0.0,,,6202429.608040262,True,congested3-9180d3f3a854c008
-Enterprise/edge,6,enterprise_edge-cooling-stress,no_services,30593238907.92831,-30593238907.92831,False,,,,,,6209386.259558627,False,congested3-9180d3f3a854c008
-Enterprise/edge,6,enterprise_edge-cooling-stress,fair_services_disabled,30606527830.241146,-30606527830.241146,False,,,,,,6208394.464973023,True,congested3-9180d3f3a854c008
-Enterprise/edge,6,enterprise_edge-cooling-stress,baseline,30606111950.61691,-30606111950.61691,False,,,,,,6207790.167019399,True,congested3-9180d3f3a854c008
-Enterprise/edge,6,enterprise_edge-cooling-stress,robust,30604669765.607635,-30604669765.607635,True,0.0,0.0,0.0,,,6205409.226114966,True,congested3-9180d3f3a854c008
-Enterprise/edge,7,enterprise_edge-congestion-stress,no_services,34860953659.60787,-34860953659.60787,False,,,,,,6212021.9709948,False,congested3-9180d3f3a854c008
-Enterprise/edge,7,enterprise_edge-congestion-stress,fair_services_disabled,34873220673.76798,-34873220673.76798,False,,,,,,6211154.150732393,True,congested3-9180d3f3a854c008
-Enterprise/edge,7,enterprise_edge-congestion-stress,baseline,34872673683.94611,-34872673683.94611,False,,,,,,6210714.411920007,True,congested3-9180d3f3a854c008
-Enterprise/edge,7,enterprise_edge-congestion-stress,robust,34871006516.53063,-34871006516.53063,True,0.0,0.0,0.0,,,6208533.90811794,True,congested3-9180d3f3a854c008
-Enterprise/edge,8,enterprise_edge-storage-limited,no_services,24242372160.36403,-24242372160.36403,False,,,,,,6229932.911019711,False,congested3-9180d3f3a854c008
-Enterprise/edge,8,enterprise_edge-storage-limited,fair_services_disabled,24256566858.615192,-24256566858.615192,False,,,,,,6229286.485587134,True,congested3-9180d3f3a854c008
-Enterprise/edge,8,enterprise_edge-storage-limited,baseline,24255822481.52775,-24255822481.52775,False,,,,,,6228833.079765853,True,congested3-9180d3f3a854c008
-Enterprise/edge,8,enterprise_edge-storage-limited,robust,24250849888.890514,-24250849888.890514,True,0.0,0.0,0.0,,,6225854.49262295,True,congested3-9180d3f3a854c008
-Enterprise/edge,9,enterprise_edge-cost-stress,no_services,33861617085.052094,-33861617085.052094,False,,,,,,6208352.924415251,False,congested3-9180d3f3a854c008
-Enterprise/edge,9,enterprise_edge-cost-stress,fair_services_disabled,33878963217.848152,-33878963217.848152,False,,,,,,6207461.858967253,True,congested3-9180d3f3a854c008
-Enterprise/edge,9,enterprise_edge-cost-stress,baseline,33878695369.918804,-33878695369.918804,False,,,,,,6206866.93664093,True,congested3-9180d3f3a854c008
-Enterprise/edge,9,enterprise_edge-cost-stress,robust,33877917415.658997,-33877917415.658997,True,0.0,0.0,0.0,,,6204518.183914224,True,congested3-9180d3f3a854c008
-Enterprise/edge,10,enterprise_edge-service-upside,no_services,27625320254.207146,-27625320254.207146,False,,,,,,6242812.69307571,False,congested3-9180d3f3a854c008
-Enterprise/edge,10,enterprise_edge-service-upside,fair_services_disabled,27637243244.302547,-27637243244.302547,False,,,,,,6242110.4853787515,True,congested3-9180d3f3a854c008
-Enterprise/edge,10,enterprise_edge-service-upside,baseline,27635181284.828766,-27635181284.828766,False,,,,,,6241668.252368483,True,congested3-9180d3f3a854c008
-Enterprise/edge,10,enterprise_edge-service-upside,robust,27621059281.945118,-27621059281.945118,True,0.0,0.0,0.0,,,6238200.816172365,True,congested3-9180d3f3a854c008
+AI/HPC,1,ai_hpc-central-base,no_services,28539993164.937584,-28539993164.937584,False,,,,,,6275006.405830949,False,congested3-f39a7768fc47b50f
+AI/HPC,1,ai_hpc-central-base,fair_services_disabled,28550725339.484356,-28550725339.484356,False,,,,,,6273764.413030936,True,congested3-f39a7768fc47b50f
+AI/HPC,1,ai_hpc-central-base,baseline,28545809680.62375,-28545809680.62375,False,,,,,,6269108.9996689325,True,congested3-f39a7768fc47b50f
+AI/HPC,1,ai_hpc-central-base,robust,28538047007.569305,-28538047007.569305,True,0.0,0.0,0.0,,,6256826.6803784,True,congested3-f39a7768fc47b50f
+AI/HPC,2,ai_hpc-clean-cool,no_services,20825460997.721348,-20825460997.721348,False,,,,,,6294536.05575565,False,congested3-f39a7768fc47b50f
+AI/HPC,2,ai_hpc-clean-cool,fair_services_disabled,20837323598.72823,-20837323598.72823,False,,,,,,6293583.041935328,True,congested3-f39a7768fc47b50f
+AI/HPC,2,ai_hpc-clean-cool,baseline,20830979921.722412,-20830979921.722412,False,,,,,,6289769.474672299,True,congested3-f39a7768fc47b50f
+AI/HPC,2,ai_hpc-clean-cool,robust,20802144643.317062,-20802144643.317062,True,0.0,0.0,0.0,,,6268323.259463638,True,congested3-f39a7768fc47b50f
+AI/HPC,3,ai_hpc-high-ets,no_services,34480686111.87475,-34480686111.87475,False,,,,,,6274190.033147042,False,congested3-f39a7768fc47b50f
+AI/HPC,3,ai_hpc-high-ets,fair_services_disabled,34489821708.30685,-34489821708.30685,False,,,,,,6272885.940707023,True,congested3-f39a7768fc47b50f
+AI/HPC,3,ai_hpc-high-ets,baseline,34480905618.73235,-34480905618.73235,False,,,,,,6267903.229718033,True,congested3-f39a7768fc47b50f
+AI/HPC,3,ai_hpc-high-ets,robust,34468781035.164604,-34468781035.164604,True,0.0,0.0,0.0,,,6256357.859377947,True,congested3-f39a7768fc47b50f
+AI/HPC,4,ai_hpc-heat-rich,no_services,27197340809.9667,-27197340809.9667,False,,,,,,6308934.241055297,False,congested3-f39a7768fc47b50f
+AI/HPC,4,ai_hpc-heat-rich,fair_services_disabled,27210260388.749878,-27210260388.749878,False,,,,,,6307857.501310332,True,congested3-f39a7768fc47b50f
+AI/HPC,4,ai_hpc-heat-rich,baseline,27196272497.983562,-27196272497.983562,False,,,,,,6304586.621341019,True,congested3-f39a7768fc47b50f
+AI/HPC,4,ai_hpc-heat-rich,robust,27134465369.30993,-27134465369.30993,True,0.0,0.0,0.0,,,6286097.766110816,True,congested3-f39a7768fc47b50f
+AI/HPC,5,ai_hpc-flex-rich,no_services,36762215740.67101,-36762215740.67101,False,,,,,,6264261.739724226,False,congested3-f39a7768fc47b50f
+AI/HPC,5,ai_hpc-flex-rich,fair_services_disabled,36769383388.40735,-36769383388.40735,False,,,,,,6262920.387500233,True,congested3-f39a7768fc47b50f
+AI/HPC,5,ai_hpc-flex-rich,baseline,36764919543.6243,-36764919543.6243,False,,,,,,6261007.3152210945,True,congested3-f39a7768fc47b50f
+AI/HPC,5,ai_hpc-flex-rich,robust,36767541462.13107,-36767541462.13107,True,3.8353614807128906,1.0000000580903443e-06,1.0431378678563923e-08,,,6256529.919420185,True,congested3-f39a7768fc47b50f
+AI/HPC,6,ai_hpc-cooling-stress,no_services,30901469784.033436,-30901469784.033436,False,,,,,,6267582.444671574,False,congested3-f39a7768fc47b50f
+AI/HPC,6,ai_hpc-cooling-stress,fair_services_disabled,30911635411.45597,-30911635411.45597,False,,,,,,6265992.693887566,True,congested3-f39a7768fc47b50f
+AI/HPC,6,ai_hpc-cooling-stress,baseline,30908822187.821465,-30908822187.821465,False,,,,,,6261307.6741646975,True,congested3-f39a7768fc47b50f
+AI/HPC,6,ai_hpc-cooling-stress,robust,30908892158.86045,-30908892158.86045,True,0.0,0.0,0.0,,,6254739.180687973,True,congested3-f39a7768fc47b50f
+AI/HPC,7,ai_hpc-congestion-stress,no_services,35227597497.05011,-35227597497.05011,False,,,,,,6272210.608818793,False,congested3-f39a7768fc47b50f
+AI/HPC,7,ai_hpc-congestion-stress,fair_services_disabled,35236718626.83943,-35236718626.83943,False,,,,,,6270819.5768827945,True,congested3-f39a7768fc47b50f
+AI/HPC,7,ai_hpc-congestion-stress,baseline,35230822833.33725,-35230822833.33725,False,,,,,,6266309.96238547,True,congested3-f39a7768fc47b50f
+AI/HPC,7,ai_hpc-congestion-stress,robust,35226363407.52726,-35226363407.52726,True,0.0,0.0,0.0,,,6257448.8076142045,True,congested3-f39a7768fc47b50f
+AI/HPC,8,ai_hpc-storage-limited,no_services,24463193037.011383,-24463193037.011383,False,,,,,,6284682.9947869,False,congested3-f39a7768fc47b50f
+AI/HPC,8,ai_hpc-storage-limited,fair_services_disabled,24475908215.883327,-24475908215.883327,False,,,,,,6283656.659030727,True,congested3-f39a7768fc47b50f
+AI/HPC,8,ai_hpc-storage-limited,baseline,24469402031.678303,-24469402031.678303,False,,,,,,6279767.992104187,True,congested3-f39a7768fc47b50f
+AI/HPC,8,ai_hpc-storage-limited,robust,24451588257.037415,-24451588257.037415,True,0.0,0.0,0.0,,,6264720.204131415,True,congested3-f39a7768fc47b50f
+AI/HPC,9,ai_hpc-cost-stress,no_services,34224323830.14872,-34224323830.14872,False,,,,,,6271114.5939271115,False,congested3-f39a7768fc47b50f
+AI/HPC,9,ai_hpc-cost-stress,fair_services_disabled,34238500213.583122,-34238500213.583122,False,,,,,,6269686.302207108,True,congested3-f39a7768fc47b50f
+AI/HPC,9,ai_hpc-cost-stress,baseline,34237272824.862926,-34237272824.862926,False,,,,,,6264724.939252788,True,congested3-f39a7768fc47b50f
+AI/HPC,9,ai_hpc-cost-stress,robust,34236953947.576443,-34236953947.576443,True,0.0,0.0,0.0,,,6256837.277012093,True,congested3-f39a7768fc47b50f
+AI/HPC,10,ai_hpc-service-upside,no_services,27885871933.1483,-27885871933.1483,False,,,,,,6302270.038741308,False,congested3-f39a7768fc47b50f
+AI/HPC,10,ai_hpc-service-upside,fair_services_disabled,27895973685.431606,-27895973685.431606,False,,,,,,6301154.313194507,True,congested3-f39a7768fc47b50f
+AI/HPC,10,ai_hpc-service-upside,baseline,27877584697.606106,-27877584697.606106,False,,,,,,6297602.481748363,True,congested3-f39a7768fc47b50f
+AI/HPC,10,ai_hpc-service-upside,robust,27807005206.413746,-27807005206.413746,True,0.0,0.0,0.0,,,6277260.054964389,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,1,hyperscale-central-base,no_services,28754255067.34789,-28754255067.34789,False,,,,,,6319287.621830951,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,1,hyperscale-central-base,fair_services_disabled,28757515343.050816,-28757515343.050816,False,,,,,,6316506.146630947,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,1,hyperscale-central-base,baseline,28751282668.5813,-28751282668.5813,False,,,,,,6303183.068761395,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,1,hyperscale-central-base,robust,28747160086.77395,-28747160086.77395,True,0.0,0.0,0.0,,,6299651.980997491,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,2,hyperscale-clean-cool,no_services,20963461054.01081,-20963461054.01081,False,,,,,,6336382.621616061,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,2,hyperscale-clean-cool,fair_services_disabled,20971391953.13146,-20971391953.13146,False,,,,,,6334255.3229166735,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,2,hyperscale-clean-cool,baseline,20959675398.11678,-20959675398.11678,False,,,,,,6324315.7156054415,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,2,hyperscale-clean-cool,robust,20943216425.174747,-20943216425.174747,True,0.0,0.0,0.0,,,6312535.169899743,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,3,hyperscale-high-ets,no_services,34741679614.171555,-34741679614.171555,False,,,,,,6318984.409947041,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,3,hyperscale-high-ets,fair_services_disabled,34741294751.00661,-34741294751.00661,False,,,,,,6316063.860987037,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,3,hyperscale-high-ets,baseline,34726102682.4724,-34726102682.4724,False,,,,,,6302352.477255209,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,3,hyperscale-high-ets,robust,34721251828.33196,-34721251828.33196,True,0.0,0.0,0.0,,,6299663.023809142,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,4,hyperscale-heat-rich,no_services,27379211884.744034,-27379211884.744034,False,,,,,,6351800.683306106,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,4,hyperscale-heat-rich,fair_services_disabled,27386414254.572235,-27386414254.572235,False,,,,,,6349396.677223522,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,4,hyperscale-heat-rich,baseline,27344343659.80683,-27344343659.80683,False,,,,,,6337499.037679444,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,4,hyperscale-heat-rich,robust,27304207615.651814,-27304207615.651814,True,0.0,0.0,0.0,,,6325361.875737351,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,5,hyperscale-flex-rich,no_services,37082235403.33026,-37082235403.33026,False,,,,,,6309364.013004232,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,5,hyperscale-flex-rich,fair_services_disabled,37077467595.16066,-37077467595.16066,False,,,,,,6306360.0197882345,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,5,hyperscale-flex-rich,baseline,37073171563.86513,-37073171563.86513,False,,,,,,6301567.66045821,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,5,hyperscale-flex-rich,robust,37072270944.383644,-37072270944.383644,True,5.726261138916016,1.0000000408932486e-06,1.5446210855295686e-08,,,6300404.871406922,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,6,hyperscale-cooling-stress,no_services,31152911082.466312,-31152911082.466312,False,,,,,,6317228.110694628,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,6,hyperscale-cooling-stress,fair_services_disabled,31152788044.417305,-31152788044.417305,False,,,,,,6313667.822438617,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,6,hyperscale-cooling-stress,baseline,31152209197.46777,-31152209197.46777,False,,,,,,6302100.962216002,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,6,hyperscale-cooling-stress,robust,31150198404.82319,-31150198404.82319,True,0.0,0.0,0.0,,,6301106.513261391,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,7,hyperscale-congestion-stress,no_services,35503381882.561714,-35503381882.561714,False,,,,,,6317723.410738796,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,7,hyperscale-congestion-stress,fair_services_disabled,35502003374.09221,-35502003374.09221,False,,,,,,6314608.1585147865,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,7,hyperscale-congestion-stress,baseline,35493701061.535324,-35493701061.535324,False,,,,,,6303420.503105532,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,7,hyperscale-congestion-stress,robust,35490347435.88178,-35490347435.88178,True,0.0,0.0,0.0,,,6301057.520235962,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,8,hyperscale-storage-limited,no_services,24634146618.573925,-24634146618.573925,False,,,,,,6331616.764071755,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,8,hyperscale-storage-limited,fair_services_disabled,24641923087.681458,-24641923087.681458,False,,,,,,6329325.54468137,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,8,hyperscale-storage-limited,baseline,24625360292.666153,-24625360292.666153,False,,,,,,6316823.241689213,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,8,hyperscale-storage-limited,robust,24607788010.571278,-24607788010.571278,True,0.0,0.0,0.0,,,6304936.878105353,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,9,hyperscale-cost-stress,no_services,34494337468.876335,-34494337468.876335,False,,,,,,6316935.292327114,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,9,hyperscale-cost-stress,fair_services_disabled,34498011288.15037,-34498011288.15037,False,,,,,,6313736.595847105,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,9,hyperscale-cost-stress,baseline,34501179387.92951,-34501179387.92951,False,,,,,,6302759.571917128,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,9,hyperscale-cost-stress,robust,34498889028.153656,-34498889028.153656,True,0.0,0.0,0.0,,,6301285.411102817,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,10,hyperscale-service-upside,no_services,28074020484.210693,-28074020484.210693,False,,,,,,6345458.666377938,False,congested3-f39a7768fc47b50f
+Hyperscale cloud,10,hyperscale-service-upside,fair_services_disabled,28078041719.50586,-28078041719.50586,False,,,,,,6342967.346685642,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,10,hyperscale-service-upside,baseline,28027205054.37463,-28027205054.37463,False,,,,,,6330641.695018995,True,congested3-f39a7768fc47b50f
+Hyperscale cloud,10,hyperscale-service-upside,robust,27978098714.527035,-27978098714.527035,True,0.0,0.0,0.0,,,6316288.98050152,True,congested3-f39a7768fc47b50f
+Colocation,1,colocation-central-base,no_services,28401219880.19648,-28401219880.19648,False,,,,,,6243769.930102695,False,congested3-f39a7768fc47b50f
+Colocation,1,colocation-central-base,fair_services_disabled,28409485919.927242,-28409485919.927242,False,,,,,,6242064.437302687,True,congested3-f39a7768fc47b50f
+Colocation,1,colocation-central-base,baseline,28405619104.15125,-28405619104.15125,False,,,,,,6239314.651965239,True,congested3-f39a7768fc47b50f
+Colocation,1,colocation-central-base,robust,28399712866.74545,-28399712866.74545,True,0.0,0.0,0.0,,,6230650.4487247765,True,congested3-f39a7768fc47b50f
+Colocation,2,colocation-clean-cool,no_services,20735668969.991245,-20735668969.991245,False,,,,,,6265970.490892938,False,congested3-f39a7768fc47b50f
+Colocation,2,colocation-clean-cool,fair_services_disabled,20746095074.615818,-20746095074.615818,False,,,,,,6264637.34780202,True,congested3-f39a7768fc47b50f
+Colocation,2,colocation-clean-cool,baseline,20741466642.02692,-20741466642.02692,False,,,,,,6262321.405526446,True,congested3-f39a7768fc47b50f
+Colocation,2,colocation-clean-cool,robust,20721530795.30815,-20721530795.30815,True,0.0,0.0,0.0,,,6248655.116445569,True,congested3-f39a7768fc47b50f
+Colocation,3,colocation-high-ets,no_services,34324309693.65129,-34324309693.65129,False,,,,,,6246334.773147038,False,congested3-f39a7768fc47b50f
+Colocation,3,colocation-high-ets,fair_services_disabled,34330337766.07725,-34330337766.07725,False,,,,,,6244544.005707032,True,congested3-f39a7768fc47b50f
+Colocation,3,colocation-high-ets,baseline,34324138613.930653,-34324138613.930653,False,,,,,,6241529.472517074,True,congested3-f39a7768fc47b50f
+Colocation,3,colocation-high-ets,robust,34314284653.425068,-34314284653.425068,True,0.0,0.0,0.0,,,6231735.5134424195,True,congested3-f39a7768fc47b50f
+Colocation,4,colocation-heat-rich,no_services,27082704901.00147,-27082704901.00147,False,,,,,,6280684.0702001555,False,congested3-f39a7768fc47b50f
+Colocation,4,colocation-heat-rich,fair_services_disabled,27093572278.331303,-27093572278.331303,False,,,,,,6279179.892083467,True,congested3-f39a7768fc47b50f
+Colocation,4,colocation-heat-rich,baseline,27084518677.571777,-27084518677.571777,False,,,,,,6277163.219336245,True,congested3-f39a7768fc47b50f
+Colocation,4,colocation-heat-rich,robust,27042601080.03053,-27042601080.03053,True,0.0,0.0,0.0,,,6265186.860746076,True,congested3-f39a7768fc47b50f
+Colocation,5,colocation-flex-rich,no_services,36573025483.483536,-36573025483.483536,False,,,,,,6236499.179724229,False,congested3-f39a7768fc47b50f
+Colocation,5,colocation-flex-rich,fair_services_disabled,36576271136.372154,-36576271136.372154,False,,,,,,6234657.247500232,True,congested3-f39a7768fc47b50f
+Colocation,5,colocation-flex-rich,baseline,36572800219.115715,-36572800219.115715,False,,,,,,6233299.907798269,True,congested3-f39a7768fc47b50f
+Colocation,5,colocation-flex-rich,robust,36573078896.76614,-36573078896.76614,True,0.0,0.0,0.0,,,6230714.214246967,True,congested3-f39a7768fc47b50f
+Colocation,6,colocation-cooling-stress,no_services,30768185746.29167,-30768185746.29167,False,,,,,,6240653.208671448,False,congested3-f39a7768fc47b50f
+Colocation,6,colocation-cooling-stress,fair_services_disabled,30774953539.465294,-30774953539.465294,False,,,,,,6238470.17788745,True,congested3-f39a7768fc47b50f
+Colocation,6,colocation-cooling-stress,baseline,30771896642.0802,-30771896642.0802,False,,,,,,6235679.063960506,True,congested3-f39a7768fc47b50f
+Colocation,6,colocation-cooling-stress,robust,30771620455.043327,-30771620455.043327,True,0.0,0.0,0.0,,,6230857.831667459,True,congested3-f39a7768fc47b50f
+Colocation,7,colocation-congestion-stress,no_services,35056770095.4532,-35056770095.4532,False,,,,,,6241714.985278671,False,congested3-f39a7768fc47b50f
+Colocation,7,colocation-congestion-stress,fair_services_disabled,35062428507.915825,-35062428507.915825,False,,,,,,6239804.833342675,True,congested3-f39a7768fc47b50f
+Colocation,7,colocation-congestion-stress,baseline,35057914334.44961,-35057914334.44961,False,,,,,,6237292.829696448,True,congested3-f39a7768fc47b50f
+Colocation,7,colocation-congestion-stress,robust,35053857268.4219,-35053857268.4219,True,0.0,0.0,0.0,,,6231033.325408709,True,congested3-f39a7768fc47b50f
+Colocation,8,colocation-storage-limited,no_services,24367325758.034687,-24367325758.034687,False,,,,,,6260789.105517478,False,congested3-f39a7768fc47b50f
+Colocation,8,colocation-storage-limited,fair_services_disabled,24378249071.158787,-24378249071.158787,False,,,,,,6259354.3709102385,True,congested3-f39a7768fc47b50f
+Colocation,8,colocation-storage-limited,baseline,24373358436.45159,-24373358436.45159,False,,,,,,6256938.456301515,True,congested3-f39a7768fc47b50f
+Colocation,8,colocation-storage-limited,robust,24354930537.72215,-24354930537.72215,True,0.0,0.0,0.0,,,6243833.167374535,True,congested3-f39a7768fc47b50f
+Colocation,9,colocation-cost-stress,no_services,34068674843.94925,-34068674843.94925,False,,,,,,6243568.333927106,False,congested3-f39a7768fc47b50f
+Colocation,9,colocation-cost-stress,fair_services_disabled,34079414171.766586,-34079414171.766586,False,,,,,,6241607.0172071075,True,congested3-f39a7768fc47b50f
+Colocation,9,colocation-cost-stress,baseline,34077278247.180294,-34077278247.180294,False,,,,,,6238698.938645112,True,congested3-f39a7768fc47b50f
+Colocation,9,colocation-cost-stress,robust,34077338896.46282,-34077338896.46282,True,0.0,0.0,0.0,,,6232531.1840124065,True,congested3-f39a7768fc47b50f
+Colocation,10,colocation-service-upside,no_services,27768576284.066334,-27768576284.066334,False,,,,,,6274116.065645831,False,congested3-f39a7768fc47b50f
+Colocation,10,colocation-service-upside,fair_services_disabled,27776501955.296555,-27776501955.296555,False,,,,,,6272558.472063353,True,congested3-f39a7768fc47b50f
+Colocation,10,colocation-service-upside,baseline,27764542159.990368,-27764542159.990368,False,,,,,,6270188.686215031,True,congested3-f39a7768fc47b50f
+Colocation,10,colocation-service-upside,robust,27711263860.82066,-27711263860.82066,True,0.0,0.0,0.0,,,6255608.335669184,True,congested3-f39a7768fc47b50f
+Enterprise/edge,1,enterprise_edge-central-base,no_services,28249008399.215614,-28249008399.215614,False,,,,,,6215191.490630947,False,congested3-f39a7768fc47b50f
+Enterprise/edge,1,enterprise_edge-central-base,fair_services_disabled,28261985888.82948,-28261985888.82948,False,,,,,,6214416.651110942,True,congested3-f39a7768fc47b50f
+Enterprise/edge,1,enterprise_edge-central-base,baseline,28261418297.879852,-28261418297.879852,False,,,,,,6213877.805491179,True,congested3-f39a7768fc47b50f
+Enterprise/edge,1,enterprise_edge-central-base,robust,28258473836.98134,-28258473836.98134,True,0.0,0.0,0.0,,,6211047.827208899,True,congested3-f39a7768fc47b50f
+Enterprise/edge,2,enterprise_edge-clean-cool,no_services,20629495938.756584,-20629495938.756584,False,,,,,,6235485.192941572,False,congested3-f39a7768fc47b50f
+Enterprise/edge,2,enterprise_edge-clean-cool,fair_services_disabled,20642540962.899105,-20642540962.899105,False,,,,,,6234884.724543361,True,congested3-f39a7768fc47b50f
+Enterprise/edge,2,enterprise_edge-clean-cool,baseline,20641835028.382774,-20641835028.382774,False,,,,,,6234452.118919913,True,congested3-f39a7768fc47b50f
+Enterprise/edge,2,enterprise_edge-clean-cool,robust,20636605739.175297,-20636605739.175297,True,0.0,0.0,0.0,,,6231327.71549396,True,congested3-f39a7768fc47b50f
+Enterprise/edge,3,enterprise_edge-high-ets,no_services,34130127669.191948,-34130127669.191948,False,,,,,,6214219.400187043,False,congested3-f39a7768fc47b50f
+Enterprise/edge,3,enterprise_edge-high-ets,fair_services_disabled,34142112066.164528,-34142112066.164528,False,,,,,,6213405.818691043,True,congested3-f39a7768fc47b50f
+Enterprise/edge,3,enterprise_edge-high-ets,baseline,34141253497.588303,-34141253497.588303,False,,,,,,6212898.408062703,True,congested3-f39a7768fc47b50f
+Enterprise/edge,3,enterprise_edge-high-ets,robust,34138128682.18401,-34138128682.18401,True,0.0,0.0,0.0,,,6210601.2459879,True,congested3-f39a7768fc47b50f
+Enterprise/edge,4,enterprise_edge-heat-rich,no_services,26944016264.48555,-26944016264.48555,False,,,,,,6249574.886501695,False,congested3-f39a7768fc47b50f
+Enterprise/edge,4,enterprise_edge-heat-rich,fair_services_disabled,26958648551.893986,-26958648551.893986,False,,,,,,6248896.965939777,True,congested3-f39a7768fc47b50f
+Enterprise/edge,4,enterprise_edge-heat-rich,baseline,26956806497.011925,-26956806497.011925,False,,,,,,6248437.182471159,True,congested3-f39a7768fc47b50f
+Enterprise/edge,4,enterprise_edge-heat-rich,robust,26943598650.785076,-26943598650.785076,True,0.0,0.0,0.0,,,6245016.445894361,True,congested3-f39a7768fc47b50f
+Enterprise/edge,5,enterprise_edge-flex-rich,no_services,36334340056.20295,-36334340056.20295,False,,,,,,6204197.676108236,False,congested3-f39a7768fc47b50f
+Enterprise/edge,5,enterprise_edge-flex-rich,fair_services_disabled,36345074399.2912,-36345074399.2912,False,,,,,,6203360.849426631,True,congested3-f39a7768fc47b50f
+Enterprise/edge,5,enterprise_edge-flex-rich,baseline,36344547977.006226,-36344547977.006226,False,,,,,,6203146.351531823,True,congested3-f39a7768fc47b50f
+Enterprise/edge,5,enterprise_edge-flex-rich,robust,36343914526.72651,-36343914526.72651,True,0.0,0.0,0.0,,,6202429.608040262,True,congested3-f39a7768fc47b50f
+Enterprise/edge,6,enterprise_edge-cooling-stress,no_services,30593238907.92831,-30593238907.92831,False,,,,,,6209386.259558627,False,congested3-f39a7768fc47b50f
+Enterprise/edge,6,enterprise_edge-cooling-stress,fair_services_disabled,30606527830.241146,-30606527830.241146,False,,,,,,6208394.464973023,True,congested3-f39a7768fc47b50f
+Enterprise/edge,6,enterprise_edge-cooling-stress,baseline,30606111950.61691,-30606111950.61691,False,,,,,,6207790.167019399,True,congested3-f39a7768fc47b50f
+Enterprise/edge,6,enterprise_edge-cooling-stress,robust,30604669765.607635,-30604669765.607635,True,0.0,0.0,0.0,,,6205409.226114966,True,congested3-f39a7768fc47b50f
+Enterprise/edge,7,enterprise_edge-congestion-stress,no_services,34860953659.60787,-34860953659.60787,False,,,,,,6212021.9709948,False,congested3-f39a7768fc47b50f
+Enterprise/edge,7,enterprise_edge-congestion-stress,fair_services_disabled,34873220673.76798,-34873220673.76798,False,,,,,,6211154.150732393,True,congested3-f39a7768fc47b50f
+Enterprise/edge,7,enterprise_edge-congestion-stress,baseline,34872673683.94611,-34872673683.94611,False,,,,,,6210714.411920007,True,congested3-f39a7768fc47b50f
+Enterprise/edge,7,enterprise_edge-congestion-stress,robust,34871006516.53063,-34871006516.53063,True,0.0,0.0,0.0,,,6208533.90811794,True,congested3-f39a7768fc47b50f
+Enterprise/edge,8,enterprise_edge-storage-limited,no_services,24242372160.36403,-24242372160.36403,False,,,,,,6229932.911019711,False,congested3-f39a7768fc47b50f
+Enterprise/edge,8,enterprise_edge-storage-limited,fair_services_disabled,24256566858.615192,-24256566858.615192,False,,,,,,6229286.485587134,True,congested3-f39a7768fc47b50f
+Enterprise/edge,8,enterprise_edge-storage-limited,baseline,24255822481.52775,-24255822481.52775,False,,,,,,6228833.079765853,True,congested3-f39a7768fc47b50f
+Enterprise/edge,8,enterprise_edge-storage-limited,robust,24250849888.890514,-24250849888.890514,True,0.0,0.0,0.0,,,6225854.49262295,True,congested3-f39a7768fc47b50f
+Enterprise/edge,9,enterprise_edge-cost-stress,no_services,33861617085.052094,-33861617085.052094,False,,,,,,6208352.924415251,False,congested3-f39a7768fc47b50f
+Enterprise/edge,9,enterprise_edge-cost-stress,fair_services_disabled,33878963217.848175,-33878963217.848175,False,,,,,,6207461.858967252,True,congested3-f39a7768fc47b50f
+Enterprise/edge,9,enterprise_edge-cost-stress,baseline,33878695369.918804,-33878695369.918804,False,,,,,,6206866.93664093,True,congested3-f39a7768fc47b50f
+Enterprise/edge,9,enterprise_edge-cost-stress,robust,33877917415.658997,-33877917415.658997,True,0.0,0.0,0.0,,,6204518.183914224,True,congested3-f39a7768fc47b50f
+Enterprise/edge,10,enterprise_edge-service-upside,no_services,27625320254.207146,-27625320254.207146,False,,,,,,6242812.69307571,False,congested3-f39a7768fc47b50f
+Enterprise/edge,10,enterprise_edge-service-upside,fair_services_disabled,27637243244.30258,-27637243244.30258,False,,,,,,6242110.48537875,True,congested3-f39a7768fc47b50f
+Enterprise/edge,10,enterprise_edge-service-upside,baseline,27635181284.828766,-27635181284.828766,False,,,,,,6241668.252368483,True,congested3-f39a7768fc47b50f
+Enterprise/edge,10,enterprise_edge-service-upside,robust,27621059281.945118,-27621059281.945118,True,0.0,0.0,0.0,,,6238200.816172365,True,congested3-f39a7768fc47b50f

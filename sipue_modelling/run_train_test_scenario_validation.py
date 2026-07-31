@@ -9,6 +9,5 @@ if __name__ == "__main__":
     cfg = Config()
     cfg.export_csv = True
     cfg.export_plots = False
-    cfg.export_regret_landscape = False
     cfg.train_test_max_train_id = 7
     run_train_test_scenario_validation(cfg)

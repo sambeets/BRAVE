@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-import csv
 import math
-import os
-from typing import Dict, Iterable, List, Sequence
+from typing import Dict, List, Sequence
 
 from brave.metrics import compute_sipue
 
 
 _TOL = 1e-8
-
-
-def compute_ere(E_FAC: float, E_IT: float, heat_reuse_mwhth: float) -> float:
-    return max(0.0, E_FAC - max(0.0, heat_reuse_mwhth)) / max(1e-9, E_IT)
 
 
 def _finite(value: object) -> bool:
@@ -141,31 +135,3 @@ def build_validation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict
         },
     ])
     return checks
-
-
-def build_ablation_summary(rows: Sequence[Dict], *args, **kwargs) -> List[Dict]:
-    return []
-
-
-def add_derived_validation_metrics(rows: List[Dict], *args, **kwargs) -> None:
-    return None
-
-
-def _write_csv(rows: Iterable[Dict], path: str) -> None:
-    data = list(rows)
-    if not data:
-        return
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    fields = list(data[0].keys())
-    with open(path, "w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(data)
-
-
-def export_validation_tables(rows: List[Dict], cfg) -> None:
-    _write_csv(build_validation_summary(rows), cfg.validation_summary_csv)
-
-
-def export_out_of_sample_tables(rows: List[Dict], cfg) -> None:
-    _write_csv(rows, cfg.validation_oos_csv)

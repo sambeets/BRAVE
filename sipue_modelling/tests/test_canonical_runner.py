@@ -46,7 +46,7 @@ def test_no_services_has_complete_separate_carbon_ledgers(canonical_smoke_rows):
     assert all(row["carbon_damage_eur_no_services"] > 0.0 for row in canonical_smoke_rows)
 
 
-def test_headline_cases_share_carbon_cap(canonical_smoke_rows):
+def test_reference_cases_share_carbon_cap(canonical_smoke_rows):
     for row in canonical_smoke_rows:
         cap = float(row["carbon_cap_tco2"])
         for case in ("fair_services_disabled", "baseline", "robust", "scenario_perfect"):

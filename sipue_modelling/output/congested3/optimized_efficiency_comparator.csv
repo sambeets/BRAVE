@@ -1,0 +1,41 @@
+archetype,archetype_key,scenario,scenario_id,locked_eff_reduction,free_eff_reduction,free_eff_matches_locked,free_design_objective_cost_npv_eur
+AI/HPC,ai_hpc,ai_hpc-central-base,1,0.15,0.15,True,27381871124.304516
+AI/HPC,ai_hpc,ai_hpc-clean-cool,2,0.15,0.15,True,20837323599.81432
+AI/HPC,ai_hpc,ai_hpc-high-ets,3,0.15,0.15,True,33077679713.04004
+AI/HPC,ai_hpc,ai_hpc-heat-rich,4,0.15,0.15,True,27210260390.21614
+AI/HPC,ai_hpc,ai_hpc-flex-rich,5,0.15,0.15,True,33780426573.433037
+AI/HPC,ai_hpc,ai_hpc-cooling-stress,6,0.15,0.15,True,29646138109.321514
+AI/HPC,ai_hpc,ai_hpc-congestion-stress,7,0.15,0.15,True,33794015282.28368
+AI/HPC,ai_hpc,ai_hpc-storage-limited,8,0.15,0.15,True,24475908217.065624
+AI/HPC,ai_hpc,ai_hpc-cost-stress,9,0.15,0.15,True,31455853184.819298
+AI/HPC,ai_hpc,ai_hpc-service-upside,10,0.15,0.15,True,26753871526.867516
+Hyperscale cloud,hyperscale,hyperscale-central-base,1,0.15,0.15,True,27580193460.38487
+Hyperscale cloud,hyperscale,hyperscale-clean-cool,2,0.15,0.15,True,20971391954.217552
+Hyperscale cloud,hyperscale,hyperscale-high-ets,3,0.15,0.15,True,33318855051.336777
+Hyperscale cloud,hyperscale,hyperscale-heat-rich,4,0.15,0.15,True,27386414256.03849
+Hyperscale cloud,hyperscale,hyperscale-flex-rich,5,0.15,0.15,True,34063462149.32919
+Hyperscale cloud,hyperscale,hyperscale-cooling-stress,6,0.15,0.15,True,29877415592.171246
+Hyperscale cloud,hyperscale,hyperscale-congestion-stress,7,0.15,0.15,True,34048436583.741196
+Hyperscale cloud,hyperscale,hyperscale-storage-limited,8,0.15,0.15,True,24641923088.86374
+Hyperscale cloud,hyperscale,hyperscale-cost-stress,9,0.15,0.15,True,31694267652.064106
+Hyperscale cloud,hyperscale,hyperscale-service-upside,10,0.15,0.15,True,26928484446.50751
+Colocation,colocation,colocation-central-base,1,0.15,0.15,True,27246415595.59598
+Colocation,colocation,colocation-clean-cool,2,0.15,0.15,True,20746095075.70191
+Colocation,colocation,colocation-high-ets,3,0.15,0.15,True,32924726858.401333
+Colocation,colocation,colocation-heat-rich,4,0.15,0.15,True,27093572279.797585
+Colocation,colocation,colocation-flex-rich,5,0.15,0.15,True,33603015757.130966
+Colocation,colocation,colocation-cooling-stress,6,0.15,0.15,True,29515053498.07624
+Colocation,colocation,colocation-congestion-stress,7,0.15,0.15,True,33626862787.094795
+Colocation,colocation,colocation-storage-limited,8,0.15,0.15,True,24378249072.341053
+Colocation,colocation,colocation-cost-stress,9,0.15,0.15,True,31309700482.906918
+Colocation,colocation,colocation-service-upside,10,0.15,0.15,True,26639292093.483555
+Enterprise/edge,enterprise_edge,enterprise_edge-central-base,1,0.15,0.15,True,27104955055.03
+Enterprise/edge,enterprise_edge,enterprise_edge-clean-cool,2,0.15,0.15,True,20642540963.985214
+Enterprise/edge,enterprise_edge,enterprise_edge-high-ets,3,0.15,0.15,True,32744208642.47053
+Enterprise/edge,enterprise_edge,enterprise_edge-heat-rich,4,0.15,0.15,True,26958648553.36025
+Enterprise/edge,enterprise_edge,enterprise_edge-flex-rich,5,0.15,0.15,True,33390615855.476913
+Enterprise/edge,enterprise_edge,enterprise_edge-cooling-stress,6,0.15,0.15,True,29353524377.00893
+Enterprise/edge,enterprise_edge,enterprise_edge-congestion-stress,7,0.15,0.15,True,33445402641.676014
+Enterprise/edge,enterprise_edge,enterprise_edge-storage-limited,8,0.15,0.15,True,24256566859.797462
+Enterprise/edge,enterprise_edge,enterprise_edge-cost-stress,9,0.15,0.15,True,31125544499.693676
+Enterprise/edge,enterprise_edge,enterprise_edge-service-upside,10,0.15,0.15,True,26505735405.188904
