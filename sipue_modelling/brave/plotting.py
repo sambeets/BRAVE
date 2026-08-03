@@ -21,25 +21,30 @@ from brave.network import load_network_timeseries
 from brave.timeseries import build_representative_days
 
 
-PLOT_FONT_SCALE = 1.55
+PLOT_FONT_SCALE = 1.7
+
+
+def _fs(size: float) -> int:
+    return int(round(size * PLOT_FONT_SCALE))
+
 
 plt.rcParams.update({
-    "font.size": 12,
+    "font.size": _fs(12),
     "font.weight": "medium",
-    "axes.titlesize": 15,
+    "axes.titlesize": _fs(15),
     "axes.titleweight": "bold",
-    "axes.labelsize": 12,
+    "axes.labelsize": _fs(12),
     "axes.labelweight": "bold",
     "axes.linewidth": 1.3,
-    "xtick.labelsize": 11,
-    "ytick.labelsize": 11,
+    "xtick.labelsize": _fs(11),
+    "ytick.labelsize": _fs(11),
     "xtick.major.width": 1.2,
     "ytick.major.width": 1.2,
-    "legend.fontsize": 11,
-    "legend.title_fontsize": 12,
+    "legend.fontsize": _fs(11),
+    "legend.title_fontsize": _fs(12),
     "lines.linewidth": 2.4,
     "lines.markersize": 8,
-    "figure.titlesize": 18,
+    "figure.titlesize": _fs(18),
     "figure.titleweight": "bold",
     "patch.linewidth": 1.2,
 })
@@ -86,10 +91,6 @@ ALLOWED_SENSITIVITY_FACTORS = {
     "land availability",
     "construction delay",
 }
-
-
-def _fs(size: float) -> int:
-    return int(round(size * PLOT_FONT_SCALE))
 
 
 def _wrap(text: str, width: int = 34) -> str:
@@ -168,12 +169,6 @@ def _median_numeric(rows: Sequence[Dict], key: str) -> float:
     return float(np.median(values)) if values else 0.0
 
 
-def _pct_true(rows: Sequence[Dict], key: str) -> float:
-    if not rows:
-        return 0.0
-    return 100.0 * sum(str(_value(row, key, "")).lower() == "true" for row in rows) / len(rows)
-
-
 def _archetype_order(rows: Sequence[Dict]) -> List[str]:
     preferred = ["AI/HPC", "Hyperscale cloud", "Colocation", "Enterprise/edge"]
     return [name for name in preferred if any(_value(row, "Archetype") == name for row in rows)]
@@ -208,18 +203,6 @@ def _format_value(value: float, unit: str = "") -> str:
     else:
         text = f"{value:.3g}"
     return f"{text} {unit}".strip()
-
-
-def _add_takeaway(fig, text: str) -> None:
-    fig.text(
-        0.5,
-        0.015,
-        _wrap(text, 130),
-        ha="center",
-        va="bottom",
-        fontsize=_fs(8.5),
-        color="#334155",
-    )
 
 
 def _pretty_type_label(dc_type: str) -> str:
@@ -257,164 +240,14 @@ def _placeholder_figure(out_dir: str, name: str, cfg: Config, title: str, messag
     _save_figure(fig, out_dir, name, cfg)
 
 
-def _fig_01_sipue_metric_story(out_dir: str, cfg: Config) -> None:
-    fig, ax = plt.subplots(figsize=(11.2, 5.0))
-    ax.axis("off")
-    ax.set_title("siPUE extends PUE only when system services exist", fontsize=_fs(16), weight="bold", pad=12)
-    y = 0.62
-    blocks = [
-        (0.12, "Facility electricity\nE_fac", "#E5E7EB", "#6B7280"),
-        (0.32, "IT electricity\nE_IT", "#DBEAFE", CASE_COLORS["baseline"]),
-        (0.52, "System benefit\nconverted to MWh", "#DCFCE7", CASE_COLORS["robust"]),
-        (0.72, "Construction delay\navailability factor", "#FEF3C7", LEDGER_COLORS["delay"]),
-        (0.90, "delay-aware\nsiPUE", "#F3E8FF", LEDGER_COLORS["policy"]),
-    ]
-    for idx, (xpos, label, face, edge) in enumerate(blocks):
-        _text_box(ax, (xpos, y), label, face, edge, 10)
-        if idx < len(blocks) - 1:
-            ax.annotate(
-                "",
-                xy=(blocks[idx + 1][0] - 0.075, y),
-                xytext=(xpos + 0.075, y),
-                arrowprops={"arrowstyle": "->", "lw": 1.5, "color": "#334155"},
-            )
-    ax.text(0.5, 0.30, "PUE = E_fac / E_IT", ha="center", fontsize=_fs(13), color="#111827")
-    ax.text(
-        0.5,
-        0.19,
-        "siPUE = (E_fac - delay-adjusted system credit) / E_IT",
-        ha="center",
-        fontsize=_fs(13),
-        color="#111827",
-    )
-    ax.text(
-        0.5,
-        0.08,
-        "No active heat, flexibility, or battery service => system credit = 0 => siPUE = PUE",
-        ha="center",
-        fontsize=_fs(10),
-        color="#475569",
-    )
-    _save_figure(fig, out_dir, "fig_01_sipue_metric_story", cfg)
-
-
-def _fig_01b_why_sipue_matters(out_dir: str, cfg: Config) -> None:
-    fig, ax = plt.subplots(figsize=(11.4, 5.6))
-    ax.axis("off")
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(0.0, 1.0)
-    ax.set_title("Why siPUE: the same integration assets read differently under PUE and siPUE", fontsize=_fs(14.5), weight="bold", pad=14)
-
-    def _stack_bar(x_center: float, segments: List[Tuple[float, str]]) -> float:
-        width = 0.16
-        bottom = 0.12
-        for height, color in segments:
-            ax.add_patch(patches.Rectangle((x_center - width / 2, bottom), width, height, facecolor=color, edgecolor="#334155", linewidth=1.0, zorder=2))
-            bottom += height
-        return bottom
-
-    top_a = _stack_bar(0.22, [(0.30, "#DBEAFE"), (0.28, "#94A3B8")])
-    ax.text(0.22, top_a + 0.04, "PUE view", ha="center", va="bottom", fontsize=_fs(10.5), weight="bold")
-    ax.text(0.22, 0.20, "IT electricity", ha="center", va="center", fontsize=_fs(8.0), weight="medium")
-    ax.text(0.22, 0.51, "Integration overhead\n(HP, HX, storage, cooling)", ha="center", va="center", fontsize=_fs(7.6), weight="medium")
-    ax.text(0.22, 0.05, "All non-IT electricity is\ncounted as pure overhead", ha="center", va="top", fontsize=_fs(8.0), color="#475569")
-    _text_box(ax, (0.22, 0.90), "PUE = E_fac / E_IT\nhigher = penalized", "#FEE2E2", "#991B1B", 9.0, zorder=4)
-
-    top_b = _stack_bar(0.72, [(0.30, "#DBEAFE"), (0.14, "#94A3B8"), (0.14, "#DCFCE7")])
-    ax.text(0.72, top_b + 0.04, "siPUE view", ha="center", va="bottom", fontsize=_fs(10.5), weight="bold")
-    ax.text(0.72, 0.20, "IT electricity", ha="center", va="center", fontsize=_fs(8.0), weight="medium")
-    ax.text(0.72, 0.44, "Remaining\noverhead", ha="center", va="center", fontsize=_fs(7.6), weight="medium")
-    ax.text(0.72, 0.58, "Credited system value\n(heat + flexibility)", ha="center", va="center", fontsize=_fs(7.6), weight="medium")
-    ax.text(0.72, 0.05, "Independently valued heat and\nflexibility are credited back", ha="center", va="top", fontsize=_fs(8.0), color="#475569")
-    _text_box(ax, (0.72, 0.90), "siPUE = (E_fac - credit) / E_IT\nlower = rewarded", "#DCFCE7", CASE_COLORS["robust"], 9.0, zorder=4)
-
-    ax.annotate("", xy=(0.60, 0.5), xytext=(0.34, 0.5), arrowprops={"arrowstyle": "-|>", "lw": 1.8, "color": "#334155"}, zorder=3)
-    ax.text(0.47, 0.545, "same physical assets", ha="center", va="bottom", fontsize=_fs(8.2), color="#334155", weight="medium")
-
-    _add_takeaway(fig, "Same integration equipment, different KPI verdict: PUE structurally penalizes heat and flexibility investment, while siPUE credits the independently valued system benefit -- this is the KPI gap siPUE closes.")
-    _save_figure(fig, out_dir, "fig_01b_why_sipue_matters", cfg)
-
-
-def _fig_02_model_pipeline_subway(out_dir: str, cfg: Config) -> None:
-    fig, ax = plt.subplots(figsize=(12.4, 5.6))
-    ax.axis("off")
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(0.0, 1.0)
-    fig.suptitle("From data to policy-facing KPI bundle", fontsize=_fs(17), weight="bold", y=0.985)
-    xs = np.linspace(0.08, 0.92, 7)
-    stages = [
-        ("Inputs", "network, archetypes,\nprices, carbon, land"),
-        ("Rep. days", "7 weighted days\ncover annual hours"),
-        ("Scenarios", "4 archetypes x\n10 shared states"),
-        ("Stage 1", "scenario-perfect\nbenchmark C*_s"),
-        ("Stage 2", "shared robust\nmin-max regret design"),
-        ("Operations", "heat, flex, battery,\ncarbon, DC network"),
-        ("Outputs", "PUE, siPUE, CUE,\nERF-style heat, value"),
-    ]
-    colors = ["#E5E7EB", "#DBEAFE", "#E0F2FE", "#FEF3C7", "#DCFCE7", "#F3E8FF", "#FFE4E6"]
-    for i, (xpos, (title, detail)) in enumerate(zip(xs, stages)):
-        ax.plot([xpos, xpos], [0.24, 0.68], color="#CBD5E1", lw=5, solid_capstyle="round")
-        ax.scatter([xpos], [0.46], s=620, color=colors[i], edgecolor="#334155", linewidth=1.6, zorder=3)
-        ax.text(xpos, 0.46, str(i + 1), ha="center", va="center", fontsize=_fs(12), weight="bold")
-        ax.text(xpos, 0.80, title, ha="center", va="center", fontsize=_fs(12.5), weight="bold")
-        ax.text(xpos, 0.13, detail, ha="center", va="center", fontsize=_fs(9.5), color="#334155", weight="medium")
-        if i < len(xs) - 1:
-            ax.plot([xpos + 0.035, xs[i + 1] - 0.035], [0.46, 0.46], color="#334155", lw=2.4, zorder=1)
-    fig.subplots_adjust(top=0.80, bottom=0.14, left=0.02, right=0.98)
-    _add_takeaway(fig, "The process separates scenario design, optimization, operation, and KPI accounting so policy and business claims can be traced.")
-    _save_figure(fig, out_dir, "fig_02_model_pipeline_subway", cfg)
-
-
-def _fig_02b_full_study_roadmap(out_dir: str, cfg: Config) -> None:
-    fig, ax = plt.subplots(figsize=(12.6, 6.4))
-    ax.axis("off")
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(0.0, 1.0)
-    fig.suptitle("Full study roadmap: optimization, validation, and sensitivity together", fontsize=_fs(16), weight="bold", y=0.985)
-
-    xs = np.linspace(0.10, 0.90, 5)
-    stages = [
-        ("Inputs &\nscenarios", "network, archetypes, prices;\n4 archetypes x 10 states"),
-        ("Stage 1", "scenario-perfect\nbenchmark C*_s"),
-        ("Stage 2", "shared robust\nmin-max regret design"),
-        ("Operations\n& KPIs", "heat, flex, battery;\nPUE, siPUE, CUE"),
-        ("Outputs", "manuscript-facing\nKPI bundle"),
-    ]
-    colors = ["#E5E7EB", "#FEF3C7", "#DCFCE7", "#E0F2FE", "#FFE4E6"]
-    y_main = 0.74
-    for i, (xpos, (title, detail)) in enumerate(zip(xs, stages)):
-        ax.plot([xpos, xpos], [0.60, y_main + 0.08], color="#CBD5E1", lw=5, solid_capstyle="round", zorder=1)
-        ax.scatter([xpos], [y_main], s=620, color=colors[i], edgecolor="#334155", linewidth=1.6, zorder=3)
-        ax.text(xpos, y_main, str(i + 1), ha="center", va="center", fontsize=_fs(12), weight="bold", zorder=4)
-        ax.text(xpos, y_main + 0.17, title, ha="center", va="center", fontsize=_fs(11.5), weight="bold")
-        ax.text(xpos, y_main - 0.15, detail, ha="center", va="center", fontsize=_fs(8.6), color="#334155", weight="medium")
-        if i < len(xs) - 1:
-            ax.plot([xpos + 0.035, xs[i + 1] - 0.035], [y_main, y_main], color="#334155", lw=2.4, zorder=1)
-
-    branch_y = 0.16
-    branches = [
-        (xs[3] - 0.10, "Validation", "train/test +\nout-of-sample checks", "#DBEAFE", CASE_COLORS["baseline"]),
-        (xs[3] + 0.10, "Sensitivity", "5-factor tornado:\nprice, cooling, land, delay", "#F3E8FF", LEDGER_COLORS["policy"]),
-    ]
-    for bx, title, detail, face, edge in branches:
-        ax.annotate("", xy=(bx, branch_y + 0.10), xytext=(xs[3], y_main - 0.11), arrowprops={"arrowstyle": "-|>", "lw": 1.4, "color": "#94A3B8"}, zorder=1)
-        _text_box(ax, (bx, branch_y), f"{title}\n{detail}", face, edge, 8.2, zorder=3)
-        ax.annotate("", xy=(xs[4] - 0.03, y_main - 0.11), xytext=(bx, branch_y + 0.10), arrowprops={"arrowstyle": "-|>", "lw": 1.4, "color": "#94A3B8"}, zorder=1)
-
-    fig.subplots_adjust(top=0.82, bottom=0.05, left=0.02, right=0.98)
-    _add_takeaway(fig, "Held-out validation and a five-factor sensitivity tornado feed back into the reported KPI bundle alongside the two-stage optimization.")
-    _save_figure(fig, out_dir, "fig_02b_full_study_roadmap", cfg)
-
-
 def _fig_05_optimization_formulation_map(out_dir: str, cfg: Config) -> None:
     fig, ax = plt.subplots(figsize=(11.8, 6.6))
     ax.axis("off")
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(0.0, 1.0)
-    fig.suptitle("Uncertainty-aware design is optimized before KPI accounting", fontsize=_fs(16.5), weight="bold", y=0.985)
     boxes = {
         "benchmark": (0.18, 0.72, "Stage 1 benchmark\nC*_s\nscenario-perfect cost", "#FEF3C7"),
-        "objective": (0.50, 0.72, "Stage 2 objective\nminimize max normalized regret\nthen planning cost", "#DCFCE7"),
+        "objective": (0.50, 0.72, "Stage 2 objective\nminimize max normalized regret", "#DCFCE7"),
         "decision": (0.82, 0.72, "Shared design variables\nHX, HP, FLEX, battery\n(efficiency retrofit fixed\nat 0.15 in canonical rows)", "#DBEAFE"),
         "constraints": (0.28, 0.38, "Constraints\ncarbon cap, land, heat,\nflex, battery, DC-OPF", "#F3E8FF"),
         "ops": (0.62, 0.38, "Operational evaluation\nhourly weighted energy,\ncost, emissions", "#E0F2FE"),
@@ -447,43 +280,9 @@ def _fig_05_optimization_formulation_map(out_dir: str, cfg: Config) -> None:
         )
     for key, (xpos, ypos, label, face) in boxes.items():
         _text_box(ax, (xpos, ypos), label, face, "#94A3B8", 10.0, zorder=5)
-    ax.text(0.5, 0.93, "Stage 2 minimizes worst-case normalized cost regret; siPUE is computed on the resulting design.", ha="center", fontsize=_fs(10.5), color="#334155", weight="medium")
-    fig.subplots_adjust(top=0.86, bottom=0.03, left=0.02, right=0.98)
-    _save_figure(fig, out_dir, "fig_05_optimization_formulation_map", cfg)
-
-
-def _fig_06_input_scenario_fingerprint(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
-    archetypes = _all_archetypes(rows)
-    metrics = [
-        ("IT energy", "e_it_mwh_no_services"),
-        ("cooling overhead", "pue_no_services"),
-        ("heat reuse", "heat_mwhth_robust"),
-        ("flex output", "flex_load_mwh_robust"),
-        ("land utilization", "land_utilization_pct_robust"),
-        ("carbon cap", "carbon_cap_tco2"),
-    ]
-    matrix = []
-    for archetype in archetypes:
-        subset = [row for row in rows if _value(row, "Archetype") == archetype]
-        matrix.append([_mean_numeric(subset, key) for _, key in metrics])
-    data = np.array(matrix, dtype=float)
-    if data.size:
-        mins = data.min(axis=0)
-        ranges = np.maximum(data.max(axis=0) - mins, 1e-9)
-        data = (data - mins) / ranges
-    fig, ax = plt.subplots(figsize=(10.2, 5.4))
-    im = ax.imshow(data, cmap="YlGnBu", aspect="auto", vmin=0.0, vmax=1.0)
-    ax.set_title("Scenario fingerprint: what differs by archetype", fontsize=_fs(15.5), weight="bold", pad=14)
-    ax.set_yticks(np.arange(len(archetypes)), archetypes)
-    ax.set_xticks(np.arange(len(metrics)), [label for label, _ in metrics], rotation=30, ha="right")
-    for i in range(data.shape[0]):
-        for j in range(data.shape[1]):
-            text_color = "#F8FAFC" if data[i, j] > 0.55 else "#0F172A"
-            ax.text(j, i, f"{data[i, j]:.2f}", ha="center", va="center", fontsize=_fs(10), weight="bold", color=text_color)
-    fig.colorbar(im, ax=ax, label="normalized relative level")
-    fig.subplots_adjust(bottom=0.32, top=0.88)
-    _add_takeaway(fig, "The heatmap is normalized within each column to show relative scenario structure.")
-    _save_figure(fig, out_dir, "fig_06_input_scenario_fingerprint", cfg)
+    ax.text(0.5, 0.96, "Stage 2 minimizes worst-case normalized cost regret; siPUE is computed on the resulting design.", ha="center", fontsize=_fs(10.5), color="#334155", weight="medium")
+    fig.subplots_adjust(top=0.97, bottom=0.03, left=0.02, right=0.98)
+    _save_figure(fig, out_dir, "final_01_optimization_formulation_map", cfg)
 
 
 def _fig_07_representative_day_compression(out_dir: str, cfg: Config) -> None:
@@ -491,50 +290,36 @@ def _fig_07_representative_day_compression(out_dir: str, cfg: Config) -> None:
         ts = load_network_timeseries(cfg, T=8760)
         indices, weights, starts, total_days = build_representative_days(ts, cfg)
     except Exception as exc:
-        _placeholder_figure(out_dir, "fig_07a_representative_day_weights", cfg, "Representative-day compression", f"Representative-day diagnostic unavailable: {exc}")
-        _placeholder_figure(out_dir, "fig_07b_representative_day_load_trace", cfg, "Representative-day compression", f"Representative-day diagnostic unavailable: {exc}")
+        _placeholder_figure(out_dir, "final_03_representative_day_weights", cfg, "Representative-day compression", f"Representative-day diagnostic unavailable: {exc}")
+        _placeholder_figure(out_dir, "final_04_representative_day_load_trace", cfg, "Representative-day compression", f"Representative-day diagnostic unavailable: {exc}")
         return
     day_ids = [indices[start] // 24 + 1 for start in starts]
     day_weights = [sum(weights[start:start + 24]) / 24.0 for start in starts]
     hours = list(range(min(168, len(ts["load_N1_mw"]))))
     load = [ts["load_N1_mw"][i] + ts["load_N2_mw"][i] + ts["load_N3_mw"][i] for i in hours]
     ren = [ts["ren_avail_N1_mw"][i] + ts["ren_avail_N2_mw"][i] + ts["ren_avail_N3_mw"][i] for i in hours]
-    takeaway = f"Selected {len(starts)} representative days; day weights sum to {sum(day_weights):.0f} over a {total_days:.0f}-day year."
 
     fig, ax = plt.subplots(figsize=(8.6, 5.0))
     ax.bar(day_ids, day_weights, width=8.0, color=CASE_COLORS["baseline"], alpha=0.85)
-    ax.set_title("Representative days compress 8,760 hours into weighted operating days", fontsize=_fs(14.5), weight="bold")
     ax.set_ylabel("day weight")
     ax.set_xlabel("calendar day")
     _style_axis(ax)
-    _add_takeaway(fig, takeaway)
-    fig.subplots_adjust(bottom=0.22)
-    _save_figure(fig, out_dir, "fig_07a_representative_day_weights", cfg)
+    fig.subplots_adjust(bottom=0.12)
+    _save_figure(fig, out_dir, "final_03_representative_day_weights", cfg)
 
     fig, ax = plt.subplots(figsize=(9.0, 5.0))
     ax.plot(hours, load, label="network load", color=CASE_COLORS["baseline"], lw=2.2)
     ax.plot(hours, ren, label="renewable availability", color=CASE_COLORS["robust"], lw=2.2)
-    ax.set_title("First-week load and renewable availability", fontsize=_fs(14.5), weight="bold")
     ax.set_ylabel("MW")
     ax.set_xlabel("first-week hour")
     ax.legend(frameon=False)
     _style_axis(ax)
-    _save_figure(fig, out_dir, "fig_07b_representative_day_load_trace", cfg)
+    _save_figure(fig, out_dir, "final_04_representative_day_load_trace", cfg)
 
 
-def _fig_08_network_and_carbon_context(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
-    fig, ax_net = plt.subplots(figsize=(6.0, 5.6))
-    ax_net.axis("off")
-    coords = {"N1": (0.50, 0.82), "N2": (0.18, 0.20), "N3": (0.82, 0.20)}
-    for a, b in (("N1", "N2"), ("N2", "N3"), ("N1", "N3")):
-        ax_net.plot([coords[a][0], coords[b][0]], [coords[a][1], coords[b][1]], color="#94A3B8", lw=3.0)
-    for node, (xpos, ypos) in coords.items():
-        ax_net.scatter([xpos], [ypos], s=2200, color="#DBEAFE", edgecolor="#334155", linewidth=1.8, zorder=3)
-        ax_net.text(xpos, ypos, node, ha="center", va="center", fontsize=_fs(14), weight="bold")
-    ax_net.set_title("Three-node DC-OPF network topology", fontsize=_fs(14.5), weight="bold")
-    ax_net.text(0.5, 0.02, "Data-center load is injected by site", ha="center", fontsize=_fs(10.5), color="#334155", weight="medium")
-    _save_figure(fig, out_dir, "fig_08a_network_topology", cfg)
-
+def _fig_08b_load_and_renewables(out_dir: str, cfg: Config) -> None:
+    """Network topology is drawn directly in paper.tex as a TikZ figure
+    (Fig.~nodal-power), so no image-based topology figure is generated here."""
     try:
         ts = load_network_timeseries(cfg, T=8760)
         hours = list(range(min(240, len(ts["load_N1_mw"]))))
@@ -546,27 +331,15 @@ def _fig_08_network_and_carbon_context(rows: Sequence[Dict], out_dir: str, cfg: 
     if hours:
         ax_load.plot(hours, load, color=CASE_COLORS["baseline"], label="load")
         ax_load.plot(hours, ren, color=CASE_COLORS["robust"], label="renewables")
-    ax_load.set_title("Network load and renewable availability", fontsize=_fs(15.5), weight="bold")
     ax_load.set_ylabel("MW")
     ax_load.set_xlabel("hour")
     ax_load.legend(frameon=False)
     _style_axis(ax_load)
-    _save_figure(fig, out_dir, "fig_08b_load_and_renewables", cfg)
-
-    archetypes = _all_archetypes(rows)
-    caps = [_mean_numeric([row for row in rows if _value(row, "Archetype") == a], "carbon_cap_tco2") / 1e6 for a in archetypes]
-    fig, ax_carbon = plt.subplots(figsize=(7.4, 5.0))
-    ax_carbon.bar(np.arange(len(archetypes)), caps, color=LEDGER_COLORS["carbon"], alpha=0.88)
-    ax_carbon.set_xticks(np.arange(len(archetypes)), archetypes, rotation=18, ha="right")
-    ax_carbon.set_ylabel("carbon cap (M tCO2)")
-    ax_carbon.set_title("Carbon cap by archetype", fontsize=_fs(15.5), weight="bold")
-    _style_axis(ax_carbon)
-    fig.subplots_adjust(bottom=0.22)
-    _save_figure(fig, out_dir, "fig_08c_carbon_cap_by_archetype", cfg)
+    _save_figure(fig, out_dir, "final_05_load_and_renewables", cfg)
 
 
 def _fig_03_pue_sipue_tradeoff_compass(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
-    fig, ax = plt.subplots(figsize=(8.5, 7.1))
+    fig, ax = plt.subplots(figsize=(9.2, 7.6))
     tails_x, tails_y, heads_x, heads_y = [], [], [], []
     for row in rows:
         x0 = _num(row, "pue_baseline") - _num(row, "pue_fair_services_disabled")
@@ -588,9 +361,8 @@ def _fig_03_pue_sipue_tradeoff_compass(rows: Sequence[Dict], out_dir: str, cfg: 
         heads_y.append(y1)
     ax.axhline(0.0, color="#111827", lw=1.0)
     ax.axvline(0.0, color="#111827", lw=1.0)
-    ax.set_xlabel("PUE change vs services-disabled comparator")
-    ax.set_ylabel("siPUE change vs services-disabled comparator")
-    ax.set_title("Robust design pushes the PUE/siPUE trade-off beyond baseline", fontsize=_fs(14.5), weight="bold")
+    ax.set_xlabel("ΔPUE (vs. services-disabled)")
+    ax.set_ylabel("ΔsiPUE (vs. services-disabled)")
     all_x = tails_x + heads_x
     all_y = tails_y + heads_y
     if all_x:
@@ -600,8 +372,10 @@ def _fig_03_pue_sipue_tradeoff_compass(rows: Sequence[Dict], out_dir: str, cfg: 
         ax.set_ylim(min(all_y) - pad_y, max(all_y) + pad_y)
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
-    ax.text(xlim[1], ylim[0], "PUE higher\nsiPUE lower", ha="right", va="bottom", fontsize=_fs(9), color=CASE_COLORS["robust"])
-    ax.text(xlim[1], ylim[1], "PUE higher\nsiPUE higher", ha="right", va="top", fontsize=_fs(9), color="#991B1B")
+    # Neutral grey avoids colliding with archetype colors used below.
+    quadrant_color = "#475569"
+    ax.text(xlim[1], ylim[0], "PUE higher\nsiPUE lower", ha="right", va="bottom", fontsize=_fs(9), color=quadrant_color)
+    ax.text(xlim[1], ylim[1], "PUE higher\nsiPUE higher", ha="right", va="top", fontsize=_fs(9), color=quadrant_color)
     handles = [
         Line2D([0], [0], marker="o", color="w", markerfacecolor="#94A3B8", label="Baseline (tail)", markersize=7, alpha=0.75),
         Line2D([0], [0], marker=">", color="#334155", label="Robust (arrowhead)", markersize=9),
@@ -613,9 +387,8 @@ def _fig_03_pue_sipue_tradeoff_compass(rows: Sequence[Dict], out_dir: str, cfg: 
     ]
     ax.legend(handles=handles, frameon=False, loc="center left", bbox_to_anchor=(1.02, 0.5), fontsize=_fs(8.2))
     _style_axis(ax)
-    _add_takeaway(fig, "Each arrow moves one scenario from its baseline PUE/siPUE change to its robust-design change; both are measured against the constrained services-disabled comparator.")
-    fig.subplots_adjust(right=0.74, bottom=0.22)
-    _save_figure(fig, out_dir, "fig_03_pue_sipue_tradeoff_compass", cfg)
+    fig.subplots_adjust(left=0.19, right=0.76, bottom=0.11, top=0.97)
+    _save_figure(fig, out_dir, "final_09_pue_sipue_tradeoff_compass", cfg)
 
 
 def _kpi_rows_from_results(rows: Sequence[Dict]) -> List[Dict]:
@@ -664,34 +437,32 @@ def _kpi_rows_from_results(rows: Sequence[Dict]) -> List[Dict]:
     return output
 
 
-KPI_PANEL_LABELS = {
-    "pue": "PUE",
-    "sipue": "siPUE",
-    "steady_sipue": "Post-construction siPUE",
-    "cue": "CUE",
-    "modeled_erf": "Modeled ERF",
-    "system_benefit_per_mwh_it": "System benefit",
-    "emissions_tco2": "Emissions",
-    "carbon_damage_eur": "Carbon damage",
+KPI_PANEL_FILENAMES = {
+    "pue": "final_06_kpi_pue",
+    "sipue": "final_07_kpi_sipue",
+    "system_benefit_per_mwh_it": "final_08_kpi_system_benefit_per_mwh_it",
 }
+
+# PUE and siPUE are dimensionless ratios, so omit the CSV unit string.
+KPI_PANEL_YLABELS = {
+    "pue": "PUE (–)",
+    "sipue": "siPUE (–)",
+}
+
+# Share one y-axis for PUE/siPUE; system benefit uses a separate unit.
+SHARED_YLIM_METRICS = ("pue", "sipue")
 
 
 def _fig_04_kpi_benchmark_scoreboard(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
     path = os.path.join(cfg.canonical_output_dir, "kpi_benchmark_summary.csv")
     kpi_rows = _read_csv_rows(path) or _kpi_rows_from_results(rows)
-    metrics = ["pue", "sipue", "cue", "modeled_erf", "system_benefit_per_mwh_it", "emissions_tco2", "carbon_damage_eur"]
+    metrics = ["pue", "sipue", "system_benefit_per_mwh_it"]
     archetypes = _all_archetypes(rows)
     designs = ("no_services", "fair_services_disabled", "baseline", "robust")
     x = np.arange(len(designs))
 
     def _series(subset: Sequence[Dict], archetype: str) -> List[float]:
-        # For a single archetype, IT-energy weighting is a no-op (that
-        # archetype's IT energy is constant across its own rows), so the
-        # per-archetype lines are unaffected. For "all", which pools all
-        # four archetypes, average_value_it_weighted matches the paper's
-        # reported numbers; average_value (equal-weighted by archetype) does
-        # not, so it is used only as a fallback for older CSVs that predate
-        # the IT-weighted column.
+        # Use IT weighting only for the pooled "all" series.
         value_key = "average_value_it_weighted" if archetype == "all" else "average_value"
         out = []
         for design in designs:
@@ -703,38 +474,67 @@ def _fig_04_kpi_benchmark_scoreboard(rows: Sequence[Dict], out_dir: str, cfg: Co
             out.append(_num(match[0], value_key))
         return out
 
+    # Collect metric series before plotting so PUE/siPUE can share y-limits.
+    per_metric: Dict[str, Tuple[List[Dict], Dict[str, List[float]]]] = {}
     for metric in metrics:
         subset = [row for row in kpi_rows if _value(row, "Metric") == metric]
         if not subset:
             continue
-        unit = _value(subset[0], "Unit", "")
+        series_by_archetype = {}
+        for archetype in [*archetypes, "all"]:
+            values = _series(subset, archetype)
+            if values:
+                series_by_archetype[archetype] = values
+        per_metric[metric] = (subset, series_by_archetype)
+
+    shared_values = [
+        v
+        for metric in SHARED_YLIM_METRICS
+        if metric in per_metric
+        for series in per_metric[metric][1].values()
+        for v in series
+    ]
+    shared_ylim = None
+    if shared_values:
+        lo, hi = min(shared_values), max(shared_values)
+        pad = 0.08 * max(hi - lo, 1e-9)
+        shared_ylim = (lo - pad, hi + pad)
+
+    for metric in metrics:
+        if metric not in per_metric:
+            continue
+        subset, series_by_archetype = per_metric[metric]
+        unit = KPI_PANEL_YLABELS.get(metric, _value(subset[0], "Unit", ""))
         fig, ax = plt.subplots(figsize=(7.6, 5.2))
         drawn = False
         endpoint_labels = []
         for archetype in archetypes:
-            values = _series(subset, archetype)
+            values = series_by_archetype.get(archetype)
             if not values:
                 continue
             color = ARCHETYPE_COLORS.get(archetype, "#64748B")
-            ax.plot(x, values, color=color, lw=2.6, marker="o", markersize=7.5, markeredgecolor="white", markeredgewidth=1.0, alpha=0.92, zorder=3)
+            ax.plot(x, values, color=color, lw=3.6, marker="o", markersize=10.0, markeredgecolor="white", markeredgewidth=1.3, alpha=0.95, zorder=3)
             endpoint_labels.append((float(values[-1]), archetype, color))
             drawn = True
-        overall = _series(subset, "all")
+        overall = series_by_archetype.get("all")
         if overall:
-            ax.plot(x, overall, color="#111827", lw=2.0, linestyle="--", marker="s", markersize=6, zorder=2, label="All archetypes (IT-weighted mean)")
+            ax.plot(x, overall, color="#111827", lw=2.8, linestyle="--", marker="s", markersize=8, zorder=2)
+            endpoint_labels.append((float(overall[-1]), "All (IT-weighted)", "#111827"))
             drawn = True
         if not drawn:
             plt.close(fig)
             continue
-        ax.set_xticks(x, [DESIGN_LABELS.get(d, d) for d in designs])
+        ax.set_xticks(x, [DESIGN_LABELS.get(d, d) for d in designs], rotation=30, ha="right", rotation_mode="anchor")
         ax.set_xlim(-0.15, len(designs) - 1 + 0.65)
         ax.set_ylabel(unit)
-        ax.set_title(KPI_PANEL_LABELS.get(metric, metric), fontsize=_fs(15.5), weight="bold")
-        ax.relim()
-        ax.autoscale_view(scalex=False, scaley=True)
+        if metric in SHARED_YLIM_METRICS and shared_ylim is not None:
+            ax.set_ylim(*shared_ylim)
+        else:
+            ax.relim()
+            ax.autoscale_view(scalex=False, scaley=True)
         ymin, ymax = ax.get_ylim()
         yrange = max(ymax - ymin, 1e-9)
-        min_sep = 0.055 * yrange
+        min_sep = 0.13 * yrange
         adjusted = []
         for y_raw, archetype, color in sorted(endpoint_labels, key=lambda item: item[0]):
             y_text = y_raw if not adjusted else max(y_raw, adjusted[-1][0] + min_sep)
@@ -748,11 +548,9 @@ def _fig_04_kpi_benchmark_scoreboard(rows: Sequence[Dict], out_dir: str, cfg: Co
             for y_text, y_raw, archetype, color in adjusted:
                 ax.plot([x[-1], x[-1] + 0.06], [y_raw, y_text], color=color, lw=0.9, alpha=0.65, zorder=2)
                 ax.text(x[-1] + 0.08, y_text, archetype, color=color, fontsize=_fs(9.0), weight="bold", va="center", ha="left")
-        if overall:
-            ax.legend(frameon=False, loc="best", fontsize=_fs(8.5))
         _style_axis(ax)
-        fig.subplots_adjust(right=0.76, bottom=0.17)
-        _save_figure(fig, out_dir, f"fig_04_kpi_{metric}", cfg)
+        fig.subplots_adjust(right=0.72, bottom=0.28)
+        _save_figure(fig, out_dir, KPI_PANEL_FILENAMES[metric], cfg)
 
 
 def _fig_09_design_portfolio_by_archetype(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
@@ -807,8 +605,7 @@ def _fig_09_design_portfolio_by_archetype(rows: Sequence[Dict], out_dir: str, cf
     ax.set_xticks(x, [label for label, _ in metrics])
     ax.set_xlim(-0.3, n_axes - 1 + 0.3)
     ax.set_ylim(-0.05, 1.05)
-    ax.set_ylabel("normalized value (0-1 per axis)")
-    ax.set_title("Design portfolio shift across capacity dimensions", fontsize=_fs(15), weight="bold")
+    ax.set_ylabel("Normalized value (0-1)")
     handles = [Line2D([0], [0], color=ARCHETYPE_COLORS.get(a, "#64748B"), lw=2.6, label=a) for a in archetypes] + [
         Line2D([0], [0], color="#334155", lw=2.0, marker="o", linestyle="-", markersize=7, label="Baseline"),
         Line2D([0], [0], color="#334155", lw=2.0, marker="D", linestyle="--", markersize=6.5, label="Robust"),
@@ -816,9 +613,8 @@ def _fig_09_design_portfolio_by_archetype(rows: Sequence[Dict], out_dir: str, cf
     ax.legend(handles=handles, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1.0), fontsize=_fs(8.5))
     _style_axis(ax, "y")
     ax.spines["bottom"].set_visible(False)
-    _add_takeaway(fig, "Each axis is normalized independently, so portfolio shape across heat, flexibility, and storage capacity carries the comparison.")
-    fig.subplots_adjust(right=0.78, bottom=0.16)
-    _save_figure(fig, out_dir, "fig_09_design_portfolio_parallel", cfg)
+    fig.subplots_adjust(left=0.11, right=0.78, bottom=0.10, top=0.97)
+    _save_figure(fig, out_dir, "final_10_design_portfolio_parallel", cfg)
 
 
 def _ribbon(ax, p0: Tuple[float, float], w0: float, p1: Tuple[float, float], w1: float, color: str, alpha: float = 0.55, zorder: float = 1) -> None:
@@ -855,10 +651,7 @@ def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg
         ("resource electricity", "electricity"),
         ("transmission", "transmission"),
     ]
-    # Pooled across all four archetypes: weight each row by its own IT energy
-    # rather than averaging all 40 rows equally, which would implicitly give
-    # every archetype the same one-quarter weight regardless of its IT energy
-    # scale (matches the IT-weighting used for the paper's reported numbers).
+    # Pool archetypes with IT-energy weights to match reported means.
     values: Dict[str, float] = {}
     for component, _ in components:
         found = [
@@ -872,67 +665,70 @@ def _fig_10_system_value_sankey(decomposition: Sequence[Dict], out_dir: str, cfg
     inflows = [(c, k, values[c]) for c, k in components if values[c] > 0]
     outflows = [(c, k, values[c]) for c, k in components if values[c] < 0]
     if not inflows:
-        _placeholder_figure(out_dir, "fig_10_system_value_sankey", cfg, "System benefit flow", "No positive value components found in the independent decomposition ledger.")
+        _placeholder_figure(out_dir, "final_11_system_value_sankey", cfg, "System benefit flow", "No positive value components found in the independent decomposition ledger.")
         return
     total_in = sum(value for _, _, value in inflows)
     total_out = -sum(value for _, _, value in outflows)
     net_value = total_in - total_out
 
-    fig, ax = plt.subplots(figsize=(13.0, 7.4))
+    fig, ax = plt.subplots(figsize=(11.8, 8.6))
     ax.axis("off")
     ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(0.0, 1.0)
-    ax.set_title("Independent system benefit: avoided cost nets out to the undelayed siPUE credit", fontsize=_fs(14.5), weight="bold", pad=14)
+    ax.set_ylim(-0.14, 1.04)
 
-    max_w = 0.16
-    gross_xy = (0.40, 0.62)
-    net_xy = (0.95, 0.62)
-    costs_xy = (0.62, 0.20)
+    max_w = 0.14
+    gross_xy = (0.38, 0.68)
+    net_xy = (0.94, 0.68)
+    costs_xy = (0.60, 0.16)
 
     def _width(value: float) -> float:
-        return max(0.016, max_w * abs(value) / total_in)
+        return max(0.014, max_w * abs(value) / total_in)
 
     n_in = len(inflows)
-    in_ys = np.linspace(0.90, 0.32, n_in) if n_in > 1 else [0.62]
+    in_ys = np.linspace(0.98, 0.38, n_in) if n_in > 1 else [0.68]
     for (component, key, value), y in zip(inflows, in_ys):
         color = LEDGER_COLORS.get(key, "#64748B")
-        _ribbon(ax, (0.08, y), _width(value), gross_xy, _width(value), color, zorder=1)
-        _text_box(ax, (0.08, y), f"{_wrap(component.title(), 14)}\n{value:+.1f} M EUR", "#F8FAFC", color, 8.0, zorder=3)
+        _ribbon(ax, (0.07, y), _width(value), gross_xy, _width(value), color, zorder=1)
+        _text_box(ax, (0.07, y), f"{_wrap(component.title(), 14)}\n{value:+.1f} M EUR", "#F8FAFC", color, 11.0, zorder=3)
 
     _ribbon(ax, gross_xy, _width(net_value), net_xy, _width(net_value), CASE_COLORS["robust"], zorder=2)
     if outflows:
         _ribbon(ax, gross_xy, _width(total_out), costs_xy, _width(total_out), LEDGER_COLORS["peak"], zorder=2)
 
-    _text_box(ax, gross_xy, f"Avoided\nindependent cost\n{total_in:+.1f} M EUR", "#DCFCE7", CASE_COLORS["robust"], 9.5, zorder=4)
-    _text_box(ax, net_xy, f"Undelayed\nsystem benefit\n{net_value:+.1f} M EUR", "#DBEAFE", CASE_COLORS["baseline"], 9.5, zorder=4)
+    _text_box(ax, gross_xy, f"Avoided\nindependent cost\n{total_in:+.1f} M EUR", "#DCFCE7", CASE_COLORS["robust"], 12.5, zorder=4)
+    _text_box(ax, net_xy, f"Undelayed\nsystem benefit\n{net_value:+.1f} M EUR", "#DBEAFE", CASE_COLORS["baseline"], 12.5, zorder=4)
 
     if outflows:
-        _text_box(ax, costs_xy, f"Additional\nindependent burden\n{-total_out:+.1f} M EUR", "#FEE2E2", LEDGER_COLORS["peak"], 9.0, zorder=4)
+        _text_box(ax, costs_xy, f"Additional\nindependent burden\n{-total_out:+.1f} M EUR", "#FEE2E2", LEDGER_COLORS["peak"], 11.5, zorder=4)
         n_out = len(outflows)
-        out_ys = np.linspace(0.30, 0.02, n_out) if n_out > 1 else [0.12]
+        out_ys = np.linspace(0.32, -0.10, n_out) if n_out > 1 else [0.05]
         for (component, key, value), y in zip(outflows, out_ys):
             color = LEDGER_COLORS.get(key, "#64748B")
-            _ribbon(ax, costs_xy, _width(value), (0.92, y), _width(value), color, zorder=1)
-            _text_box(ax, (0.92, y), f"{_wrap(component.title(), 16)}\n{value:+.1f} M EUR", "#FFF7ED", color, 8.0, zorder=3)
+            _ribbon(ax, costs_xy, _width(value), (0.88, y), _width(value), color, zorder=1)
+            _text_box(ax, (0.88, y), f"{_wrap(component.title(), 16)}\n{value:+.1f} M EUR", "#FFF7ED", color, 10.5, zorder=3)
 
-    _add_takeaway(fig, "This is the independent accounting ledger behind the siPUE credit (Table credit-ablation), not private market cash flow: heat and flexibility avoided cost and carbon damage are offset by additional electricity, peak, and transmission burden before construction delay is applied.")
-    _save_figure(fig, out_dir, "fig_10_system_value_sankey", cfg)
+    _save_figure(fig, out_dir, "final_11_system_value_sankey", cfg)
 
 
 def _fig_11_carbon_ledger_separation(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
     archetypes = _all_archetypes(rows)
     metrics = [
-        ("power_emissions", "Power emissions", "dc_power_emissions_tco2_robust", "tCO2", False),
-        ("avoided_heat_emissions", "Avoided heat emissions", "avoided_heat_emissions_tco2_robust", "tCO2", False),
-        ("co2_cost_change", "CO2 cost change vs services-disabled", "co2_cost_reduction_pct_vs_fair_services_disabled_robust", "% vs services-disabled", True),
-        ("carbon_damage_change", "Carbon damage change vs services-disabled", "carbon_damage_reduction_pct_vs_fair_services_disabled_robust", "% vs services-disabled", True),
+        ("final_13_carbon_ledger_power_emissions", "Power emissions", "dc_power_emissions_tco2_robust", "tCO2", False),
+        ("final_14_carbon_ledger_avoided_heat_emissions", "Avoided heat emissions", "avoided_heat_emissions_tco2_robust", "tCO2", False),
     ]
     y = np.arange(len(archetypes))
+    # Shared x-limits make power-sector and avoided-heat profiles comparable.
+    all_values: Dict[str, List[float]] = {}
     for slug, label, key, unit, is_pct in metrics:
         values = []
         for archetype in archetypes:
             subset = [row for row in rows if _value(row, "Archetype") == archetype]
-            values.append(_mean_numeric(subset, key))
+            values.append(_mean_numeric(subset, key) / 1000.0)
+        all_values[slug] = values
+    shared_max = max((v for values in all_values.values() for v in values), default=0.0)
+    shared_xlim = (0.0, shared_max * 1.08 if shared_max > 0 else 1.0)
+    for slug, label, key, unit, is_pct in metrics:
+        values = all_values[slug]
         color = LEDGER_COLORS["policy"] if is_pct else LEDGER_COLORS["carbon"]
         fig, ax = plt.subplots(figsize=(7.6, 5.0))
         ax.barh(y, values, color=color, alpha=0.88)
@@ -940,200 +736,85 @@ def _fig_11_carbon_ledger_separation(rows: Sequence[Dict], out_dir: str, cfg: Co
             ax.axvline(0.0, color="#222222", linewidth=1.2)
         ax.set_yticks(y, archetypes)
         ax.invert_yaxis()
-        ax.set_xlabel(unit)
-        ax.set_title(label, fontsize=_fs(15), weight="bold")
+        ax.set_xlim(*shared_xlim)
+        ax.set_xlabel(f"{unit} (×10³)")
         _style_axis(ax, "x")
-        _add_takeaway(fig, "Emissions, market payments, avoided heat emissions, and carbon damage are tracked as separate ledgers.")
-        fig.subplots_adjust(bottom=0.16, left=0.24)
-        _save_figure(fig, out_dir, f"fig_11_carbon_ledger_{slug}", cfg)
+        fig.subplots_adjust(bottom=0.14, left=0.24)
+        _save_figure(fig, out_dir, slug, cfg)
 
 
 def _fig_12_delay_credit_bridge(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
+    """Plots the absolute credit lost to construction delay per archetype
+    (MWh-equivalent/year), not the raw post-construction vs. delay-adjusted
+    siPUE values: the percentage loss is uniform across archetypes (delay is
+    a single scenario-level availability factor, not archetype-specific, per
+    Eq. sipue-credit), so the raw siPUE values sit almost on top of each
+    other and a percentage bar chart would show four equal bars. The
+    absolute MWh lost varies by archetype because it scales with each
+    archetype's own undelayed credit."""
     archetypes = _all_archetypes(rows)
-    fig, ax = plt.subplots(figsize=(10.8, 5.6))
+    fig, ax = plt.subplots(figsize=(9.0, 5.2))
     y = np.arange(len(archetypes))
-    steady = []
-    delay = []
-    loss = []
-    loss_weights = []
-    for archetype in archetypes:
-        subset = [row for row in rows if _value(row, "Archetype") == archetype]
-        steady.append(_mean_numeric(subset, "steady_sipue_robust"))
-        delay.append(_mean_numeric(subset, "sipue_robust"))
-        loss.append(_mean_numeric(subset, "sipue_credit_loss_pct_robust"))
-        loss_weights.append(_num(subset[0], "e_it_mwh_robust", 1.0) if subset else 1.0)
-    for yi, a, b in zip(y, steady, delay):
-        ax.plot([a, b], [yi, yi], color="#CBD5E1", lw=3.4, zorder=1)
-    ax.scatter(steady, y, color="#22C55E", s=105, label="post-construction siPUE", zorder=2, edgecolor="white", linewidth=0.9)
-    ax.scatter(delay, y, color=LEDGER_COLORS["delay"], marker="D", s=110, label="delay-adjusted siPUE", zorder=3, edgecolor="white", linewidth=0.9)
+    loss_mwh = [
+        _mean_numeric([row for row in rows if _value(row, "Archetype") == archetype], "sipue_credit_loss_mwh_robust")
+        for archetype in archetypes
+    ]
+    ax.barh(y, loss_mwh, color=LEDGER_COLORS["delay"], alpha=0.9, height=0.6, zorder=2)
+    for yi, value in zip(y, loss_mwh):
+        ax.text(value, yi, f"  {value:,.0f}", va="center", ha="left", fontsize=_fs(11), weight="bold", color="#0F172A")
     ax.set_yticks(y, archetypes)
     ax.invert_yaxis()
-    ax.margins(y=0.2)
-    ax.set_xlabel("siPUE")
-    ax.set_title("Construction delay weakens useful system credit", fontsize=_fs(15.5), weight="bold")
-    ax.legend(frameon=False, loc="lower right")
+    max_loss = max(loss_mwh, default=0.0)
+    ax.set_xlim(0, max_loss * 1.2 if max_loss > 0 else 1.0)
+    ax.set_xlabel("siPUE credit lost to construction delay (MWh-equivalent/year)")
     _style_axis(ax, "x")
-    # Weight each archetype's mean loss by its IT energy rather than treating
-    # all four archetypes as equally sized (matches the paper's IT-weighting).
-    total_loss_weight = sum(loss_weights)
-    mean_loss = (sum(v * w for v, w in zip(loss, loss_weights)) / total_loss_weight) if total_loss_weight > 0 else 0.0
-    _add_takeaway(fig, f"Construction delay reduces the useful siPUE credit by about {mean_loss:.1f}% for every archetype—the effect is uniform because delay is applied as a single planning assumption, not a per-archetype outcome.")
-    fig.subplots_adjust(bottom=0.14)
-    _save_figure(fig, out_dir, "fig_12_delay_credit_bridge", cfg)
-
-
-def _fig_13_property_check_matrix(out_dir: str, cfg: Config) -> None:
-    rows = _read_csv_rows(os.path.join(cfg.canonical_output_dir, "metric_property_tests.csv"))
-    if not rows:
-        _placeholder_figure(out_dir, "fig_13_property_check_matrix", cfg, "Metric property checks", "No metric_property_tests.csv found in the canonical output directory.")
-        return
-    seen_labels: Dict[str, int] = {}
-    labels = []
-    for row in rows:
-        base = str(_value(row, "Test", "")).replace("_", " ")
-        case = str(_value(row, "Case", "")).replace("_", " ")
-        label = f"{base} ({case})" if case and case != "all" and base in seen_labels else base
-        seen_labels[base] = seen_labels.get(base, 0) + 1
-        labels.append(label)
-    passed = [str(_value(row, "Passed", "")).lower() == "true" for row in rows]
-    n = len(rows)
-    fig, ax = plt.subplots(figsize=(9.6, max(3.6, 0.52 * n + 1.2)))
-    y = np.arange(n)
-    for yi, ok, label in zip(y, passed, labels):
-        marker_color = "#16A34A" if ok else "#DC2626"
-        ax.scatter([0.02], [yi], s=260, color=marker_color, zorder=3, edgecolor="white", linewidth=1.2)
-        ax.text(0.02, yi, "OK" if ok else "X", ha="center", va="center", fontsize=_fs(9), weight="bold", color="white", zorder=4)
-        ax.text(0.08, yi, label, ha="left", va="center", fontsize=_fs(11.5), weight="medium", color="#0F172A")
-        status_text = "supported" if ok else "check failed"
-        ax.text(0.98, yi, status_text, ha="right", va="center", fontsize=_fs(10.5), weight="bold", color=marker_color)
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(-0.8, n - 0.2)
-    ax.invert_yaxis()
-    ax.axis("off")
-    ax.set_title("Internal metric property checks", fontsize=_fs(15.5), weight="bold", pad=14)
-    fig.subplots_adjust(top=0.86, bottom=0.16, left=0.03, right=0.97)
-    _add_takeaway(fig, "Use this as an internal correctness panel: no-services identity, nonnegativity, delay behavior, benefit monotonicity, and ledger separation.")
-    _save_figure(fig, out_dir, "fig_13_property_check_matrix", cfg)
-
-
-def _feasibility_checklist_figure(out_dir: str, cfg: Config, name: str, title: str, rows: List[Dict], metrics: List[Tuple[str, str]], case_noun: str) -> None:
-    fig, ax = plt.subplots(figsize=(6.6, 0.62 * len(metrics) + 1.6))
-    y = np.arange(len(metrics))
-    for yi, (label, key) in zip(y, metrics):
-        pct = _pct_true(rows, key)
-        ok = pct >= 99.95
-        color = "#16A34A" if ok else "#DC2626"
-        ax.scatter([0.02], [yi], s=260, color=color, zorder=3, edgecolor="white", linewidth=1.2)
-        ax.text(0.02, yi, "OK" if ok else "!", ha="center", va="center", fontsize=_fs(9), weight="bold", color="white", zorder=4)
-        ax.text(0.09, yi, label, ha="left", va="center", fontsize=_fs(11.5), weight="medium", color="#0F172A")
-        ax.text(0.98, yi, f"{pct:.0f}% of {case_noun}", ha="right", va="center", fontsize=_fs(10.5), weight="bold", color=color)
-    ax.set_xlim(0.0, 1.0)
-    ax.set_ylim(-0.7, len(metrics) - 0.3)
-    ax.invert_yaxis()
-    ax.axis("off")
-    ax.set_title(title, fontsize=_fs(14.5), weight="bold", pad=12)
-    fig.subplots_adjust(top=0.82, bottom=0.06, left=0.03, right=0.97)
-    _save_figure(fig, out_dir, name, cfg)
+    fig.subplots_adjust(left=0.24)
+    _save_figure(fig, out_dir, "final_15_delay_credit_bridge", cfg)
 
 
 def _fig_14_train_test_validation(out_dir: str, cfg: Config) -> None:
     path = os.path.join(cfg.validation_output_dir, "train-test", f"train_test_1_{cfg.train_test_max_train_id}_vs_rest.csv")
     rows = _read_csv_rows(path)
     if not rows:
-        _placeholder_figure(out_dir, "fig_14a_train_test_feasibility", cfg, "Train/test validation", "Train/test validation output is not present. Run run_train_test_scenario_validation.py before generating this diagnostic.")
-        _placeholder_figure(out_dir, "fig_14b_train_test_regret", cfg, "Train/test validation", "Train/test validation output is not present. Run run_train_test_scenario_validation.py before generating this diagnostic.")
+        _placeholder_figure(out_dir, "final_17_train_test_regret_distribution", cfg, "Train/test validation", "Train/test validation output is not present. Run run_train_test_scenario_validation.py before generating this diagnostic.")
         return
     archetypes = _all_archetypes(rows)
-    feasibility_metrics = [
-        ("design feasible", "held_out_design_feasible"),
-        ("land feasible", "held_out_land_feasible"),
-        ("technical feasible", "held_out_technical_feasible"),
-        ("carbon cap satisfied", "carbon_cap_satisfied"),
-    ]
-    _feasibility_checklist_figure(out_dir, cfg, "fig_14a_train_test_feasibility", "Held-out feasibility (train/test)", rows, feasibility_metrics, "held-out cases")
-
     fig, ax = plt.subplots(figsize=(8.2, 5.0))
-    regret_key = "regret_share_of_lifecycle" if any(_value(row, "regret_share_of_lifecycle") not in (None, "") for row in rows) else "RegretEURPerMWhIT"
+    # Prefer EUR/MWh IT; use percent-of-lifecycle-cost only for older CSVs.
+    regret_key = "regret_eur_per_mwh_it" if any(_value(row, "regret_eur_per_mwh_it") not in (None, "") for row in rows) else "regret_share_of_lifecycle"
     data = [[_num(row, regret_key) for row in rows if _value(row, "Archetype") == archetype and _value(row, regret_key) not in (None, "")] for archetype in archetypes]
     ax.boxplot(data, labels=archetypes, patch_artist=True, boxprops={"facecolor": "#DBEAFE", "color": CASE_COLORS["baseline"]}, medianprops={"color": "#111827", "linewidth": 2.0})
-    ax.set_ylabel("% of lifecycle cost" if regret_key == "regret_share_of_lifecycle" else "EUR/MWh IT")
-    ax.set_title("Held-out regret distribution (train/test)", fontsize=_fs(14.5), weight="bold")
+    ax.set_ylabel("Regret (% of lifecycle cost)" if regret_key == "regret_share_of_lifecycle" else "Regret (EUR/MWh IT)")
     ax.tick_params(axis="x", rotation=18)
     _style_axis(ax)
     fig.subplots_adjust(bottom=0.2)
-    _save_figure(fig, out_dir, "fig_14b_train_test_regret", cfg)
+    _save_figure(fig, out_dir, "final_17_train_test_regret_distribution", cfg)
 
 
 def _fig_15_out_of_sample_validation(out_dir: str, cfg: Config) -> None:
     path = os.path.join(cfg.validation_output_dir, "out-of-sample", "out_of_sample_validation.csv")
     rows = _read_csv_rows(path)
     if not rows:
-        _placeholder_figure(out_dir, "fig_15a_out_of_sample_feasibility", cfg, "Out-of-sample validation", "Out-of-sample validation output is not present. Run run_out_of_sample_validation.py before generating this diagnostic.")
-        _placeholder_figure(out_dir, "fig_15b_out_of_sample_regret", cfg, "Out-of-sample validation", "Out-of-sample validation output is not present. Run run_out_of_sample_validation.py before generating this diagnostic.")
+        _placeholder_figure(out_dir, "final_18_out_of_sample_regret_distribution", cfg, "Out-of-sample validation", "Out-of-sample validation output is not present. Run run_out_of_sample_validation.py before generating this diagnostic.")
         return
     archetypes = _all_archetypes(rows)
-    metrics = [
-        ("operational feasible", "operational_feasible"),
-        ("perfect feasible", "carbon_constrained_perfect_feasible"),
-        ("land feasible", "land_feasible"),
-        ("carbon cap satisfied", "carbon_cap_satisfied"),
-    ]
-    _feasibility_checklist_figure(out_dir, cfg, "fig_15a_out_of_sample_feasibility", "Policy and technical feasibility (out-of-sample)", rows, metrics, "OOS cases")
-
     fig, ax = plt.subplots(figsize=(8.6, 5.0))
-    regret_key = "regret_share_of_lifecycle" if any(_value(row, "regret_share_of_lifecycle") not in (None, "") for row in rows) else "RegretEURPerMWhIT"
+    regret_key = "regret_eur_per_mwh_it" if any(_value(row, "regret_eur_per_mwh_it") not in (None, "") for row in rows) else "regret_share_of_lifecycle"
     data = [[_num(row, regret_key) for row in rows if _value(row, "Archetype") == archetype and _value(row, regret_key) not in (None, "")] for archetype in archetypes]
-    parts = ax.violinplot(data, showmeans=True, showextrema=True)
-    for body in parts["bodies"]:
-        body.set_facecolor(CASE_COLORS["robust"])
-        body.set_alpha(0.4)
-        body.set_edgecolor(CASE_COLORS["robust"])
-    ax.set_xticks(np.arange(1, len(archetypes) + 1), archetypes, rotation=18)
-    ax.set_ylabel("% of lifecycle cost" if regret_key == "regret_share_of_lifecycle" else "EUR/MWh IT")
-    ax.set_title("Out-of-sample regret distribution", fontsize=_fs(14.5), weight="bold")
+    # Match the held-out panel style for direct comparison.
+    ax.boxplot(data, labels=archetypes, patch_artist=True, boxprops={"facecolor": "#DCFCE7", "color": CASE_COLORS["robust"]}, medianprops={"color": "#111827", "linewidth": 2.0})
+    ax.tick_params(axis="x", rotation=18)
+    ax.set_ylabel("Regret (% of lifecycle cost)" if regret_key == "regret_share_of_lifecycle" else "Regret (EUR/MWh IT)")
     _style_axis(ax)
     fig.subplots_adjust(bottom=0.2)
-    _save_figure(fig, out_dir, "fig_15b_out_of_sample_regret", cfg)
-
-
-def _fig_16_provenance_map(out_dir: str, cfg: Config) -> None:
-    path = os.path.join(cfg.canonical_output_dir, "manifest.json")
-    if not os.path.isfile(path):
-        _placeholder_figure(out_dir, "fig_16_provenance_map", cfg, "Provenance map", "No manifest.json found in the canonical output directory.")
-        return
-    with open(path, encoding="utf-8") as handle:
-        manifest = json.load(handle)
-    counts = {
-        "Inputs": len(manifest.get("input_sha256", {})),
-        "Source files": len(manifest.get("source_sha256", {})),
-        "Outputs": len(manifest.get("output_sha256", {})),
-        "Scenarios": int(manifest.get("scenario_count", 0)),
-    }
-    fig, ax = plt.subplots(figsize=(10.8, 4.8))
-    ax.axis("off")
-    ax.set_title("Evidence bundle provenance", fontsize=_fs(15), weight="bold")
-    xs = [0.14, 0.38, 0.62, 0.86]
-    colors = ["#DBEAFE", "#DCFCE7", "#FEF3C7", "#F3E8FF"]
-    for idx, ((label, count), xpos, color) in enumerate(zip(counts.items(), xs, colors)):
-        ax.add_patch(patches.FancyBboxPatch((xpos - 0.09, 0.43), 0.18, 0.22, boxstyle="round,pad=0.02,rounding_size=0.03", facecolor=color, edgecolor="#94A3B8"))
-        ax.text(xpos, 0.57, label, ha="center", va="center", fontsize=_fs(10), weight="bold")
-        ax.text(xpos, 0.47, str(count), ha="center", va="center", fontsize=_fs(14), color="#111827")
-        if idx < len(xs) - 1:
-            ax.annotate("", xy=(xs[idx + 1] - 0.105, 0.54), xytext=(xpos + 0.105, 0.54), arrowprops={"arrowstyle": "->", "lw": 1.5, "color": "#334155"})
-    ax.text(0.5, 0.24, f"RunID: {manifest.get('run_id', 'unavailable')}", ha="center", fontsize=_fs(9), color="#475569")
-    ax.text(0.5, 0.15, f"Git revision: {str(manifest.get('git_revision', 'unavailable'))[:16]}", ha="center", fontsize=_fs(9), color="#475569")
-    _add_takeaway(fig, "This figure is for reproducibility: source, data, scenarios, and generated outputs are hash-tracked in the manifest.")
-    _save_figure(fig, out_dir, "fig_16_provenance_map", cfg)
+    _save_figure(fig, out_dir, "final_18_out_of_sample_regret_distribution", cfg)
 
 
 def _fig_17_sensitivity_tornado(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
     base = [row for row in rows if _value(row, "Factor") == "canonical" and _value(row, "Archetype") == "all"]
     if not base:
         return
-    # "all" pools all four archetypes, so use the IT-energy-weighted column to
-    # match the paper's reported numbers (equal-weighting by archetype would
-    # give a small archetype the same weight as a much larger one); fall back
-    # to the equal-weighted column for older CSVs that predate it.
+    # Use IT weighting for pooled means; fall back for older CSVs.
     sipue_key = "average_sipue_it_weighted" if "average_sipue_it_weighted" in base[0] else "average_sipue"
     base_sipue = _num(base[0], sipue_key)
     entries = []
@@ -1145,12 +826,7 @@ def _fig_17_sensitivity_tornado(rows: Sequence[Dict], out_dir: str, cfg: Config)
             for row in rows
             if _value(row, "Factor") == factor and _value(row, "Archetype") == "all"
         }
-        # Explicit low/high input levels, not the numerically smaller/larger
-        # outcome -- a factor whose "low" input level raises siPUE and whose
-        # "high" input level lowers it should still label the bars by input
-        # level, not silently relabel them by which one happened to be
-        # numerically smaller (a conventional tornado shows both named
-        # endpoints, not just the range between them).
+        # Label bars by input level, even when the output direction reverses.
         low_delta = subset.get("low")
         high_delta = subset.get("high")
         if low_delta is None or high_delta is None:
@@ -1173,23 +849,37 @@ def _fig_17_sensitivity_tornado(rows: Sequence[Dict], out_dir: str, cfg: Config)
     fig, ax = plt.subplots(figsize=(9.8, 5.4))
     y = np.arange(len(entries))
     low_color, high_color = "#2F6B8A", "#C17C2C"
+    label_color = "#0F172A"
     for yi, (factor, low_delta, high_delta) in zip(y, entries):
-        ax.barh(yi, low_delta, color=low_color, alpha=0.85, height=0.55)
-        ax.barh(yi, high_delta, color=high_color, alpha=0.85, height=0.55)
-        ax.text(low_delta, yi + 0.32, f"low {low_delta:+.3g}", va="center", ha="left" if low_delta >= 0 else "right", fontsize=_fs(7.5), color=low_color)
-        ax.text(high_delta, yi - 0.32, f"high {high_delta:+.3g}", va="center", ha="left" if high_delta >= 0 else "right", fontsize=_fs(7.5), color=high_color)
+        ax.barh(yi, low_delta, color=low_color, alpha=0.85, height=0.55, zorder=2)
+        ax.barh(yi, high_delta, color=high_color, alpha=0.85, height=0.55, zorder=2)
+        low_text = "0.00" if abs(low_delta) < 0.005 else f"{low_delta:+.2f}"
+        high_text = "0.00" if abs(high_delta) < 0.005 else f"{high_delta:+.2f}"
+        ax.annotate(
+            low_text, xy=(low_delta, yi), xytext=(-6 if low_delta < 0 else 6, 0), textcoords="offset points",
+            va="center", ha="right" if low_delta < 0 else "left", fontsize=_fs(9.5), color=label_color, weight="medium", zorder=4,
+        )
+        ax.annotate(
+            high_text, xy=(high_delta, yi), xytext=(-6 if high_delta < 0 else 6, 0), textcoords="offset points",
+            va="center", ha="right" if high_delta < 0 else "left", fontsize=_fs(9.5), color=label_color, weight="medium", zorder=4,
+        )
     ax.axvline(0.0, color="#111827", lw=1.2, label="canonical value")
+    tips = [v for _, low_delta, high_delta in entries for v in (low_delta, high_delta)] + [0.0]
+    lo, hi = min(tips), max(tips)
+    span = max(hi - lo, 1e-6)
+    ax.set_xlim(lo - 0.24 * span, hi + 0.24 * span)
     ax.set_yticks(y, [label.title() for label, _, _ in entries])
     ax.invert_yaxis()
     ax.set_xlabel("robust siPUE change vs canonical sensitivity case")
-    ax.set_title("Five-factor sensitivity tornado: low and high input levels shown separately", fontsize=_fs(14.5), weight="bold")
     handles = [
         patches.Patch(facecolor=low_color, label="low input level"),
         patches.Patch(facecolor=high_color, label="high input level"),
     ]
-    ax.legend(handles=handles, frameon=False, loc="lower right", fontsize=_fs(9))
+    # Place legend above the axes to avoid the near-zero land bar.
+    ax.legend(handles=handles, frameon=False, loc="lower center", bbox_to_anchor=(0.5, 1.01), ncol=2, fontsize=_fs(9))
     _style_axis(ax, "x")
-    _save_figure(fig, out_dir, "fig_17_sensitivity_tornado", cfg)
+    fig.subplots_adjust(top=0.88)
+    _save_figure(fig, out_dir, "final_19_sensitivity_tornado", cfg)
 
 
 def _fig_18_sensitivity_archetype_response(rows: Sequence[Dict], out_dir: str, cfg: Config) -> None:
@@ -1210,13 +900,18 @@ def _fig_18_sensitivity_archetype_response(rows: Sequence[Dict], out_dir: str, c
             vals = [_num(row, "average_sipue") - base_value for row in subset]
             row_values.append(max(vals, default=0.0) - min(vals, default=0.0))
         matrix.append(row_values)
+    data = np.array(matrix)
     fig, ax = plt.subplots(figsize=(10.5, 4.8))
-    im = ax.imshow(np.array(matrix), cmap="PuBuGn", aspect="auto")
+    im = ax.imshow(data, cmap="cividis", aspect="auto")
     ax.set_yticks(np.arange(len(archetypes)), archetypes)
     ax.set_xticks(np.arange(len(factors)), [label.title() for label in factors], rotation=25, ha="right")
-    ax.set_title("Sensitivity response by archetype", fontsize=_fs(15), weight="bold")
+    vmax = float(data.max()) if data.size else 0.0
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            text_color = "#F8FAFC" if (vmax <= 0 or data[i, j] / vmax > 0.55) else "#0F172A"
+            ax.text(j, i, f"{data[i, j]:.3f}", ha="center", va="center", fontsize=_fs(9.5), weight="bold", color=text_color)
     fig.colorbar(im, ax=ax, label="siPUE response range")
-    _save_figure(fig, out_dir, "fig_18_sensitivity_archetype_response", cfg)
+    _save_figure(fig, out_dir, "final_20_sensitivity_archetype_response", cfg)
 
 
 def export_sensitivity_plots(cfg: Config) -> None:
@@ -1242,24 +937,17 @@ def export_creative_figure_package(
     if not cfg.export_plots or not rows:
         return
     out_dir = _ensure_plot_dir(cfg)
-    _fig_01_sipue_metric_story(out_dir, cfg)
-    _fig_01b_why_sipue_matters(out_dir, cfg)
-    _fig_02_model_pipeline_subway(out_dir, cfg)
-    _fig_02b_full_study_roadmap(out_dir, cfg)
     _fig_03_pue_sipue_tradeoff_compass(rows, out_dir, cfg)
     _fig_04_kpi_benchmark_scoreboard(rows, out_dir, cfg)
     _fig_05_optimization_formulation_map(out_dir, cfg)
-    _fig_06_input_scenario_fingerprint(rows, out_dir, cfg)
     _fig_07_representative_day_compression(out_dir, cfg)
-    _fig_08_network_and_carbon_context(rows, out_dir, cfg)
+    _fig_08b_load_and_renewables(out_dir, cfg)
     _fig_09_design_portfolio_by_archetype(rows, out_dir, cfg)
     _fig_10_system_value_sankey(decomposition, out_dir, cfg)
     _fig_11_carbon_ledger_separation(rows, out_dir, cfg)
     _fig_12_delay_credit_bridge(rows, out_dir, cfg)
-    _fig_13_property_check_matrix(out_dir, cfg)
     _fig_14_train_test_validation(out_dir, cfg)
     _fig_15_out_of_sample_validation(out_dir, cfg)
-    _fig_16_provenance_map(out_dir, cfg)
     export_sensitivity_plots(cfg)
 
 
@@ -1288,37 +976,10 @@ def export_study_plots(
         name for name in ("AI/HPC", "Hyperscale cloud", "Colocation", "Enterprise/edge")
         if any(_value(row, "Archetype") == name for row in rows)
     ]
-    colors = ["#2F6B8A", "#3A7D44", "#C17C2C", "#8E5C7A"]
     x = np.arange(len(archetypes))
 
     def values(archetype: str, key: str) -> List[float]:
         return [_num(row, key) for row in rows if _value(row, "Archetype") == archetype]
-
-    def mean_range(archetype: str, key: str):
-        data = values(archetype, key)
-        mean = float(np.mean(data)) if data else 0.0
-        return mean, mean - min(data, default=mean), max(data, default=mean) - mean
-
-    def _dot_range_figure(name: str, key: str, ylabel: str, title: str) -> None:
-        stats = [mean_range(a, key) for a in archetypes]
-        means = [item[0] for item in stats]
-        lower = [item[1] for item in stats]
-        upper = [item[2] for item in stats]
-        fig, ax = plt.subplots(figsize=(7.2, 5.0))
-        ax.errorbar(x, means, yerr=[lower, upper], fmt="none", ecolor="#94A3B8", elinewidth=2.2, capsize=5, capthick=2.2, zorder=1)
-        ax.scatter(x, means, s=140, color=colors, zorder=3, edgecolor="white", linewidth=1.2)
-        ax.axhline(0.0, color="#222222", linewidth=1.1)
-        ax.set_xticks(x, archetypes, rotation=18, ha="right")
-        ax.set_ylabel(ylabel)
-        ax.set_title(title, fontsize=_fs(14.5), weight="bold")
-        _style_axis(ax)
-        fig.subplots_adjust(bottom=0.22)
-        _save_figure(fig, out_dir, name, cfg)
-
-    _dot_range_figure("metric_change_pue", "pue_reduction_pct_vs_fair_services_disabled_robust", "PUE reduction vs services-disabled (%)", "PUE change by archetype")
-    _dot_range_figure("metric_change_sipue", "sipue_reduction_pct_vs_fair_services_disabled_robust", "siPUE reduction vs services-disabled (%)", "siPUE change by archetype")
-    _dot_range_figure("cost_change_lifecycle", "lifecycle_cost_reduction_pct_vs_fair_services_disabled_robust", "Lifecycle cost reduction (%)", "Lifecycle cost change by archetype")
-    _dot_range_figure("emissions_change_dc_attributed", "dc_attributed_emissions_reduction_pct_vs_fair_services_disabled_robust", "DC-attributable emissions reduction (%)", "Emissions change by archetype")
 
     regret_means = []
     for archetype in archetypes:
@@ -1334,82 +995,18 @@ def export_study_plots(
     ax.axhline(0.0, color="#222222", linewidth=1.1)
     ax.set_xticks(x, archetypes, rotation=18, ha="right")
     ax.set_ylabel("Robust design regret (EUR / discounted MWh IT)")
-    ax.set_title("Robust design regret by archetype", fontsize=_fs(14.5), weight="bold")
     _style_axis(ax)
     fig.subplots_adjust(bottom=0.22)
-    _save_figure(fig, out_dir, "regret_comparison_by_archetype", cfg)
-
-    delay_loss = [float(np.mean(values(name, "delay_loss_pct_of_zero_delay_gain_robust"))) for name in archetypes]
-    fig, ax = plt.subplots(figsize=(7.4, 5.0))
-    ax.scatter(x, delay_loss, s=160, color=colors, zorder=3, edgecolor="white", linewidth=1.2)
-    ax.vlines(x, 0.0, delay_loss, color="#CBD5E1", linewidth=3.0, zorder=1)
-    ax.axhline(0.0, color="#222222", linewidth=1.1)
-    ax.set_xticks(x, archetypes, rotation=18, ha="right")
-    ax.set_ylabel("Delay loss (% of zero-delay gain)")
-    ax.set_title("Construction-delay value loss by archetype", fontsize=_fs(14.5), weight="bold")
-    _style_axis(ax)
-    fig.subplots_adjust(bottom=0.22)
-    _save_figure(fig, out_dir, "construction_delay_effects", cfg)
-
-    market = [float(np.mean(values(name, "carbon_market_cost_eur_robust"))) / 1e6 for name in archetypes]
-    damage = [float(np.mean(values(name, "carbon_damage_eur_robust"))) / 1e6 for name in archetypes]
-    fig, ax = plt.subplots(figsize=(7.8, 5.0))
-    ax.bar(x - 0.18, market, 0.36, label="ETS payment", color="#C17C2C")
-    ax.bar(x + 0.18, damage, 0.36, label="carbon damage", color="#8E5C7A")
-    ax.set_xticks(x, archetypes, rotation=18, ha="right")
-    ax.set_ylabel("Annual value (million EUR)")
-    ax.set_title("Carbon market cost vs social damage", fontsize=_fs(14.5), weight="bold")
-    ax.legend(frameon=False)
-    _style_axis(ax)
-    fig.subplots_adjust(bottom=0.22)
-    _save_figure(fig, out_dir, "carbon_and_network_outcomes_cost", cfg)
+    _save_figure(fig, out_dir, "final_16_regret_by_archetype", cfg)
 
     congestion = [float(np.mean(values(name, "congestion_hours_robust"))) for name in archetypes]
-    curtailment = [float(np.mean(values(name, "renewable_curtailment_mwh_robust"))) for name in archetypes]
     fig, ax = plt.subplots(figsize=(7.4, 5.0))
     ax.scatter(x, congestion, s=160, color=CASE_COLORS["baseline"], zorder=3, edgecolor="white", linewidth=1.2)
     ax.vlines(x, 0.0, congestion, color="#CBD5E1", linewidth=3.0, zorder=1)
     ax.set_xticks(x, archetypes, rotation=18, ha="right")
     ax.set_ylabel("Congestion hours per year")
-    ax.set_title("Network congestion by archetype", fontsize=_fs(14.5), weight="bold")
     _style_axis(ax)
-    max_curtailment = max(curtailment, default=0.0)
-    _add_takeaway(fig, f"Renewable curtailment is negligible for every archetype (at most {max_curtailment:.1f} MWh/year) -- the network is congested but not curtailing renewables.")
-    fig.subplots_adjust(bottom=0.24)
-    _save_figure(fig, out_dir, "carbon_and_network_outcomes_congestion", cfg)
-
-    components = [
-        "heating revenue", "flexibility revenue", "resource electricity",
-        "cooling electricity", "CO2 market", "capex", "land", "construction delay",
-    ]
-    component_colors = ["#3A7D44", "#2F6B8A", "#6B6B6B", "#64A6BD", "#C17C2C", "#B44B4B", "#8E5C7A", "#D7A84B"]
-    fig, ax = plt.subplots(figsize=(10.0, 4.8))
-    positive = np.zeros(len(archetypes))
-    negative = np.zeros(len(archetypes))
-    for component, color in zip(components, component_colors):
-        data = []
-        for archetype in archetypes:
-            found = [
-                _num(row, "value_eur") / 1e6
-                for row in decomposition
-                if _value(row, "Archetype") == archetype
-                and _value(row, "Design") == "robust"
-                and _value(row, "Ledger") == "market"
-                and _value(row, "Component") == component
-            ]
-            data.append(float(np.mean(found)) if found else 0.0)
-        data_array = np.array(data)
-        bottoms = np.where(data_array >= 0.0, positive, negative)
-        ax.bar(x, data_array, bottom=bottoms, label=component, color=color)
-        positive += np.where(data_array >= 0.0, data_array, 0.0)
-        negative += np.where(data_array < 0.0, data_array, 0.0)
-    ax.axhline(0.0, color="#222222", linewidth=1.1)
-    ax.set_xticks(x, archetypes, rotation=18, ha="right")
-    ax.set_ylabel("Average lifecycle value contribution (million EUR)")
-    ax.set_title("Market value decomposition by archetype", fontsize=_fs(14.5), weight="bold")
-    ax.legend(ncol=2, frameon=False, fontsize=_fs(9.5))
-    _style_axis(ax)
-    fig.subplots_adjust(bottom=0.2)
-    _save_figure(fig, out_dir, "market_value_decomposition", cfg)
+    fig.subplots_adjust(bottom=0.22)
+    _save_figure(fig, out_dir, "final_12_network_congestion_by_archetype", cfg)
 
     export_creative_figure_package(rows, comparison, decomposition, cfg)

@@ -7,7 +7,7 @@ from brave.runners import run_sipue_objective_comparison
 
 class TestObjectiveModeValidation:
     """Fast, no-solve checks that the new objective_mode branch validates its
-    own required inputs instead of silently building an incomplete model."""
+    own required inputs before building the model."""
 
     def test_solve_perfect_foresight_rejects_unknown_mode(self, cfg_test, scenario_hyperscale, profile_24h):
         with pytest.raises(ValueError):
@@ -79,8 +79,8 @@ def test_sipue_regret_worst_case_group_regret_not_materially_worse(sipue_objecti
     within each archetype's own scenario group, the siPUE-regret design's
     worst-case regret against the scenario-perfect siPUE benchmark is not
     materially worse than the cost-regret design's. A small tolerance is
-    used because both designs are solved via a separate lexicographic
-    min-max LP at full representative-day scale (objective values of the
+    used because both designs are solved via a separate min-max LP at full
+    representative-day scale (objective values of the
     order of tens of billions of EUR), where solver optimality-gap noise is
     non-negligible relative to siPUE, which is O(1)."""
     by_archetype = {}

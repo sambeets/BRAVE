@@ -19,6 +19,7 @@ The core idea is to evaluate data centers not only as electricity loads, but as 
 - `brave/`: core modeling package (config, scenario generation, optimization, metrics, plotting, exports).
 - `main.py`: thin compatibility entrypoint that re-exports public APIs from `brave`.
 - `run_manuscript_sensitivity_repdays_annual.py`: optional manuscript sensitivity runner.
+- `run_carbon_cap_relaxed_ablation.py`: optional carbon-cap diagnostic used to separate cap compliance from priced carbon-damage valuation.
 - `data/network_3node_timeseries.csv`: network and time-series input data.
 - `output/`: generated results tables and paper figures.
 - `tests/`: unit and integration-style tests plus golden references.
@@ -36,7 +37,7 @@ From the referenced paper's abstract and setup:
 - Carbon market exposure is included in dispatch and profit through scenario or time-series CO2 prices.
 - Carbon outcomes are also reported through emissions, CUE, carbon market cost, independent carbon damage, and independent system-cost outcomes so siPUE can be checked against physical and system-level diagnostics.
 - Validation tables currently report metric property checks and selected diagnostics. Broader validation claims should be regenerated and reviewed before manuscript use.
-- A min-max regret formulation is reported as an integrated planning objective. Ex-post settlement fields remain available for audit/backward compatibility but are not used as manuscript diagnostics.
+- A normalized pure min-max regret formulation is reported as the integrated planning objective. siPUE-regret and cap-relaxed runs remain separate diagnostics.
 - In services-active scenarios, siPUE should be interpreted as a system-integrated metric based on the no-services independent system-cost counterfactual. Absolute system benefit remains a scale/impact diagnostic.
 - Paper-facing tables should use compact labels such as `CO2 cost`, `DC CO2 share`, `DC CO2 change`, `carbon damage`, `system benefit`, `benefit per MWh IT`, and `delay factor`.
 
@@ -54,7 +55,7 @@ poetry install
 poetry run python main.py
 ```
 
-The base workflow exports the paper-facing core cases: no-services, baseline, and robust min-max design. Heavier sensitivity, out-of-sample, and service-ablation diagnostics are kept as separate optional scripts.
+The base workflow exports the paper-facing core cases: no-services, baseline, and robust normalized pure min-max design. Heavier sensitivity, out-of-sample, carbon-cap, and service-ablation diagnostics are kept as separate optional scripts.
 
 ### 3. Optional diagnostic sensitivity analysis
 
@@ -69,7 +70,19 @@ multiplier `0.125/0.375`, cooling overhead `0.8x/1.2x`, land availability
 valuation is kept as a separate policy ledger diagnostic, not a main
 physical/market sensitivity factor.
 
-### 4. Optional out-of-sample diagnostic
+### 4. Optional carbon-cap relaxed diagnostic
+
+```bash
+poetry run python run_carbon_cap_relaxed_ablation.py
+```
+
+This re-solves the baseline and two-stage robust design with the physical
+carbon cap removed while keeping the carbon-damage price term active. The
+output `output/congested3/carbon_cap_relaxed_ablation.csv` is used to check
+whether the carbon-damage credit is driven by priced valuation or by cap
+compliance.
+
+### 5. Optional out-of-sample diagnostic
 
 This designs the robust portfolio on scenarios 1-5 and evaluates the fixed
 design under held-out scenarios 6-10.
@@ -78,7 +91,7 @@ design under held-out scenarios 6-10.
 poetry run python run_out_of_sample_validation.py
 ```
 
-### 5. Optional train/test scenario diagnostic
+### 6. Optional train/test scenario diagnostic
 
 This designs the robust portfolio on uncertainty states 1-7 and evaluates the
 fixed design on held-out states 8-10, per archetype.
@@ -87,7 +100,7 @@ fixed design on held-out states 8-10, per archetype.
 poetry run python run_train_test_scenario_validation.py
 ```
 
-### 6. Run tests
+### 7. Run tests
 
 ```bash
 poetry run pytest

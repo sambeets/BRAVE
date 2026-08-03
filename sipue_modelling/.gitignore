@@ -9,8 +9,7 @@
 *.fdb_latexmk
 *.synctex.gz
 
-# Manuscript, generated results, and paper-writing notes are local-only:
-# this repo tracks the modeling code, not the paper or its output.
+# Local manuscript, generated results, and paper-writing notes
 paper.tex
 paper.pdf
 references.bib
@@ -25,6 +24,14 @@ output/
 # Vendored/scratch dependency copies and tool state
 .deps/
 .claude/
+
+# Python runtime caches
+__pycache__/
+*.py[cod]
+
+# Office/editor temp files
+~$*
+*.tmp
 
 # Windows redirect-to-nul artifact
 nul

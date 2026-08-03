@@ -58,6 +58,7 @@ def _creative_row(archetype: str, key: str, scenario_id: int):
             f"system_benefit_per_mwh_it_{case}": 4.0 if case == "baseline" else 11.0,
             f"emissions_tco2_{case}": 39000.0,
             f"sipue_credit_loss_pct_{case}": 3.0,
+            f"sipue_credit_loss_mwh_{case}": 40.0,
         })
     return row
 
@@ -94,42 +95,22 @@ def test_creative_figure_package_generates_mixed_audience_set(tmp_path):
         )
     ]
     export_creative_figure_package(rows, [], decomposition, cfg)
-    # Figures that used to be multi-panel subplot grids are now exported as
-    # separate single-axis files (one per panel), so each subfigure name is
-    # asserted individually rather than one combined filename per figure.
     expected = {
-        "fig_01_sipue_metric_story.png",
-        "fig_01b_why_sipue_matters.png",
-        "fig_02_model_pipeline_subway.png",
-        "fig_02b_full_study_roadmap.png",
-        "fig_03_pue_sipue_tradeoff_compass.png",
-        "fig_04_kpi_pue.png",
-        "fig_04_kpi_sipue.png",
-        "fig_04_kpi_cue.png",
-        "fig_04_kpi_modeled_erf.png",
-        "fig_04_kpi_system_benefit_per_mwh_it.png",
-        "fig_04_kpi_emissions_tco2.png",
-        "fig_04_kpi_carbon_damage_eur.png",
-        "fig_05_optimization_formulation_map.png",
-        "fig_06_input_scenario_fingerprint.png",
-        "fig_07a_representative_day_weights.png",
-        "fig_07b_representative_day_load_trace.png",
-        "fig_08a_network_topology.png",
-        "fig_08b_load_and_renewables.png",
-        "fig_08c_carbon_cap_by_archetype.png",
-        "fig_09_design_portfolio_parallel.png",
-        "fig_10_system_value_sankey.png",
-        "fig_11_carbon_ledger_power_emissions.png",
-        "fig_11_carbon_ledger_avoided_heat_emissions.png",
-        "fig_11_carbon_ledger_co2_cost_change.png",
-        "fig_11_carbon_ledger_carbon_damage_change.png",
-        "fig_12_delay_credit_bridge.png",
-        "fig_13_property_check_matrix.png",
-        "fig_14a_train_test_feasibility.png",
-        "fig_14b_train_test_regret.png",
-        "fig_15a_out_of_sample_feasibility.png",
-        "fig_15b_out_of_sample_regret.png",
-        "fig_16_provenance_map.png",
+        "final_01_optimization_formulation_map.png",
+        "final_03_representative_day_weights.png",
+        "final_04_representative_day_load_trace.png",
+        "final_05_load_and_renewables.png",
+        "final_06_kpi_pue.png",
+        "final_07_kpi_sipue.png",
+        "final_08_kpi_system_benefit_per_mwh_it.png",
+        "final_09_pue_sipue_tradeoff_compass.png",
+        "final_10_design_portfolio_parallel.png",
+        "final_11_system_value_sankey.png",
+        "final_13_carbon_ledger_power_emissions.png",
+        "final_14_carbon_ledger_avoided_heat_emissions.png",
+        "final_15_delay_credit_bridge.png",
+        "final_17_train_test_regret_distribution.png",
+        "final_18_out_of_sample_regret_distribution.png",
     }
     assert expected.issubset({path.name for path in tmp_path.iterdir()})
 
@@ -143,4 +124,4 @@ def test_sensitivity_plots_skip_when_sensitivity_output_missing(tmp_path):
         plot_format="png",
     )
     export_sensitivity_plots(cfg)
-    assert not any(path.name.startswith("fig_17_") or path.name.startswith("fig_18_") for path in tmp_path.iterdir())
+    assert not any(path.name.startswith("final_19_") or path.name.startswith("final_20_") for path in tmp_path.iterdir())

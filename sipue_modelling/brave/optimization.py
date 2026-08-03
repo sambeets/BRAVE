@@ -50,8 +50,7 @@ def _commissioning_delay_months(cfg: Config, sc: Scenario) -> float:
 
 
 def _lifecycle_factors(cfg: Config, sc: Scenario) -> Tuple[float, float]:
-    # A full 8,760-hour trace is annual even when representative-day
-    # weighting is disabled. Short unweighted horizons remain test/smoke runs.
+    # Full 8,760-hour traces are annual; short unweighted horizons are test/smoke runs.
     if not cfg.use_representative_days_annual and cfg.T != 8760:
         return 1.0, 1.0
     operating = lifecycle_operating_factor(
@@ -86,8 +85,7 @@ def _extract_constraint_duals(model: pulp.LpProblem) -> Dict[int, float]:
     if direct and all(value is not None for value in direct):
         return {id(constraint): float(value) for constraint, value in zip(constraints, direct)}
 
-    # PuLP 2.9's HiGHS adapter leaves ``constraint.pi`` unset even though
-    # highspy returns row duals. HiGHS builds rows in model constraint order.
+    # PuLP 2.9 leaves HiGHS row duals unset; highspy returns them in constraint order.
     solver_model = getattr(model, "solverModel", None)
     if solver_model is not None and hasattr(solver_model, "getSolution"):
         native = list(getattr(solver_model.getSolution(), "row_dual", []))
@@ -179,7 +177,7 @@ def solve_ops_given_design(
     K_FLEX: float,
     K_BAT_E: float,
     K_BAT_P: float,
-    eff_reduction: float,  # NEW: chosen efficiency level in [0,1)
+    eff_reduction: float,  # chosen efficiency level in [0,1)
     K_HP: Optional[float] = None,
     _compute_congestion_marginal: bool = True,
     objective_mode: str = "cost",
@@ -191,11 +189,10 @@ def solve_ops_given_design(
     ``objective_mode="cost"`` (default, unchanged) minimizes lifecycle market
     cost, matching every existing call site. ``objective_mode="sipue"``
     instead minimizes this scenario's own siPUE for the fixed design first,
-    then breaks ties on market cost -- the same lexicographic structure
-    ``solve_minmax_regret`` uses to *select* a siPUE-regret design, so that a
-    design chosen to minimize siPUE regret is also *reported* under
-    operations consistent with that objective, rather than under the
-    market-cost-only dispatch used for the cost-regret design.
+    then breaks ties on market cost. A design chosen to minimize siPUE regret
+    is therefore reported under operations consistent with that objective,
+    rather than under the market-cost-only dispatch used for the cost-regret
+    design.
     """
     if objective_mode not in {"cost", "sipue", "emissions"}:
         raise ValueError("objective_mode must be 'cost', 'sipue', or 'emissions'.")
@@ -602,14 +599,7 @@ def solve_ops_given_design(
         m.setObjective(lifecycle_market_cost_expr + cfg.eps_u_grid * pulp.lpSum(U_GRID[t] for t in range(T)))
         m.solve(make_solver_lp(cfg))
     elif objective_mode == "emissions":
-        # Minimizes physical emissions directly rather than cost. Used only
-        # to find the true minimum emissions a fixed design can reach in a
-        # scenario (a feasibility floor for the carbon cap) -- not part of
-        # any reported design/operations case, so no cost tie-break is taken.
-        # The eps_u_grid term is negligible at emissions_expr's scale (tCO2,
-        # typically in the thousands to millions for the whole network) but
-        # is still needed to keep U_GRID pinned to its tight congestion value,
-        # exactly as it does for the cost objective below.
+        # Emissions minimization gives the carbon-cap floor; eps_u_grid pins congestion.
         m += emissions_expr + cfg.eps_u_grid * pulp.lpSum(U_GRID[t] for t in range(T))
         m.solve(make_solver_lp(cfg))
     else:
@@ -940,24 +930,13 @@ def solve_ops_given_design(
         avoided_heat_cost_eur_per_mwhth=prof.get("avoided_heat_cost"),
         heat_delivered_mwth=H_SOLDv,
         avoided_flex_cost_eur_per_mw_h=prof.get("avoided_flex_cost"),
-        # RF_LOAD only: K_FLEX is a dedicated, capitalized flex asset (its own
-        # capex_FLEX line), so RF_LOAD represents an incremental system
-        # service the independent ledger should credit. RF_BAT is spare
-        # inverter/state-of-charge headroom on a battery already sized (and
-        # capitalized) for arbitrage/reliability, not a purpose-built flex
-        # investment -- crediting it here would count the same battery asset
-        # as an independent system benefit on top of whatever the dispatch
-        # optimization already gets from it. (Note both RF_LOAD and RF_BAT
-        # still earn private market flex_revenue via RFv below -- that is a
-        # separate, market-ledger payment and is not what this exclusion is
-        # about.)
+        # Credit dedicated load flexibility; keep battery headroom out of the independent credit.
         flex_delivered_mw=RF_LOADv,
         weights=w,
         dt=dt,
         carbon_damage_eur_per_tco2=sc.carbon_damage_eur_per_tco2,
     )
-    # An isolated dispatch has no counterfactual, so its siPUE is neutral.
-    # Scenario exports overwrite this with no-services avoided system cost.
+    # Isolated dispatch has neutral siPUE until scenario exports add the counterfactual.
     siPUE, system_credit_mwh = compute_sipue(
         E_FAC=E_FAC,
         E_IT=E_IT,
@@ -1698,7 +1677,7 @@ def solve_minmax_regret(
     availability_by_sid: Optional[Dict[int, float]] = None,
     sipue_star: Optional[Dict[int, float]] = None,
 ) -> Dict:
-    """Stage 2: pick one shared design across scenarios by lexicographic min-max regret.
+    """Stage 2: pick one shared design across scenarios by min-max regret.
 
     ``objective_mode="cost"`` (default) is the original, unchanged behavior:
     Stage 1's worst-case regret is measured in lifecycle market cost against
@@ -1706,16 +1685,16 @@ def solve_minmax_regret(
     uses. ``objective_mode="sipue"`` instead measures worst-case regret in
     siPUE-space against a per-scenario siPUE-perfect benchmark ``sipue_star``,
     to test whether optimizing Stage 2 directly for siPUE (instead of cost)
-    would select a different shared design. In both modes the lexicographic
-    tie-break still minimizes average lifecycle cost, so the two modes are
-    comparable side by side and differ only in the primary worst-case
-    criterion.
+    would select a different shared design. ``cfg.robust_objective`` controls
+    regret scaling and whether a secondary lifecycle-cost tie-break is applied.
     """
     if cfg.robust_objective not in {
-        "normalized_lexicographic", "lexicographic_minmax", "pure_minmax"
+        "normalized_pure_minmax", "normalized_lexicographic",
+        "lexicographic_minmax", "pure_minmax",
     }:
         raise ValueError(
-            "robust_objective must be normalized lexicographic, absolute lexicographic, or pure min-max."
+            "robust_objective must be normalized pure min-max, normalized lexicographic, "
+            "absolute lexicographic, or absolute pure min-max."
         )
     if objective_mode not in {"cost", "sipue"}:
         raise ValueError("objective_mode must be 'cost' or 'sipue'.")
@@ -1741,8 +1720,7 @@ def solve_minmax_regret(
     heat_enabled = any(bool(profiles[sc.sid].get("allow_heat", True)) for sc in scenarios)
     flex_enabled = any(bool(profiles[sc.sid].get("allow_flex", True)) for sc in scenarios)
     battery_enabled = any(bool(profiles[sc.sid].get("allow_battery", True)) for sc in scenarios)
-    # One installed heat-pump rating must remain feasible in every uncertainty
-    # state. The lowest COP requires the greatest electrical input capacity.
+    # The installed heat-pump rating must cover the lowest-COP uncertainty state.
     min_cop = min(
         (sc.hp_cop for sc in scenarios if bool(profiles[sc.sid].get("allow_heat", True))),
         default=1.1,
@@ -1755,10 +1733,7 @@ def solve_minmax_regret(
         k_HX = pulp.LpVariable("k_HX_per_MW_IT", lowBound=0, upBound=cfg.K_HX_max / max_it_mw)
         k_HP = pulp.LpVariable("k_HP_per_MW_IT", lowBound=0, upBound=cfg.K_HP_max / max_it_mw)
         k_FLEX = pulp.LpVariable("k_FLEX_per_MW_IT", lowBound=0, upBound=cfg.K_FLEX_max / max_it_mw)
-        # Bounded by a headroom multiplier on the min_bat_* floor (both already
-        # per-MW-IT ratios) rather than an absolute cap divided by max_it_mw --
-        # the latter gives smaller archetypes a *larger* per-MW-IT ceiling,
-        # backwards from what a facility-size-invariant bound should do.
+        # Apply headroom to per-MW-IT floors to keep the ceiling facility-size invariant.
         k_bat_e_bound = (
             cfg.battery_capacity_headroom_multiplier * cfg.min_bat_e_hours
             if cfg.min_bat_e_hours > 0 else cfg.K_BAT_E_max / max_it_mw
@@ -2162,7 +2137,7 @@ def solve_minmax_regret(
                 ) / e_it_const_s
                 Sipue_s_vars[sc.sid] = sipue_s
                 m += Z >= sipue_s - sipue_star[sc.sid]
-            elif cfg.robust_objective == "normalized_lexicographic":
+            elif cfg.robust_objective in {"normalized_pure_minmax", "normalized_lexicographic"}:
                 m += Z >= (Cost - C_star[sc.sid]) / discounted_it_mwh
             else:
                 m += Z >= Cost - C_star[sc.sid]
@@ -2172,12 +2147,8 @@ def solve_minmax_regret(
         m += Z
         m.solve(make_solver_lp(cfg))
         z_star = float(pulp.value(Z)) if pulp.LpStatus[m.status] == "Optimal" else float("nan")
-        if objective_mode == "sipue" and pulp.LpStatus[m.status] == "Optimal":
-            tolerance = max(1e-6, abs(z_star) * cfg.lexicographic_regret_tolerance)
-            m += Z <= z_star + tolerance, "LexicographicRegretLimit"
-            m.setObjective(avg_cost)
-            m.solve(make_solver_lp(cfg))
-        elif cfg.robust_objective in {"normalized_lexicographic", "lexicographic_minmax"} and pulp.LpStatus[m.status] == "Optimal":
+        uses_cost_tie_break = cfg.robust_objective in {"normalized_lexicographic", "lexicographic_minmax"}
+        if uses_cost_tie_break and pulp.LpStatus[m.status] == "Optimal":
             tolerance = max(1e-6, abs(z_star) * cfg.lexicographic_regret_tolerance)
             m += Z <= z_star + tolerance, "LexicographicRegretLimit"
             m.setObjective(avg_cost)
@@ -2232,7 +2203,11 @@ def solve_minmax_regret(
             "eff_capex": reference_capex_multiplier * capex_scale(cfg) * eff_capex_from_reduction(eff_reduction, cfg),
             "Z": (
                 worst_sipue_regret if objective_mode == "sipue"
-                else (worst_normalized_regret if cfg.robust_objective == "normalized_lexicographic" else worst_regret)
+                else (
+                    worst_normalized_regret
+                    if cfg.robust_objective in {"normalized_pure_minmax", "normalized_lexicographic"}
+                    else worst_regret
+                )
             ),
             "worst_regret_eur": worst_regret,
             "worst_regret_eur_per_mwh_it": worst_normalized_regret,

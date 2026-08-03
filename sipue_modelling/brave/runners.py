@@ -180,10 +180,7 @@ def _baseline_ops(sc: Scenario, prof: Dict[str, List[float]], cfg: Config) -> Di
 
 
 def _no_services_ops(sc: Scenario, prof: Dict[str, List[float]], cfg: Config) -> Dict:
-    # No-services is the zero-investment counterfactual: zero service capacity
-    # AND zero efficiency investment, independent of cfg.fixed_eff_reduction
-    # (which fixes the efficiency level for the baseline/robust/perfect-foresight
-    # cases, where an efficiency retrofit is actually installed and paid for).
+    # No-services is the zero-capacity, zero-efficiency-investment counterfactual.
     return solve_ops_given_design(
         sc,
         _no_services_profile(prof),
@@ -225,23 +222,7 @@ def _carbon_reference(
             no_dc_power_emissions
             + float(no_services[sc.sid]["baseline_heat_emissions_tco2"])
         )
-        # Anchored to the fair services-disabled design's own unconstrained
-        # emissions -- the design that actually carries the locked efficiency
-        # retrofit and is used as the reference comparator throughout the
-        # paper -- rather than the zero-efficiency no-services design. The
-        # previous no-services anchor could put the target below what the
-        # fair comparator can physically reach even with efficiency already
-        # applied, which required silently relaxing the cap to a feasibility
-        # floor in most rows. Anchoring to the fair comparator's own
-        # unconstrained (cost-minimizing) emissions makes the policy target
-        # tighter than before in most rows, but cost-minimizing dispatch is
-        # not emissions-minimizing dispatch, so this alone does not guarantee
-        # the reduction_frac target is physically reachable in every
-        # scenario. true_min_emissions below is the fair comparator's actual
-        # minimum achievable emissions (found by minimizing emissions
-        # directly, not cost) and is used only as a last-resort feasibility
-        # floor, so the floor now reflects a genuine physical limit rather
-        # than an artifact of cost-minimizing dispatch.
+        # Anchor the cap to the fair comparator; true_min_emissions is the feasibility floor.
         fair_unconstrained = float(
             _fair_services_disabled_ops(sc, profiles[sc.sid], unconstrained_cfg)["emissions_tco2"]
         )
@@ -1338,13 +1319,7 @@ def run_single(cfg: Config) -> List[Dict]:
                     1.0 if name in {"no_services", "fair_services_disabled"} else availability,
                 )
 
-            # Diagnostic only, not a canonical design case. The exported
-            # cases keep the identity no-services row separate from the
-            # fair services-disabled reference comparator.
-            # Stage 2 minimizes worst-case *cost* regret, never siPUE regret,
-            # so this checks how far the cost-optimal robust design's siPUE
-            # sits from the siPUE attainable by the scenario-perfect design
-            # that had foresight of this scenario.
+            # Compare the cost-regret robust design with the scenario-perfect siPUE benchmark.
             perfect_ops = _solve_design_ops(sc, prof, constrained_cfg, perfect_designs[sc.sid])
             _apply_emissions_attribution(perfect_ops, cases["no_services"])
             _rebase_lifecycle(perfect_ops, cases["fair_services_disabled"], cfg_local)
@@ -1544,8 +1519,7 @@ def run_sipue_objective_comparison(cfg: Config) -> List[Dict]:
     chosen to minimize worst-case *siPUE* regret directly, for the same 40
     canonical rows.
 
-    Both use the same Stage-1 scenario-perfect scenario set and the same
-    lexicographic cost tie-break; they differ only in what Stage 2 treats as
+    Both use the same Stage-1 scenario-perfect scenario set; they differ only in what Stage 2 treats as
     the worst-case criterion (cost regret vs. siPUE regret against a
     per-scenario siPUE-perfect benchmark). This is a diagnostic-only
     comparison run, not part of the canonical result bundle; it exists to
@@ -1668,8 +1642,8 @@ def run_sipue_objective_comparison_out_of_sample(cfg: Config, count_per_archetyp
     (cost regret vs. siPUE regret) on the same ten canonical uncertainty
     states used throughout the paper, which leaves open whether the
     near-identical designs reported there are a structural property of the
-    two objectives or an artifact of having built and debugged the model
-    against those specific ten states. This function repeats the same
+    two objectives or a consequence of evaluating the same ten states. This
+    function repeats the same
     comparison end to end -- both Stage-1 benchmarks and both Stage-2
     objectives, re-solved from scratch -- on freshly drawn uncertainty
     scenarios from ``make_out_of_sample_scenarios``, using a seed offset

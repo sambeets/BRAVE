@@ -2,9 +2,9 @@
 
 This diagnostic varies only the approved factors used for the current
 manuscript sensitivity appendix: heat price, flexibility price, cooling
-overhead, land availability, and construction delay. It intentionally does not
-include the old battery-ceiling, congestion, capex, storage, carbon-cap, or
-reference-price sweeps.
+overhead, land availability, and construction delay. Battery-ceiling,
+congestion, capex, storage, carbon-cap, and reference-price sweeps are kept
+outside this manuscript set.
 """
 
 from __future__ import annotations
@@ -134,6 +134,13 @@ def _write(rows: Iterable[Dict], path: str) -> None:
         writer.writerows(data)
 
 
+def _read_existing(path: str) -> List[Dict]:
+    if not os.path.exists(path):
+        return []
+    with open(path, newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
 def _mean(rows: List[Dict], key: str) -> float:
     return sum(float(row[key]) for row in rows) / len(rows)
 
@@ -218,9 +225,22 @@ def main() -> None:
         export_csv=False,
         export_plots=False,
     )
-    detailed = []
-    summary = []
-    for factor, level, setting, value, unit, case_cfg in sensitivity_cases(cfg):
+    tag = "smoke" if args.smoke else "annual"
+    out_dir = os.path.join("output", "congested3")
+    detailed_path = os.path.join(out_dir, f"sensitivity_{tag}_4x10.csv")
+    summary_path = os.path.join(out_dir, f"sensitivity_{tag}_summary.csv")
+    partial_detailed_path = os.path.join(out_dir, f"sensitivity_{tag}_4x10.partial.csv")
+    partial_summary_path = os.path.join(out_dir, f"sensitivity_{tag}_summary.partial.csv")
+
+    detailed = _read_existing(partial_detailed_path)
+    summary = _read_existing(partial_summary_path)
+    completed = {(row["factor"], row["level"]) for row in detailed}
+    cases = sensitivity_cases(cfg)
+    for index, (factor, level, setting, value, unit, case_cfg) in enumerate(cases, start=1):
+        if (factor, level) in completed:
+            print(f"[{index}/{len(cases)}] skipping completed sensitivity case: {factor}/{level}")
+            continue
+        print(f"[{index}/{len(cases)}] running sensitivity case: {factor}/{level}")
         rows = run_primary_design(case_cfg)
         if len(rows) != 40:
             raise RuntimeError(f"Sensitivity case {factor}/{level} returned {len(rows)} rows.")
@@ -236,9 +256,11 @@ def main() -> None:
         for archetype in sorted({str(row["archetype"]) for row in rows}):
             subset = [row for row in rows if row["archetype"] == archetype]
             summary.append(summarize(factor, level, setting, value, unit, subset, archetype))
-    tag = "smoke" if args.smoke else "annual"
-    _write(detailed, os.path.join("output", "congested3", f"sensitivity_{tag}_4x10.csv"))
-    _write(summary, os.path.join("output", "congested3", f"sensitivity_{tag}_summary.csv"))
+        _write(detailed, partial_detailed_path)
+        _write(summary, partial_summary_path)
+        completed.add((factor, level))
+    os.replace(partial_detailed_path, detailed_path)
+    os.replace(partial_summary_path, summary_path)
 
 
 if __name__ == "__main__":

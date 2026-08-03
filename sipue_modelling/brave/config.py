@@ -63,7 +63,7 @@ class Config:
 
     enforce_locked_calibration: bool = True
 
-    robust_objective: str = "normalized_lexicographic"
+    robust_objective: str = "normalized_pure_minmax"
     lexicographic_regret_tolerance: float = 1e-7
 
     capex_HX: float = 220000.0       # Upfront EUR per MW_th.
@@ -90,42 +90,10 @@ class Config:
     K_HX_max: float = 50.0
     K_HP_max: float = 25.0
     K_FLEX_max: float = 25.0
-    # Absolute fallback ceilings, only used when the corresponding min_bat_*
-    # floor below is disabled (set to 0). Otherwise battery capacity is
-    # bounded by battery_capacity_headroom_multiplier x the min_bat_* floor,
-    # scaled by each scenario's own base_it_mw -- see solve_perfect_foresight
-    # and solve_minmax_regret. A fixed absolute cap divided by facility size
-    # gives smaller facilities *more* per-MW-IT headroom, not less, which let
-    # small archetypes install batteries many times oversized relative to
-    # their own facility and earn an independent-benefit credit disconnected
-    # from their actual energy footprint.
+    # Fallback battery ceilings used only when per-MW-IT floors are disabled.
     K_BAT_E_max: float = 80.0
     K_BAT_P_max: float = 50.0
-    # Ceiling on installable battery capacity, expressed as a multiple of the
-    # min_bat_* floors (both already per-MW-IT ratios):
-    #   power ceiling  = battery_capacity_headroom_multiplier * min_bat_p_mw_per_it_mw   (MW per MW IT)
-    #   energy ceiling = battery_capacity_headroom_multiplier * min_bat_e_hours          (hours-equivalent per MW IT)
-    # At the current default (2.0) this allows up to 0.20 MW of battery power
-    # per MW of IT load (20% of IT) and 1.0 h of energy per MW of IT.
-    #
-    # Literature grounding for this multiplier:
-    #  - NREL's Annual Technology Baseline (Cost Projections for Utility-Scale
-    #    Battery Storage, 2024/2025 updates) treats 4-hour duration Li-ion as
-    #    the standard grid-scale configuration; >90% of newly installed
-    #    grid-scale capacity is 4 h or shorter.
-    #  - Real data-center-paired batteries deployed/announced in 2025-2026
-    #    (e.g. Aligned Data Centers' 31 MW / 62 MWh system) use ~2-hour
-    #    duration, sized as a large-but-partial fraction of campus IT load.
-    #  - This project's own "baseline" (non-optimized incumbent) design case
-    #    uses baseline_bat_p_mw_per_it_mw=0.20 (20% of IT MW) at
-    #    baseline_bat_e_hours=0.8 h -- i.e. roughly a 4-hour-duration battery
-    #    sized at 20% of IT load.
-    # A multiplier of 2.0 (20% of IT MW power ceiling) matches the project's
-    # own baseline power assumption and the low end of real deployments
-    # above. Higher multipliers remain available for diagnostic sweeps, but
-    # any manuscript claim should use outputs regenerated from the current
-    # source tree. Battery-ceiling sensitivity is intentionally excluded from
-    # the current manuscript sensitivity set.
+    # Multiplier on per-MW-IT battery floors; default allows 0.20 MW/MW IT and 1.0 MWh/MW IT.
     battery_capacity_headroom_multiplier: float = 2.0
 
     eta_ch: float = 0.95
@@ -268,8 +236,7 @@ class Config:
     plot_format: str = "pdf"
     plot_extra_formats: Tuple[str, ...] = ()
     validation_output_dir: str = "output/validation"
-    # run_train_test_scenario_validation trains on uncertainty_id <= this
-    # value and evaluates on the rest, per archetype.
+    # Train/test split threshold for uncertainty_id, per archetype.
     train_test_max_train_id: int = 7
     out_of_sample_case_count: int = 200
 
