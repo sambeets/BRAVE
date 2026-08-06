@@ -4,6 +4,11 @@ Modeling code and experiment outputs for the paper:
 **"Evaluating Data Centers as Local Energy System Assets: A System-Integrated PUE Approach"**
 by Sambeet Mishra, Ankana Singha, Khaled Aleikish, Thomas Øyvang, Dominic Stephen, and Rob Hovsapian.
 
+## Contacts
+
+- Sambeet Mishra, University of South-Eastern Norway: sambeet.mishra@usn.no
+- Ankana Singha, Researcher, University of South-Eastern Norway: singha.ankana@usn.no
+
 ## Overview
 
 This repository implements a two-stage optimization framework for data center integration with local energy systems and evaluates **System-Integrated PUE (siPUE)** alongside conventional PUE, integrated-planning accounting, and operator settlement diagnostics.
