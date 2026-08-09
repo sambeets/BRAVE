@@ -753,7 +753,7 @@ def _fig_12_delay_credit_bridge(rows: Sequence[Dict], out_dir: str, cfg: Config)
     absolute MWh lost varies by archetype because it scales with each
     archetype's own undelayed credit."""
     archetypes = _all_archetypes(rows)
-    fig, ax = plt.subplots(figsize=(9.0, 5.2))
+    fig, ax = plt.subplots(figsize=(11.0, 5.4))
     y = np.arange(len(archetypes))
     loss_mwh = [
         _mean_numeric([row for row in rows if _value(row, "Archetype") == archetype], "sipue_credit_loss_mwh_robust")
@@ -765,10 +765,10 @@ def _fig_12_delay_credit_bridge(rows: Sequence[Dict], out_dir: str, cfg: Config)
     ax.set_yticks(y, archetypes)
     ax.invert_yaxis()
     max_loss = max(loss_mwh, default=0.0)
-    ax.set_xlim(0, max_loss * 1.2 if max_loss > 0 else 1.0)
-    ax.set_xlabel("siPUE credit lost to construction delay (MWh-equivalent/year)")
+    ax.set_xlim(0, max_loss * 1.3 if max_loss > 0 else 1.0)
+    ax.set_xlabel("Credit lost to construction delay (MWh-equivalent/year)", fontsize=_fs(9.5))
     _style_axis(ax, "x")
-    fig.subplots_adjust(left=0.24)
+    fig.tight_layout()
     _save_figure(fig, out_dir, "final_15_delay_credit_bridge", cfg)
 
 
