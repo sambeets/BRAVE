@@ -23,7 +23,6 @@ output/
 
 # Vendored/scratch dependency copies and tool state
 .deps/
-.claude/
 
 # Python runtime caches
 __pycache__/
