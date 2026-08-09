@@ -1,4 +1,4 @@
-"""Generate the creative SIPUE figure package from existing CSV outputs."""
+"""Regenerate the manuscript figure package from existing CSV outputs."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import argparse
 from dataclasses import replace
 
 from brave.config import Config
-from brave.plotting import export_creative_figure_package_from_csv
+from brave.plotting import export_manuscript_figures_from_csv
 
 
 def main() -> None:
@@ -24,7 +24,7 @@ def main() -> None:
         cfg = replace(cfg, plot_format=args.format)
     if args.extra_format:
         cfg = replace(cfg, plot_extra_formats=tuple(args.extra_format))
-    export_creative_figure_package_from_csv(cfg)
+    export_manuscript_figures_from_csv(cfg)
 
 
 if __name__ == "__main__":

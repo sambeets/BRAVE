@@ -4,7 +4,7 @@ import pytest
 
 from brave.config import Config
 from brave.plotting import (
-    export_creative_figure_package,
+    export_manuscript_figures,
     export_sensitivity_plots,
 )
 
@@ -12,7 +12,7 @@ from brave.plotting import (
 pytestmark = pytest.mark.unit
 
 
-def _creative_row(archetype: str, key: str, scenario_id: int):
+def _manuscript_row(archetype: str, key: str, scenario_id: int):
     row = {
         "archetype": archetype,
         "archetype_key": key,
@@ -63,7 +63,7 @@ def _creative_row(archetype: str, key: str, scenario_id: int):
     return row
 
 
-def test_creative_figure_package_generates_mixed_audience_set(tmp_path):
+def test_manuscript_figures_generate_expected_set(tmp_path):
     cfg = replace(
         Config(enforce_locked_calibration=False),
         export_plots=True,
@@ -73,8 +73,8 @@ def test_creative_figure_package_generates_mixed_audience_set(tmp_path):
         plot_format="png",
     )
     rows = [
-        _creative_row("AI/HPC", "ai_hpc", 1),
-        _creative_row("Hyperscale cloud", "hyperscale", 2),
+        _manuscript_row("AI/HPC", "ai_hpc", 1),
+        _manuscript_row("Hyperscale cloud", "hyperscale", 2),
     ]
     decomposition = [
         {
@@ -94,7 +94,7 @@ def test_creative_figure_package_generates_mixed_audience_set(tmp_path):
             ("construction delay", -75000.0),
         )
     ]
-    export_creative_figure_package(rows, [], decomposition, cfg)
+    export_manuscript_figures(rows, [], decomposition, cfg)
     expected = {
         "final_01_optimization_formulation_map.png",
         "final_03_representative_day_weights.png",

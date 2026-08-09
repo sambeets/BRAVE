@@ -1214,7 +1214,7 @@ def _write_manifest(cfg: Config, scenarios: Sequence[Scenario], output_dir: str)
         "run_train_test_scenario_validation.py",
         "run_out_of_sample_validation.py",
         "run_manuscript_sensitivity_repdays_annual.py",
-        "run_creative_figures.py",
+        "run_manuscript_figures.py",
     ]
     for root in source_roots:
         if os.path.isfile(root):

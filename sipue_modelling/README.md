@@ -1,13 +1,7 @@
 # sipue_modelling
 
-Modeling code, experiment outputs, and manuscript source for the paper:
-**"Evaluating Data Centers as Assets in Local Energy Systems: A System-Integrated PUE Approach"**
-by Sambeet Mishra, Ankana Singha, Khaled Aleikish, Thomas Øyvang, Dominic Stephen, and Rob Hovsapian.
-
-## Contacts
-
-- Sambeet Mishra, University of South-Eastern Norway: sambeet.mishra@usn.no
-- Ankana Singha, Researcher, University of South-Eastern Norway: singha.ankana@usn.no
+Modeling code and experiment workflows for evaluating data centers as assets in
+local energy systems using a System-Integrated PUE approach.
 
 ## Abstract
 
@@ -27,21 +21,20 @@ The core idea is to evaluate data centers not only as electricity loads, but as 
 
 - `brave/`: core modeling package (config, scenario generation, optimization, metrics, plotting, exports).
 - `main.py`: thin compatibility entrypoint that re-exports public APIs from `brave`.
-- `run_manuscript_sensitivity_repdays_annual.py`: manuscript sensitivity runner (heat price, flexibility price, cooling overhead, land availability, construction delay).
+- `run_manuscript_sensitivity_repdays_annual.py`: sensitivity runner for heat price, flexibility price, cooling overhead, land availability, and construction delay.
 - `run_carbon_cap_relaxed_ablation.py`: carbon-cap diagnostic used to separate cap compliance from priced carbon-damage valuation.
 - `run_out_of_sample_validation.py`: designs the robust portfolio on canonical states and evaluates it against freshly drawn synthetic scenarios.
 - `run_train_test_scenario_validation.py`: held-out train/test diagnostic (design on states 1-7, evaluate on states 8-10), per archetype.
-- `run_optimized_efficiency_comparator.py`: supplementary diagnostic where the services-disabled comparator chooses its own efficiency level freely, instead of the paper's design-matched 15% retrofit.
+- `run_optimized_efficiency_comparator.py`: supplementary diagnostic where the services-disabled comparator chooses its own efficiency level freely, instead of the design-matched 15% retrofit.
 - `run_sipue_objective_comparison.py` / `run_sipue_objective_comparison_out_of_sample.py`: in-sample and out-of-sample comparison of the cost-regret Stage-2 objective against a direct siPUE-regret objective.
-- `run_creative_figures.py`: regenerates the manuscript figure package from the existing CSV outputs, without re-running the optimization.
+- `run_manuscript_figures.py`: rebuilds figures from existing CSV outputs without re-running the optimization.
 - `data/network_3node_timeseries.csv`: network and time-series input data.
-- `output/`: generated results tables and paper figures (not tracked in git; regenerate locally via the scripts above).
+- `output/`: generated results tables and figures (not tracked in git; regenerate locally via the scripts above).
 - `tests/`: unit and integration-style tests plus golden references.
-- `paper v3.tex` / `paper v3.pdf`: the tracked manuscript source and compiled PDF. The bibliography (`references.bib`) is generated/maintained locally and is not tracked in git, consistent with this repo's policy of excluding generated manuscript artifacts.
 
 ## Model outline
 
-From the paper's abstract and Section 3 (Method):
+The model follows this structure:
 - siPUE is defined to recover conventional PUE in the services-disabled comparator (no active services).
 - siPUE uses a delay-adjusted independent avoided system cost, not private heat or flexibility revenue:
   `siPUE = [E_FAC - a_s * (C_ind,0 - C_ind) / p_ref]^+ / E_IT`.
@@ -51,7 +44,7 @@ From the paper's abstract and Section 3 (Method):
 - Cooling electricity is included in facility load, PUE, and siPUE. The recoverable-heat source includes IT load and cooling heat, but the current formulation does not model a separate cooling-export service.
 - A five-mode two-stage design is used: **identity** (sets the reference price and checks siPUE = PUE), **services-disabled comparator** (reference case), **baseline** (assumed incumbent service-active portfolio), **robust** (shared min-max-regret design per archetype across the ten uncertainty states), and **scenario-perfect** (per-scenario benchmark used only to compute regret).
 - Carbon outcomes are reported through physical emissions, avoided-heat emissions, ETS market cost, and independent carbon-damage valuation, kept as separate ledgers so siPUE can be checked against physical and system-level diagnostics.
-- The reference min-max-regret formulation is the design objective reported in the paper; the direct siPUE-regret objective is reported as a separate diagnostic (`run_sipue_objective_comparison*.py`).
+- The reference min-max-regret formulation is the main design objective; the direct siPUE-regret objective is reported as a separate diagnostic (`run_sipue_objective_comparison*.py`).
 
 ## Setup and Run
 
@@ -67,22 +60,22 @@ poetry install
 poetry run python main.py
 ```
 
-The base workflow exports the paper-facing core cases: identity, services-disabled comparator, baseline, and the shared min-max-regret robust design. Heavier sensitivity, out-of-sample, carbon-cap, and objective-comparison diagnostics are kept as separate optional scripts.
+The base workflow exports the core cases: identity, services-disabled comparator, baseline, and the shared min-max-regret robust design. Sensitivity, out-of-sample, carbon-cap, and objective-comparison diagnostics run through separate scripts.
 
-### 3. Optional diagnostic sensitivity analysis
+### 3. Run sensitivity analysis
 
 ```bash
 poetry run python run_manuscript_sensitivity_repdays_annual.py
 ```
 
-This runner reports the manuscript sensitivity set with both labels and
-numeric settings: heat price multiplier `0.30/0.90`, flexibility price
+This runner reports the sensitivity set with both labels and numeric settings:
+heat price multiplier `0.30/0.90`, flexibility price
 multiplier `0.125/0.375`, cooling overhead `0.8x/1.2x`, land availability
 `0.65x/1.2x/100x`, and construction delay `0/12` months. Carbon-damage
 valuation is kept as a separate policy ledger diagnostic, not a main
 physical/market sensitivity factor.
 
-### 4. Optional carbon-cap relaxed diagnostic
+### 4. Run carbon-cap relaxed diagnostic
 
 ```bash
 poetry run python run_carbon_cap_relaxed_ablation.py
@@ -94,7 +87,7 @@ output `output/congested3/carbon_cap_relaxed_ablation.csv` is used to check
 whether the carbon-damage credit is driven by priced valuation or by cap
 compliance.
 
-### 5. Optional out-of-sample diagnostic
+### 5. Run out-of-sample diagnostic
 
 This designs the robust portfolio on the ten canonical states and evaluates the
 fixed design under freshly drawn synthetic scenarios.
@@ -103,7 +96,7 @@ fixed design under freshly drawn synthetic scenarios.
 poetry run python run_out_of_sample_validation.py
 ```
 
-### 6. Optional train/test scenario diagnostic
+### 6. Run train/test scenario diagnostic
 
 This designs the robust portfolio on uncertainty states 1-7 and evaluates the
 fixed design on held-out states 8-10, per archetype.
@@ -112,7 +105,7 @@ fixed design on held-out states 8-10, per archetype.
 poetry run python run_train_test_scenario_validation.py
 ```
 
-### 7. Optional siPUE-regret objective comparison
+### 7. Run siPUE-regret objective comparison
 
 ```bash
 poetry run python run_sipue_objective_comparison.py
@@ -122,15 +115,14 @@ poetry run python run_sipue_objective_comparison_out_of_sample.py
 These compare the reference cost-regret Stage-2 objective against a direct
 siPUE-regret objective, in-sample and on freshly drawn scenarios.
 
-### 8. Regenerate manuscript figures only
+### 8. Regenerate figures
 
 ```bash
-poetry run python run_creative_figures.py
+poetry run python run_manuscript_figures.py
 ```
 
-Rebuilds the figure package in `output/congested3/figures/` from the existing
-CSV outputs, without re-running the optimization. Useful after a plotting-only
-change (styling, labels, layout).
+Rebuilds `output/congested3/figures/` from existing CSV outputs without
+re-running the optimization.
 
 ### 9. Run tests
 
@@ -145,9 +137,9 @@ flowchart TD
     A[Define planning objective and scenario set<br/>siPUE / PUE / operator diagnostics]
     B[Prepare inputs and assumptions<br/>data/network_3node_timeseries.csv + config]
     C[Run baseline optimization<br/>poetry run python main.py]
-    D[Generate baseline outputs<br/>results + paper figures in output/]
-    E[Optional diagnostics<br/>sensitivity and validation scripts]
-    F[Review diagnostic outputs<br/>before manuscript use]
+    D[Generate baseline outputs<br/>results + figures in output/]
+    E[Diagnostics<br/>sensitivity and validation scripts]
+    F[Review diagnostic outputs]
     G[Interpret and compare findings<br/>only from source-consistent outputs]
 
     A --> B --> C --> D
@@ -156,9 +148,9 @@ flowchart TD
 
 ## Model pipeline
 
-This mirrors the two-stage design-and-operation model described in the paper
-(Section 3, Figure 5): inputs are reduced to weighted representative days and
-combined with the shared archetype x uncertainty-state scenario set;
+This mirrors the two-stage design-and-operation model: inputs are reduced to
+weighted representative days and combined with the shared archetype x
+uncertainty-state scenario set;
 scenario-perfect benchmarks are then used to formulate the shared
 min-max-regret robust design, which is evaluated operationally and reported
 through PUE, siPUE, system benefit, and regret.
@@ -176,14 +168,8 @@ flowchart LR
     A --> B --> C --> D --> E --> F --> G
 ```
 
-## Paper and citation
-
-The manuscript source (`paper v3.tex`) and compiled PDF (`paper v3.pdf`) are
-tracked in this repository; the bibliography and generated figures are not
-(see `.gitignore`). Please cite the paper above when using this code or its
-outputs.
-
 ## Notes
 
 - Python dependency management is configured via Poetry (`pyproject.toml`).
 - Generated analysis artifacts are stored under `output/`.
+- Use short, single-line commit messages for commits pushed to the remote.

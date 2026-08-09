@@ -86,8 +86,8 @@ from brave.plotting import (  # noqa: F401
     _fs,
     _pretty_type_label,
     export_study_plots,
-    export_creative_figure_package,
-    export_creative_figure_package_from_csv,
+    export_manuscript_figures,
+    export_manuscript_figures_from_csv,
     export_sensitivity_plots,
 )
 

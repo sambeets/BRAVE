@@ -928,7 +928,7 @@ def export_sensitivity_plots(cfg: Config) -> None:
     _fig_18_sensitivity_archetype_response(rows, out_dir, cfg)
 
 
-def export_creative_figure_package(
+def export_manuscript_figures(
     rows: Sequence[Dict],
     comparison: Sequence[Dict],
     decomposition: Sequence[Dict],
@@ -951,7 +951,7 @@ def export_creative_figure_package(
     export_sensitivity_plots(cfg)
 
 
-def export_creative_figure_package_from_csv(cfg: Config) -> None:
+def export_manuscript_figures_from_csv(cfg: Config) -> None:
     rows = _read_csv_rows(os.path.join(cfg.canonical_output_dir, "results_4_archetypes_10_states.csv"))
     comparison = _read_csv_rows(os.path.join(cfg.canonical_output_dir, "design_comparison.csv"))
     decomposition = _read_csv_rows(os.path.join(cfg.canonical_output_dir, "decomposition.csv"))
@@ -959,7 +959,7 @@ def export_creative_figure_package_from_csv(cfg: Config) -> None:
         raise FileNotFoundError(
             os.path.join(cfg.canonical_output_dir, "results_4_archetypes_10_states.csv")
         )
-    export_creative_figure_package(rows, comparison, decomposition, cfg)
+    export_manuscript_figures(rows, comparison, decomposition, cfg)
 
 
 def export_study_plots(
@@ -1009,4 +1009,4 @@ def export_study_plots(
     fig.subplots_adjust(bottom=0.22)
     _save_figure(fig, out_dir, "final_12_network_congestion_by_archetype", cfg)
 
-    export_creative_figure_package(rows, comparison, decomposition, cfg)
+    export_manuscript_figures(rows, comparison, decomposition, cfg)
