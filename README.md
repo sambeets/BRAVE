@@ -1,6 +1,10 @@
 # BRAVE
 
-Repository for the SIPUE modeling project.
+This repository supports work on the Interreg BRAVE project.
+It currently hosts modeling and documentation for the siPUE data-center
+local energy-system workstream.
+
+Repository: https://github.com/sambeets/BRAVE
 
 ## Structure
 
